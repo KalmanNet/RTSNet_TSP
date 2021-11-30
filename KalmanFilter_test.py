@@ -2,24 +2,30 @@ import torch
 import torch.nn as nn
 import time
 from Linear_KF import KalmanFilter
-from Extended_data import N_T
 
-def KFTest(SysModel, test_input, test_target):
+def KFTest(SysModel, test_input, test_target, kitti=False):
 
     # LOSS
     loss_fn = nn.MSELoss(reduction='mean')
 
     # MSE [Linear]
+    N_T = len(test_input)
     MSE_KF_linear_arr = torch.empty(N_T)
     start = time.time()
     KF = KalmanFilter(SysModel)
-    KF.InitSequence(SysModel.m1x_0, SysModel.m2x_0)
-    
-    for j in range(0, N_T):
-
-        KF.GenerateSequence(test_input[j, :, :], KF.T_test)
-
-        MSE_KF_linear_arr[j] = loss_fn(KF.x, test_target[j, :, :]).item()
+    if(~kitti):
+        KF.InitSequence(SysModel.m1x_0, SysModel.m2x_0)       
+    j=0
+    mask = torch.tensor([True,True,True,False,False,False])# for kitti
+    for sequence_target,sequence_input in zip(test_target,test_input):
+        if(kitti):
+            KF.InitSequence(sequence_target[:,0], SysModel.m2x_0)   
+        KF.GenerateSequence(sequence_input, sequence_input.size()[-1])
+        if(kitti):
+            MSE_KF_linear_arr[j] = loss_fn(KF.x[mask], sequence_target[mask]).item()     
+        else:
+            MSE_KF_linear_arr[j] = loss_fn(KF.x, sequence_target).item()
+        j = j+1
         #MSE_KF_linear_arr[j] = loss_fn(test_input[j, :, :], test_target[j, :, :]).item()
     end = time.time()
     t = end - start

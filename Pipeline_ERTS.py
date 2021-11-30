@@ -48,10 +48,10 @@ class Pipeline_ERTS:
         # self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizer, 'min',factor=0.9, patience=20)
 
 
-    def NNTrain(self, SysModel, cv_input, cv_target, train_input, train_target, path_results, nclt=False, sequential_training=False, rnn=False, epochs=None, train_IC=None, CV_IC=None, multipass=False):
+    def NNTrain(self, SysModel, cv_input, cv_target, train_input, train_target, path_results, kitti=False, rnn=False, epochs=None, multipass=False):
 
-        self.N_E = train_input.size()[0]
-        self.N_CV = cv_input.size()[0]
+        self.N_E = len(train_input)
+        self.N_CV = len(cv_input)
 
         MSE_cv_linear_batch = torch.empty([self.N_CV]).to(dev, non_blocking=True)
         self.MSE_cv_linear_epoch = torch.empty([self.N_Epochs]).to(dev, non_blocking=True)
@@ -91,18 +91,14 @@ class Pipeline_ERTS:
                 
                 self.model.i = 0
                 n_e = random.randint(0, self.N_E - 1)
-                if(sequential_training):
-                    if(nclt):
-                        init_conditions = torch.reshape(cv_input[j,:,0], SysModel.m1x_0.shape)
-                    elif CV_IC is None:
-                        init_conditions = torch.reshape(cv_target[j,:,0], SysModel.m1x_0.shape)
-                    else:
-                        init_conditions = SysModel.m1x_0
+                y_training = train_input[n_e]
+                SysModel.T = y_training.size()[-1]
+                
+                if(kitti):
+                    init_conditions = train_target[n_e][:,0]
                 else:
                     init_conditions = SysModel.m1x_0
-
-                y_training = train_input[n_e, :, :]
-                SysModel.T = y_training.size()[-1]
+                
                 self.model.InitSequence(init_conditions, SysModel.m2x_0, SysModel.T)
                 x_out_training_forward = torch.empty(SysModel.m, SysModel.T).to(dev, non_blocking=True)
                 x_out_training = torch.empty(SysModel.m, SysModel.T).to(dev, non_blocking=True)
@@ -127,15 +123,11 @@ class Pipeline_ERTS:
                     x_out_training = x_out_train_2
 
                 # Compute Training Loss
-                if(nclt):
-                    if x_out_training.size()[0]==6:
-                        mask = torch.tensor([True,False,False,True,False,False])
-                    else:
-                        mask = torch.tensor([True,False,True,False])
-                    LOSS = self.loss_fn(x_out_training[mask], train_target[n_e, :, :])
+                if(kitti):
+                    mask = torch.tensor([True,True,True,False,False,False])
+                    LOSS = self.loss_fn(x_out_training[mask], train_target[n_e][mask])
                 else:
-                    LOSS = self.loss_fn(x_out_training, train_target[n_e, :, :])
-
+                    LOSS = self.loss_fn(x_out_training, train_target[n_e])
                 MSE_train_linear_batch[j] = LOSS.item()
 
                 Batch_Optimizing_LOSS_sum = Batch_Optimizing_LOSS_sum + LOSS
@@ -174,19 +166,15 @@ class Pipeline_ERTS:
             self.model.eval()
             with torch.no_grad():
                 for j in range(0, self.N_CV):
+                    y_cv = cv_input[j]
+                    SysModel.T_test = y_cv.size()[-1]
                     # Initialize next sequence
-                    if(sequential_training):
-                        if(nclt):
-                            init_conditions = torch.reshape(cv_input[j,:,0], SysModel.m1x_0.shape)
-                        elif CV_IC is None:
-                            init_conditions = torch.reshape(cv_target[j,:,0], SysModel.m1x_0.shape)
-                        else:
-                            init_conditions = SysModel.m1x_0
+                    if(kitti):
+                        init_conditions = cv_target[j][:,0]
                     else:
                         init_conditions = SysModel.m1x_0
-
-                    y_cv = cv_input[j, :, :]
-                    SysModel.T_test = y_cv.size()[-1]
+                
+                    
                     self.model.InitSequence(init_conditions, SysModel.m2x_0, SysModel.T_test)                  
 
                     x_out_cv_forward = torch.empty(SysModel.m, SysModel.T_test).to(dev, non_blocking=True)
@@ -212,14 +200,11 @@ class Pipeline_ERTS:
                         x_out_cv = x_out_cv_2
 
                     # Compute Training Loss
-                    if(nclt):
-                        if x_out_cv.size()[0]==6:
-                            mask = torch.tensor([True,False,False,True,False,False])
-                        else:
-                            mask = torch.tensor([True,False,True,False])
-                        MSE_cv_linear_batch[j] = self.loss_fn(x_out_cv[mask], cv_target[j, :, :]).item()
+                    if(kitti):
+                        mask = torch.tensor([True,True,True,False,False,False])
+                        MSE_cv_linear_batch[j] = self.loss_fn(x_out_cv[mask], cv_target[j][mask]).item()
                     else:
-                        MSE_cv_linear_batch[j] = self.loss_fn(x_out_cv, cv_target[j, :, :]).item()
+                        MSE_cv_linear_batch[j] = self.loss_fn(x_out_cv, cv_target[j]).item()
 
                 # Average
                 self.MSE_cv_linear_epoch[ti] = torch.mean(MSE_cv_linear_batch)
@@ -246,9 +231,9 @@ class Pipeline_ERTS:
 
         return [self.MSE_cv_linear_epoch, self.MSE_cv_dB_epoch, self.MSE_train_linear_epoch, self.MSE_train_dB_epoch]
 
-    def NNTest(self, SysModel, test_input, test_target, path_results, nclt=False, rnn=False, IC=None,multipass=False):
+    def NNTest(self, SysModel, test_input, test_target, path_results, kitti=False, rnn=False,multipass=False):
 
-        self.N_T = test_input.size()[0]
+        self.N_T = len(test_input)
 
         self.MSE_test_linear_arr = torch.empty([self.N_T])
 
@@ -261,18 +246,16 @@ class Pipeline_ERTS:
 
         torch.no_grad()
 
-        x_out_array = torch.zeros_like(test_input)
+        x_out_list = []
         start = time.time()
         for j in range(0, self.N_T):
 
-            y_mdl_tst = test_input[j, :, :]
+            y_mdl_tst = test_input[j]
             SysModel.T_test = y_mdl_tst.size()[-1]
-            if nclt:
-                self.model.InitSequence(SysModel.m1x_0, SysModel.m2x_0, SysModel.T_test)
-            elif IC is None:
-                self.model.InitSequence(torch.unsqueeze(test_target[j, :, 0], dim=1), SysModel.m2x_0, SysModel.T_test)
+            if kitti:
+                self.model.InitSequence(test_target[j][:,0], SysModel.m2x_0, SysModel.T_test)
             else:
-                init_cond = torch.reshape(IC[j, :], SysModel.m1x_0.shape)
+                init_cond = SysModel.m1x_0
                 self.model.InitSequence(init_cond, SysModel.m2x_0, SysModel.T_test)         
 
             x_out_test_forward_1 = torch.empty(SysModel.m,SysModel.T_test).to(dev, non_blocking=True)
@@ -299,15 +282,12 @@ class Pipeline_ERTS:
                     x_out_test_2[:, t] = self.model(None, x_out_test_forward_2[:, t], x_out_test_forward_2[:, t+1],x_out_test[:, t+2])          
                 x_out_test = x_out_test_2
 
-            if(nclt):
-                if x_out_test.size()[0] == 6:
-                    mask = torch.tensor([True,False,False,True,False,False])
-                else:
-                    mask = torch.tensor([True,False,True,False])
-                self.MSE_test_linear_arr[j] = loss_fn(x_out_test[mask], test_target[j, :, :]).item()
+            if(kitti):
+                mask = torch.tensor([True,True,True,False,False,False])
+                self.MSE_test_linear_arr[j] = loss_fn(x_out_test[mask], test_target[j][mask]).item()
             else:
-                self.MSE_test_linear_arr[j] = loss_fn(x_out_test, test_target[j, :, :]).item()
-            x_out_array[j,:,:] = x_out_test
+                self.MSE_test_linear_arr[j] = loss_fn(x_out_test, test_target[j]).item()
+            x_out_list.append(x_out_test)
         
         end = time.time()
         t = end - start
@@ -322,7 +302,7 @@ class Pipeline_ERTS:
         # Print Run Time
         print("Inference Time:", t)
 
-        return [self.MSE_test_linear_arr, self.MSE_test_linear_avg, self.MSE_test_dB_avg, x_out_array, t]
+        return [self.MSE_test_linear_arr, self.MSE_test_linear_avg, self.MSE_test_dB_avg, x_out_list, t]
 
     def PlotTrain_KF(self, MSE_KF_linear_arr, MSE_KF_dB_avg):
 

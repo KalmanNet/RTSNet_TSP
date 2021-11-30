@@ -8,7 +8,6 @@ from filing_paths import path_model
 
 import sys
 sys.path.insert(1, path_model)
-from model import getJacobian
 
 if torch.cuda.is_available():
     dev = torch.device("cuda:0")

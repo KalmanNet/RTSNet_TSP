@@ -14,7 +14,7 @@ else:
 basedir = 'Simulations/KITTI/KITTI_dataset/'
 date = '2011_09_26'
 drive = tuple()
-drive = ('0002','0005','0009','0011','0013','0014','0017','0018','0048','0051','0056','0057','0059','0060','0084','0091','0093','0095','0096','0104','0106','0113','0117')
+drive = ('0001','0002','0005','0009','0011','0013','0014','0017','0018','0048','0051','0056','0057','0059','0060','0084','0091','0093','0095','0096','0104','0106','0113','0117')
 
 def load_kittidata(basedir, date, drive):
     data = pykitti.raw(basedir, date, drive)
@@ -41,12 +41,10 @@ def load_kittidata(basedir, date, drive):
 
     return torch.from_numpy(np.vstack((array_xyz,array_vel)))
 
-gt_data = load_kittidata(basedir, date, '0001')
-gt_data = torch.unsqueeze(gt_data,0)
+gt_data = []
 for item in drive:
-    ground_truth = torch.unsqueeze(load_kittidata(basedir, date, item),0)
-    gt_data = torch.cat((gt_data,ground_truth),0)
-print(gt_data.size())
+    ground_truth = load_kittidata(basedir, date, item).float()
+    gt_data.append(ground_truth)
 
 #########################
 ### Design Parameters ###
@@ -68,11 +66,11 @@ F_kitti =torch.tensor([[1.0, 0.0, 0.0, delta_t, 0.0, 0.0],
                        [0.0, 0.0, 1.0, 0.0, 0.0, delta_t],
                        [0.0, 0.0, 0.0, 1.0, 0.0, 0.0],
                        [0.0, 0.0, 0.0, 0.0, 1.0, 0.0],
-                       [0.0, 0.0, 0.0, 0.0, 0.0, 1.0]]).double()
+                       [0.0, 0.0, 0.0, 0.0, 0.0, 1.0]])
 
 H_kitti = torch.tensor([[1.0, 0.0, 0.0, 0.0, 0.0, 0.0],
                         [0.0, 1.0, 0.0, 0.0, 0.0, 0.0],
-                        [0.0, 0.0, 1.0, 0.0, 0.0, 0.0]]).double()
+                        [0.0, 0.0, 1.0, 0.0, 0.0, 0.0]])
 
 
 
@@ -106,12 +104,9 @@ H_mod = torch.cat([H_mod, torch.zeros(3,3)],dim=1)
 ### Noise Parameters ####
 #########################
 # Noise Parameters
-lambda_r2 = torch.tensor([1], dtype=torch.float32)
-vdB = -20 # ratio v=q2/r2
-v = 10**(vdB/10)
-lambda_q2 = torch.mul(v,lambda_r2)
-lambda_r = torch.sqrt(lambda_r2)
-lambda_q = torch.sqrt(lambda_q2)
+
+lambda_r =  torch.tensor([0.1], dtype=torch.float32)
+lambda_q =  torch.tensor([1], dtype=torch.float32)
 
 # Noise Matrices
 q_1d = (lambda_q**2) * delta_t
