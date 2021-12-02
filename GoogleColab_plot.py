@@ -4,7 +4,6 @@ import os
 os.environ['KMP_DUPLICATE_LIB_OK']='True'
 from Plot import Plot_extended as Plot
 from Pipeline_ERTS import Pipeline_ERTS as Pipeline
-from Pipeline_EKF import Pipeline_EKF
 from KalmanNet_nn import KalmanNetNN
 from Extended_sysmdl import SystemModel
 # from Extended_data import DecimateData
@@ -14,11 +13,11 @@ from Extended_sysmdl import SystemModel
 from datetime import datetime
 device = torch.device('cpu')
 
-from filing_paths import path_model, path_session
-import sys
-sys.path.insert(1, path_model)
-from parameters import T, T_test, m1x_0, m2x_0, lambda_q_mod, lambda_r_mod, m, n,delta_t_gen,delta_t
-from model import f, h
+# from filing_paths import path_model, path_session
+# import sys
+# sys.path.insert(1, path_model)
+# from parameters import T, T_test, m1x_0, m2x_0, lambda_q_mod, lambda_r_mod, m, n,delta_t_gen,delta_t
+# from model import f, h
 
 ################
 ### Get Time ###
@@ -35,49 +34,49 @@ print("Current Time =", strTime)
 #######################
 
 #### Data load #################################################
-PipelinefolderName = 'EKNet/unsupervised' + '/'
-# EKFfolderName = 'KNet/KNet_TSP/histogram/obsmis/T1000' + '/'
-EKFfolderName = PipelinefolderName
-DatafolderName = 'Simulations/Lorenz_Atractor/data/T2000_NT100' + '/'
-# TrajfolderName = 'KNet/KNet_TSP/KNet/traj/T2000/obsmis' + '/'
-TrajfolderName = 'ERTSNet/new_arch_LA/decimation/traj' + '/'
+# PipelinefolderName = 'EKNet/unsupervised' + '/'
+# # EKFfolderName = 'KNet/KNet_TSP/histogram/obsmis/T1000' + '/'
+# EKFfolderName = PipelinefolderName
+# DatafolderName = 'Simulations/Lorenz_Atractor/data/T2000_NT100' + '/'
+# # TrajfolderName = 'KNet/KNet_TSP/KNet/traj/T2000/obsmis' + '/'
+# TrajfolderName = 'ERTSNet/new_arch_LA/decimation/traj' + '/'
 
-PipelineResultName = 'pipeline_KalmanNet_unsupervised_-8dB.pt'
-EKFResultName = 'KF_rq020_T100' 
-# DataResultName = 'data_lor_v20_rq1030_T2000.pt' 
-TrajResultName = 'Wellingstraj_lor_dec_all_r0.png'
-# ModelResultName = 'model_KalmanNet.pt'
-###################################################################
-KNet_Pipeline = Pipeline_EKF(strTime, "KNet", "KNet")
-# KNet_Pipeline.setssModel(sys_model)
-KNet_model = KalmanNetNN()
-# KNet_model = torch.load(DatafolderName+ModelResultName, map_location=device)
-KNet_Pipeline.setModel(KNet_model)
-KNet_Pipeline = torch.load(PipelinefolderName+PipelineResultName, map_location=device)
-####################################################################
-EKF = torch.load(EKFfolderName+EKFResultName, map_location=device)
-# print(EKF.keys())
-MSE_EKF_linear_arr = EKF['MSE_EKF_linear_arr']
-MSE_EKF_dB_avg = EKF['MSE_EKF_dB_avg']
-# MSE_EKF_linear_arr_partial = EKF['MSE_EKF_linear_arr_partial']
-# MSE_EKF_dB_avg_partial = EKF['MSE_EKF_dB_avg_partial']
-# MSE_EKF_linear_arr_partialoptq = EKF['MSE_EKF_linear_arr_partialoptq']
-# MSE_EKF_dB_avg_partialoptq = EKF['MSE_EKF_dB_avg_partialoptq']
-# print(MSE_EKF_dB_avg_partialoptq)
-# EKF_nan = torch.squeeze(torch.nonzero(torch.isnan(MSE_EKF_linear_arr.view(-1)))).size()
-# print("# of nan in EKF True:",EKF_nan)
-# MSE_EKF_dB_avg_new = 10 * torch.log10(torch.mean(MSE_EKF_linear_arr[~torch.isnan(MSE_EKF_linear_arr)]))
-# print(MSE_EKF_dB_avg_new)
-# EKF_partial_nan = torch.squeeze(torch.nonzero(torch.isnan(MSE_EKF_linear_arr_partial.view(-1)))).size()
-# print("# of nan in EKF Partial:",EKF_partial_nan)
-# MSE_EKF_dB_avg_partial_new = 10 * torch.log10(torch.mean(MSE_EKF_linear_arr_partial[~torch.isnan(MSE_EKF_linear_arr_partial)]))
-# # print(MSE_EKF_dB_avg_partial_new)
-# EKF_partialoptq_nan = torch.squeeze(torch.nonzero(torch.isnan(MSE_EKF_linear_arr_partialoptq.view(-1)))).size()
-# print("# of nan in EKF Partial with optimal q/r:",EKF_partialoptq_nan)
-# MSE_EKF_dB_avg_partialoptq_new = 10 * torch.log10(torch.mean(MSE_EKF_linear_arr_partialoptq[~torch.isnan(MSE_EKF_linear_arr_partialoptq)]))
-# print(MSE_EKF_dB_avg_partialoptq_new)
+# PipelineResultName = 'pipeline_KalmanNet_unsupervised_-8dB.pt'
+# EKFResultName = 'KF_rq020_T100' 
+# # DataResultName = 'data_lor_v20_rq1030_T2000.pt' 
+# TrajResultName = 'Wellingstraj_lor_dec_all_r0.png'
+# # ModelResultName = 'model_KalmanNet.pt'
+# ###################################################################
+# KNet_Pipeline = Pipeline_EKF(strTime, "KNet", "KNet")
+# # KNet_Pipeline.setssModel(sys_model)
+# KNet_model = KalmanNetNN()
+# # KNet_model = torch.load(DatafolderName+ModelResultName, map_location=device)
+# KNet_Pipeline.setModel(KNet_model)
+# KNet_Pipeline = torch.load(PipelinefolderName+PipelineResultName, map_location=device)
+# ####################################################################
+# EKF = torch.load(EKFfolderName+EKFResultName, map_location=device)
+# # print(EKF.keys())
+# MSE_EKF_linear_arr = EKF['MSE_EKF_linear_arr']
+# MSE_EKF_dB_avg = EKF['MSE_EKF_dB_avg']
+# # MSE_EKF_linear_arr_partial = EKF['MSE_EKF_linear_arr_partial']
+# # MSE_EKF_dB_avg_partial = EKF['MSE_EKF_dB_avg_partial']
+# # MSE_EKF_linear_arr_partialoptq = EKF['MSE_EKF_linear_arr_partialoptq']
+# # MSE_EKF_dB_avg_partialoptq = EKF['MSE_EKF_dB_avg_partialoptq']
+# # print(MSE_EKF_dB_avg_partialoptq)
+# # EKF_nan = torch.squeeze(torch.nonzero(torch.isnan(MSE_EKF_linear_arr.view(-1)))).size()
+# # print("# of nan in EKF True:",EKF_nan)
+# # MSE_EKF_dB_avg_new = 10 * torch.log10(torch.mean(MSE_EKF_linear_arr[~torch.isnan(MSE_EKF_linear_arr)]))
+# # print(MSE_EKF_dB_avg_new)
+# # EKF_partial_nan = torch.squeeze(torch.nonzero(torch.isnan(MSE_EKF_linear_arr_partial.view(-1)))).size()
+# # print("# of nan in EKF Partial:",EKF_partial_nan)
+# # MSE_EKF_dB_avg_partial_new = 10 * torch.log10(torch.mean(MSE_EKF_linear_arr_partial[~torch.isnan(MSE_EKF_linear_arr_partial)]))
+# # # print(MSE_EKF_dB_avg_partial_new)
+# # EKF_partialoptq_nan = torch.squeeze(torch.nonzero(torch.isnan(MSE_EKF_linear_arr_partialoptq.view(-1)))).size()
+# # print("# of nan in EKF Partial with optimal q/r:",EKF_partialoptq_nan)
+# # MSE_EKF_dB_avg_partialoptq_new = 10 * torch.log10(torch.mean(MSE_EKF_linear_arr_partialoptq[~torch.isnan(MSE_EKF_linear_arr_partialoptq)]))
+# # print(MSE_EKF_dB_avg_partialoptq_new)
 
-KNet_Pipeline.PlotTrain_KF(MSE_EKF_linear_arr, MSE_EKF_dB_avg)
+# KNet_Pipeline.PlotTrain_KF(MSE_EKF_linear_arr, MSE_EKF_dB_avg)
 
 ### Plot Trajectories Lor ###########################################
 # [train_input, train_target, cv_input, cv_target, test_input, test_target] = torch.load(DatafolderName+DataResultName, map_location=device)
@@ -207,21 +206,21 @@ KNet_Pipeline.PlotTrain_KF(MSE_EKF_linear_arr, MSE_EKF_dB_avg)
 #############################################
 ### RTSNet Generalization to Large System ###
 #############################################
-# DatafolderName = 'Simulations/Linear/scaling' + '/'
-# DataResultName = 'pipeline_RTSNet_10x10_Ttest1000.pt'
-# RTSNet_Pipeline = Pipeline(strTime, "RTSNet", "RTSNet_10x10")
-# RTSNet_Pipeline = torch.load(DatafolderName+DataResultName, map_location=device)
-# RTSNet_Pipeline.modelName = "RTSNet 10x10"
+DatafolderName = 'RTSNet' + '/'
+DataResultName = 'pipeline_RTSNet.pt'
+RTSNet_Pipeline = Pipeline(strTime, "RTSNet", "RTSNet_10x10")
+RTSNet_Pipeline = torch.load(DatafolderName+DataResultName, map_location=device)
+RTSNet_Pipeline.modelName = "RTSNet kitti r20q0"
 
-# DataResultName = '10x10_Ttest1000' 
-# KFandRTS = torch.load(DatafolderName+DataResultName, map_location=device)
-# MSE_KF_linear_arr = KFandRTS['MSE_KF_linear_arr']
-# MSE_KF_dB_avg = KFandRTS['MSE_KF_dB_avg']
-# MSE_RTS_linear_arr = KFandRTS['MSE_RTS_linear_arr']
-# MSE_RTS_dB_avg = KFandRTS['MSE_RTS_dB_avg']
+DataResultName = 'kitti_r20q0' 
+KFandRTS = torch.load(DatafolderName+DataResultName, map_location=device)
+MSE_KF_linear_arr = KFandRTS['MSE_KF_linear_arr']
+MSE_KF_dB_avg = KFandRTS['MSE_KF_dB_avg']
+MSE_RTS_linear_arr = KFandRTS['MSE_RTS_linear_arr']
+MSE_RTS_dB_avg = KFandRTS['MSE_RTS_dB_avg']
 
-# print("Plot")
-# RTSNet_Pipeline.PlotTrain_RTS(MSE_KF_linear_arr, MSE_KF_dB_avg, MSE_RTS_linear_arr, MSE_RTS_dB_avg)
+print("Plot")
+RTSNet_Pipeline.PlotTrain_RTS(MSE_KF_linear_arr, MSE_KF_dB_avg, MSE_RTS_linear_arr, MSE_RTS_dB_avg)
 
 
 

@@ -22,7 +22,7 @@ RTSlegend = ["RTSNet - Train", "RTSNet - Validation", "RTSNet - Test", "RTS Smoo
 ERTSlegend = ["RTSNet - Train","RTSNet - Validation", "RTSNet - Test", "RTS","EKF"]
 error_evol = ["KNet Empirical Error","KNet Covariance Trace","KF Empirical Error","KF Covariance Trace","KNet Error Deviation","EKF Error Deviation"]
 # Color
-KColor = ['-ro', 'k-', 'b-','g-']
+KColor = ['-ro','darkorange','k-', 'b-','g-']
 RTSColor = ['red','darkorange','g-', 'b-']
 
 class Plot:

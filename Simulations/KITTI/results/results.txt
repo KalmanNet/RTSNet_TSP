@@ -1,0 +1,20 @@
+Dataset: 24 trajs
+70% for training
+10% for cv
+20% for testing
+
+Observation noise 1/r2 [dB]:  tensor(20.)
+Process noise 1/q2 [dB]:  tensor(0.)
+
+Evaluate Kalman Filter True
+Kalman Filter - MSE LOSS: tensor(7.9989) [dB]
+Inference Time: 0.1529850959777832
+
+Evaluate RTS Smoother True
+RTS Smoother - MSE LOSS: tensor(3.3107) [dB]
+Inference Time: 0.3017139434814453
+
+RTSNet with full model info
+Training parameters (n_Epochs=500, n_Batch=1, learningRate=1E-3, weightDecay=1E-5)
+RTSNet-MSE Test: tensor(-22.1039) [dB]
+Inference Time: 3.6097331047058105
