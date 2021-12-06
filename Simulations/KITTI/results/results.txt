@@ -1,11 +1,13 @@
 Dataset: 24 trajs
+
+Alternative 1:
 70% for training
 10% for cv
 20% for testing
 
-Observation noise 1/r2 [dB]:  tensor(20.)
-Process noise 1/q2 [dB]:  tensor(0.)
+Observation noise 1/r2 [dB]:  tensor(20.)  (fixed)
 
+Process noise 1/q2 [dB]:  tensor(0.)
 Evaluate Kalman Filter True
 Kalman Filter - MSE LOSS: tensor(7.9989) [dB]
 Inference Time: 0.1529850959777832
@@ -18,3 +20,60 @@ RTSNet with full model info
 Training parameters (n_Epochs=500, n_Batch=1, learningRate=1E-3, weightDecay=1E-5)
 RTSNet-MSE Test: tensor(-22.1039) [dB]
 Inference Time: 3.6097331047058105
+
+Oprimize q to tune RTS
+Process noise 1/q2 [dB]:  tensor(-20.)
+Evaluate Kalman Filter True
+Kalman Filter - MSE LOSS: tensor(-8.0116) [dB]
+Evaluate RTS Smoother True
+RTS Smoother - MSE LOSS: tensor(-13.6361) [dB]
+
+Process noise 1/q2 [dB]:  tensor(-40.)
+Evaluate Kalman Filter True
+Kalman Filter - MSE LOSS: tensor(-21.1171) [dB]
+Evaluate RTS Smoother True
+RTS Smoother - MSE LOSS: tensor(-24.4221) [dB]
+
+Process noise 1/q2 [dB]:  tensor(-60.)
+Evaluate Kalman Filter True
+Kalman Filter - MSE LOSS: tensor(-20.3003) [dB]
+Evaluate RTS Smoother True
+RTS Smoother - MSE LOSS: tensor(-21.0471) [dB]
+
+Optimal 1/q2 [dB]:  tensor(-40.)
+
+
+
+
+
+Observation noise 1/r2 [dB]:  tensor(0.) (fixed)
+Oprimize q to tune RTS
+Process noise 1/q2 [dB]:  tensor(-20.)
+Evaluate Kalman Filter True
+Kalman Filter - MSE LOSS: tensor(8.0314) [dB]
+Inference Time: 0.14631366729736328
+Evaluate RTS Smoother True
+RTS Smoother - MSE LOSS: tensor(3.3235) [dB]
+Inference Time: 0.2869985103607178
+
+Process noise 1/q2 [dB]:  tensor(-40.)
+Evaluate Kalman Filter True
+Kalman Filter - MSE LOSS: tensor(-4.0594) [dB]
+Evaluate RTS Smoother True
+RTS Smoother - MSE LOSS: tensor(-9.0324) [dB]
+
+
+Optimal 1/q2 [dB]: 
+
+
+Observation noise 1/r2 [dB]:  tensor(-20.)
+Process noise 1/q2 [dB]:  tensor(-40.)
+Evaluate Kalman Filter True
+Kalman Filter - MSE LOSS: tensor(11.0126) [dB]
+Inference Time: 0.14194250106811523
+Evaluate RTS Smoother True
+RTS Smoother - MSE LOSS: tensor(6.9561) [dB]
+Inference Time: 0.28128957748413086
+RTSNet with full model info
+RTSNet-MSE Test: tensor(8.7128) [dB]
+Inference Time: 2.7452688217163086
