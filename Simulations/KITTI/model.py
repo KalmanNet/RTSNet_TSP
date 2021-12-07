@@ -108,7 +108,7 @@ H_mod = torch.cat([H_mod, torch.zeros(3,3)],dim=1)
 #########################
 # Noise Parameters
 
-lambda_r =  torch.tensor([0.1], dtype=torch.float32)
+lambda_r =  torch.tensor([1], dtype=torch.float32)
 lambda_q =  torch.tensor([1], dtype=torch.float32)
 
 # Noise Matrices
