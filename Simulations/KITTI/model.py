@@ -11,7 +11,7 @@ else:
    dev = torch.device("cpu")
    print("Running on the CPU")
 
-basedir = 'Simulations/KITTI/KITTI_dataset/'
+basedir = 'Simulations/KITTI/KITTI_dataset/City'
 date = '2011_09_26'
 drive = tuple()
 drive = ('0001','0002','0005','0009','0011','0013','0014','0017','0018','0048','0051','0056','0057','0059','0060','0084','0091','0093','0095','0096','0104','0106','0113','0117')

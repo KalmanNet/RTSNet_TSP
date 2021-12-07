@@ -1,5 +1,6 @@
-Dataset: 24 trajs
+1 City Dataset: 24 trajs
 
+1.1 
 Alternative 1:
 70% for training
 10% for cv
@@ -77,3 +78,11 @@ Inference Time: 0.28128957748413086
 RTSNet with full model info
 RTSNet-MSE Test: tensor(8.7128) [dB]
 Inference Time: 2.7452688217163086
+
+
+1.2 
+Alternative 2:
+16 trajs for training
+2 for cv
+6 for testing
+
