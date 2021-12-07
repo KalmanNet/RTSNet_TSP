@@ -86,3 +86,63 @@ Alternative 2:
 2 for cv
 6 for testing
 
+Observation noise 1/r2 [dB]:  tensor(20.)
+Oprimize q to tune RTS
+Process noise 1/q2 [dB]:  tensor(0.)
+Evaluate Kalman Filter True
+Kalman Filter - MSE LOSS: tensor(-1.4840) [dB]
+Inference Time: 0.2438340187072754
+Evaluate RTS Smoother True
+RTS Smoother - MSE LOSS: tensor(-7.4973) [dB]
+Inference Time: 0.4503936767578125
+
+Process noise 1/q2 [dB]:  tensor(-20.)
+Evaluate Kalman Filter True
+Kalman Filter - MSE LOSS: tensor(-17.6889) [dB]
+Evaluate RTS Smoother True
+RTS Smoother - MSE LOSS: tensor(-24.2457) [dB]
+
+Process noise 1/q2 [dB]:  tensor(-40.)
+Evaluate Kalman Filter True
+Kalman Filter - MSE LOSS: tensor(-21.5105) [dB]
+Evaluate RTS Smoother True
+RTS Smoother - MSE LOSS: tensor(-25.2250) [dB]
+
+Process noise 1/q2 [dB]:  tensor(-60.)
+Evaluate Kalman Filter True
+Kalman Filter - MSE LOSS: tensor(-20.2128) [dB]
+Evaluate RTS Smoother True
+RTS Smoother - MSE LOSS: tensor(-21.0172) [dB]
+
+Optimal 1/q2 [dB]:  tensor(-40.)
+
+
+Observation noise 1/r2 [dB]:  tensor(-20.)
+Oprimize q to tune RTS
+Process noise 1/q2 [dB]:  tensor(-53.9794)
+Evaluate Kalman Filter True
+Kalman Filter - MSE LOSS: tensor(13.2387) [dB]
+Inference Time: 0.21560144424438477
+Evaluate RTS Smoother True
+RTS Smoother - MSE LOSS: tensor(7.8272) [dB]
+Inference Time: 0.43944835662841797
+
+Process noise 1/q2 [dB]:  tensor(-40.)
+Kalman Filter - MSE LOSS: tensor(10.0467) [dB]
+Evaluate RTS Smoother True
+RTS Smoother - MSE LOSS: tensor(5.1919) [dB]
+Inference Time: 0.43547964096069336
+
+Process noise 1/q2 [dB]:  tensor(-20.)
+Evaluate Kalman Filter True
+Kalman Filter - MSE LOSS: tensor(14.1553) [dB]
+Inference Time: 0.21956253051757812
+Evaluate RTS Smoother True
+RTS Smoother - MSE LOSS: tensor(8.8366) [dB]
+
+
+Optimal 1/q2 [dB]:  tensor(-40.)
+
+RTSNet with full model info (n_Epochs=1000, n_Batch=5, learningRate=1E-3, weightDecay=1E-4)
+
+

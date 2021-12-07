@@ -14,7 +14,13 @@ import sys
 sys.path.insert(1, path_model)
 from model import gt_data, F_kitti, H_kitti, delta_t, lambda_q, lambda_r, Q, R, m, n, m2_0
 
-
+if torch.cuda.is_available():
+    dev = torch.device("cuda:0")  # you can continue going on here, like cuda:1 cuda:2....etc.
+    torch.set_default_tensor_type('torch.cuda.FloatTensor')
+else:
+   dev = torch.device("cpu")
+   print("Running on the CPU")
+   
 print("Pipeline Start")
 
 ################
@@ -80,9 +86,9 @@ test_input = []
 #     test_input.append(obs[:,T2:])
 
 ### Alternative 2
-NumTrain = 16
-NumCV = 2
-NumTest = 6
+NumTrain = 56
+NumCV = 8
+NumTest = 16
 train_target = gt_data[0:NumTrain]
 cv_target = gt_data[NumTrain:NumTrain+NumCV]
 test_target = gt_data[NumTrain+NumCV:NumTrain+NumCV+NumTest]
