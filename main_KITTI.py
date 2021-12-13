@@ -48,12 +48,12 @@ print("Observation noise 1/r2 [dB]: ", 10 * torch.log10(1/(r**2)))
 print("Process noise 1/q2 [dB]: ", 10 * torch.log10(1/(q**2)))
 
 ### T and T_test for alternative 1
-# T = round(gt_data[0].size()[-1] * 0.8)
-# T_test = gt_data[0].size()[-1] - T
+T = round(gt_data[0].size()[-1] * 0.8)
+T_test = gt_data[0].size()[-1] - T
 
 ### T and T_test for alternative 2
-T = gt_data[0].size()[-1]
-T_test = T
+# T = gt_data[0].size()[-1]
+# T_test = T
 
 m1_0 = gt_data[0][:,0]
 
@@ -73,38 +73,38 @@ cv_input = []
 test_input = []
 
 ### Alternative 1
-# for sequence in gt_data:
-#     T1 = round(sequence.size()[-1] * 0.7) # split for training set
-#     T2 = round(sequence.size()[-1] * 0.8) # split for cv set
-#     train_target.append(sequence[:,0:T1])
-#     cv_target.append(sequence[:,T1:T2])
-#     test_target.append(sequence[:,T2:])
+for sequence in gt_data:
+    T1 = round(sequence.size()[-1] * 0.7) # split for training set
+    T2 = round(sequence.size()[-1] * 0.8) # split for cv set
+    train_target.append(sequence[:,0:T1])
+    cv_target.append(sequence[:,T1:T2])
+    test_target.append(sequence[:,T2:])
 
-#     noise_free_obs = torch.matmul(H_kitti, sequence)
-#     obs = noise_free_obs + torch.randn_like(noise_free_obs) * r # Observations; additive Gaussian Noise
-#     train_input.append(obs[:,0:T1])
-#     cv_input.append(obs[:,T1:T2])
-#     test_input.append(obs[:,T2:])
+    noise_free_obs = torch.matmul(H_kitti, sequence)
+    obs = noise_free_obs + torch.randn_like(noise_free_obs) * r # Observations; additive Gaussian Noise
+    train_input.append(obs[:,0:T1])
+    cv_input.append(obs[:,T1:T2])
+    test_input.append(obs[:,T2:])
 
 ### Alternative 2
-NumTrain = 56
-NumCV = 8
-NumTest = 16
+# NumTrain = 16
+# NumCV = 2
+# NumTest = 6
 
-# Shuffle the dataset
-random.shuffle(gt_data)
+# # Shuffle the dataset
+# # random.shuffle(gt_data)
 
-train_target = gt_data[0:NumTrain]
-cv_target = gt_data[NumTrain:NumTrain+NumCV]
-test_target = gt_data[NumTrain+NumCV:NumTrain+NumCV+NumTest]
+# train_target = gt_data[0:NumTrain]
+# cv_target = gt_data[NumTrain:NumTrain+NumCV]
+# test_target = gt_data[NumTrain+NumCV:NumTrain+NumCV+NumTest]
 
-obs = []
-for sequence in gt_data:
-    noise_free_obs = torch.matmul(H_kitti, sequence)
-    obs.append(noise_free_obs + torch.randn_like(noise_free_obs) * r) # Observations; additive Gaussian Noise
-train_input = obs[0:NumTrain]
-cv_input = obs[NumTrain:NumTrain+NumCV]
-test_input = obs[NumTrain+NumCV:NumTrain+NumCV+NumTest]
+# obs = []
+# for sequence in gt_data:
+#     noise_free_obs = torch.matmul(H_kitti, sequence)
+#     obs.append(noise_free_obs + torch.randn_like(noise_free_obs) * r) # Observations; additive Gaussian Noise
+# train_input = obs[0:NumTrain]
+# cv_input = obs[NumTrain:NumTrain+NumCV]
+# test_input = obs[NumTrain+NumCV:NumTrain+NumCV+NumTest]
 
 
 ##############################
@@ -131,11 +131,11 @@ RTSNet_model.NNBuild(sys_model)
 RTSNet_Pipeline = Pipeline(strTime, "RTSNet", "RTSNet")
 RTSNet_Pipeline.setssModel(sys_model)
 RTSNet_Pipeline.setModel(RTSNet_model)
-RTSNet_Pipeline.setTrainingParams(n_Epochs=1000, n_Batch=1, learningRate=1E-3, weightDecay=1E-4)
-# RTSNet_Pipeline.model = torch.load('RTSNet/new_architecture/linear/best-model_linear2x2rq020T100.pt',map_location=dev)
-[MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results,kitti=True)
+RTSNet_Pipeline.setTrainingParams(n_Epochs=1, n_Batch=1, learningRate=1E-9, weightDecay=1E-4)
+RTSNet_Pipeline.model = torch.load('RTSNet/best-model.pt',map_location=dev)
+# [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results,kitti=True)
 ## Test Neural Network
-[MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model, test_input, test_target, path_results,kitti=True)
+[MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg, MSE_test_dB_std, rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model, test_input, test_target, path_results,kitti=True)
 RTSNet_Pipeline.save()
 
 # RTSNet with mismatched model

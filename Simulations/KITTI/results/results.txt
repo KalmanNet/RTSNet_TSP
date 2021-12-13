@@ -143,10 +143,16 @@ RTS Smoother - MSE LOSS: tensor(8.8366) [dB]
 
 Optimal 1/q2 [dB]:  tensor(-40.)
 
-RTSNet with full model info (n_Epochs=1000, n_Batch=5, learningRate=1E-3, weightDecay=1E-4)
+RTSNet with full model info (n_Epochs=1000, n_Batch=1, learningRate=5E-4, weightDecay=1E-4)
+Optimal idx: 990 Optimal : tensor(4.7798) [dB]
+RTSNet-MSE Test: tensor(7.0268) [dB]
+Inference Time: 3.7396483421325684
+test = cv
+Optimal idx: 654 Optimal : tensor(7.2500) [dB]
+RTSNet-MSE Test: tensor(7.2503) [dB]
+Inference Time: 4.200527191162109
 
-
-2 Person Dataset: 80 trajs
+2 Person Dataset: 80 trajs (different traj varies much)
 2.1 
 Alternative 1:
 70% for training
@@ -236,3 +242,33 @@ RTSNet with full model info (n_Epochs=500, n_Batch=1, learningRate=1E-3, weightD
 Optimal idx: 491 Optimal : tensor(-20.1885) [dB]
 RTSNet-MSE Test: tensor(-15.9910) [dB]
 Inference Time: 2.1534154415130615
+
+after shuffeling
+
+Observation noise 1/r2 [dB]:  tensor(0.)
+Process noise 1/q2 [dB]:  tensor(0.)
+Evaluate Kalman Filter True
+Kalman Filter - MSE LOSS: tensor(-19.8353) [dB]
+Inference Time: 0.05933046340942383
+Evaluate RTS Smoother True
+RTS Smoother - MSE LOSS: tensor(-23.0236) [dB]
+Inference Time: 0.07470107078552246
+RTSNet with full model info
+RTSNet with full model info (n_Epochs=1000, n_Batch=10, learningRate=1E-4, weightDecay=1E-4)
+Optimal idx: 638 Optimal : tensor(-22.9121) [dB]
+RTSNet-MSE Test: tensor(-18.9943) [dB]
+Inference Time: 0.6995675563812256
+
+test set = cv set
+Current Time = 12.07.21_20:28:38
+Observation noise 1/r2 [dB]:  tensor(0.)
+Process noise 1/q2 [dB]:  tensor(0.)
+Evaluate Kalman Filter True
+Kalman Filter - MSE LOSS: tensor(-18.2553) [dB]
+Inference Time: 0.0668642520904541
+Evaluate RTS Smoother True
+RTS Smoother - MSE LOSS: tensor(-19.3967) [dB]
+Inference Time: 0.1130213737487793
+Optimal idx: 945 Optimal : tensor(-17.0415) [dB]
+RTSNet-MSE Test: tensor(-17.0395) [dB]
+Inference Time: 0.938112735748291

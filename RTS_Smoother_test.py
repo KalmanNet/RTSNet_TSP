@@ -31,10 +31,17 @@ def S_Test(SysModel, test_input, test_target, kitti=False):
         j=j+1
     end = time.time()
     t = end - start
+
+    # Average
     MSE_RTS_linear_avg = torch.mean(MSE_RTS_linear_arr)
     MSE_RTS_dB_avg = 10 * torch.log10(MSE_RTS_linear_avg)
 
+    # Standard deviation
+    MSE_RTS_dB_std = torch.std(MSE_RTS_linear_arr, unbiased=True)
+    MSE_RTS_dB_std = 10 * torch.log10(MSE_RTS_dB_std)
+
     print("RTS Smoother - MSE LOSS:", MSE_RTS_dB_avg, "[dB]")
+    print("RTS Smoother - MSE STD:", MSE_RTS_dB_std, "[dB]")
     # Print Run Time
     print("Inference Time:", t)
     return [MSE_RTS_linear_arr, MSE_RTS_linear_avg, MSE_RTS_dB_avg]

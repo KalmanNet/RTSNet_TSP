@@ -296,13 +296,19 @@ class Pipeline_ERTS:
         self.MSE_test_linear_avg = torch.mean(self.MSE_test_linear_arr)
         self.MSE_test_dB_avg = 10 * torch.log10(self.MSE_test_linear_avg)
 
+        # Standard deviation
+        self.MSE_test_dB_std = torch.std(self.MSE_test_linear_arr, unbiased=True)
+        self.MSE_test_dB_std = 10 * torch.log10(self.MSE_test_dB_std)
+
         # Print MSE Cross Validation
         str = self.modelName + "-" + "MSE Test:"
         print(str, self.MSE_test_dB_avg, "[dB]")
+        str = self.modelName + "-" + "STD Test:"
+        print(str, self.MSE_test_dB_std, "[dB]")
         # Print Run Time
         print("Inference Time:", t)
 
-        return [self.MSE_test_linear_arr, self.MSE_test_linear_avg, self.MSE_test_dB_avg, x_out_list, t]
+        return [self.MSE_test_linear_arr, self.MSE_test_linear_avg, self.MSE_test_dB_avg, self.MSE_test_dB_std, x_out_list, t]
 
     def PlotTrain_KF(self, MSE_KF_linear_arr, MSE_KF_dB_avg):
 
