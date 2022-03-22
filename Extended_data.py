@@ -20,13 +20,13 @@ else:
 N_E = 300
 
 # Number of Cross Validation Examples
-N_CV = 5
+N_CV = 50
 
-N_T = 10
+N_T = 100
 
 # Sequence Length for Linear Case
-T = 100
-T_test = 100
+T = 50
+T_test = 50
 
 
 
