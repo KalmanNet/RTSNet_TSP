@@ -50,18 +50,18 @@ print("1/q2 [dB]: ", 10 * torch.log10(1/q2[0]))
 # True model
 r = torch.sqrt(r2)
 q = torch.sqrt(q2)
-sys_model = SystemModel(F, q, H_rotated, r, T, T_test)
+sys_model = SystemModel(F, q, H, r, T, T_test)
 sys_model.InitSequence(m1_0, m2_0)
 
 # Mismatched model
-sys_model_partialh = SystemModel(F, q, H, r, T, T_test)
+sys_model_partialh = SystemModel(F, q, H_rotated, r, T, T_test)
 sys_model_partialh.InitSequence(m1_0, m2_0)
 
 ###################################
 ### Data Loader (Generate Data) ###
 ###################################
 dataFolderName = 'Simulations/Linear_canonical' + '/'
-dataFileName = '2x2_Hrot10_rq-1010_T100.pt'
+dataFileName = '2x2_rq-1010_T100.pt'
 print("Start Data Gen")
 DataGen(sys_model, dataFolderName + dataFileName, T, T_test,randomInit=False)
 print("Data Load")
@@ -78,9 +78,9 @@ print("Evaluate Kalman Filter True")
 print("Evaluate Kalman Filter Partial")
 [MSE_KF_linear_arr_partialh, MSE_KF_linear_avg_partialh, MSE_KF_dB_avg_partialh] = KFTest(sys_model_partialh, test_input, test_target)
 
-##############################
+#############################
 ### Evaluate RTS Smoother ###
-##############################
+#############################
 print("Evaluate RTS Smoother True")
 [MSE_RTS_linear_arr, MSE_RTS_linear_avg, MSE_RTS_dB_avg] = S_Test(sys_model, test_input, test_target)
 print("Evaluate RTS Smoother Partial")
