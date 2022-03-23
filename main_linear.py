@@ -41,7 +41,7 @@ path_results = 'RTSNet/'
 ### Design Model ###
 ####################
 r2 = torch.tensor([1])
-vdB = 0 # ratio v=q2/r2
+vdB = -20 # ratio v=q2/r2
 v = 10**(vdB/10)
 q2 = torch.mul(v,r2)
 print("1/r2 [dB]: ", 10 * torch.log10(1/r2[0]))
