@@ -40,7 +40,7 @@ path_results = 'RTSNet/'
 ####################
 ### Design Model ###
 ####################
-r2 = torch.tensor([1])
+r2 = torch.tensor([10])
 vdB = -20 # ratio v=q2/r2
 v = 10**(vdB/10)
 q2 = torch.mul(v,r2)
@@ -50,20 +50,20 @@ print("1/q2 [dB]: ", 10 * torch.log10(1/q2[0]))
 # True model
 r = torch.sqrt(r2)
 q = torch.sqrt(q2)
-sys_model = SystemModel(F, q, H, r, T, T_test)
+sys_model = SystemModel(F, q, H_rotated, r, T, T_test)
 sys_model.InitSequence(m1_0, m2_0)
 
 # Mismatched model
-sys_model_partialh = SystemModel(F, q, H_rotated, r, T, T_test)
+sys_model_partialh = SystemModel(F, q, H, r, T, T_test)
 sys_model_partialh.InitSequence(m1_0, m2_0)
 
 ###################################
 ### Data Loader (Generate Data) ###
 ###################################
 dataFolderName = 'Simulations/Linear_canonical' + '/'
-dataFileName = '2x2_rq020_T100.pt'
-# print("Start Data Gen")
-# DataGen(sys_model, dataFolderName + dataFileName, T, T_test,randomInit=False)
+dataFileName = '2x2_Hrot10_rq-1010_T100.pt'
+print("Start Data Gen")
+DataGen(sys_model, dataFolderName + dataFileName, T, T_test,randomInit=False)
 print("Data Load")
 [train_input, train_target, cv_input, cv_target, test_input, test_target] = DataLoader_GPU(dataFolderName + dataFileName)
 print("trainset size:",train_target.size())
@@ -120,19 +120,19 @@ print("Evaluate RTS Smoother Partial")
 
 # RTSNet with full info
 ## Build Neural Network
-print("RTSNet with full model info")
-RTSNet_model = RTSNetNN()
-RTSNet_model.NNBuild(sys_model)
-## Train Neural Network
-RTSNet_Pipeline = Pipeline(strTime, "RTSNet", "RTSNet")
-RTSNet_Pipeline.setssModel(sys_model)
-RTSNet_Pipeline.setModel(RTSNet_model)
-RTSNet_Pipeline.setTrainingParams(n_Epochs=1000, n_Batch=50, learningRate=1E-4, weightDecay=1E-5)
-# RTSNet_Pipeline.model = torch.load('RTSNet/new_architecture/linear/best-model_linear2x2rq020T100.pt',map_location=dev)
-[MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results)
-## Test Neural Network
-[MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model, test_input, test_target, path_results)
-RTSNet_Pipeline.save()
+# print("RTSNet with full model info")
+# RTSNet_model = RTSNetNN()
+# RTSNet_model.NNBuild(sys_model)
+# ## Train Neural Network
+# RTSNet_Pipeline = Pipeline(strTime, "RTSNet", "RTSNet")
+# RTSNet_Pipeline.setssModel(sys_model)
+# RTSNet_Pipeline.setModel(RTSNet_model)
+# RTSNet_Pipeline.setTrainingParams(n_Epochs=1000, n_Batch=50, learningRate=1E-4, weightDecay=1E-5)
+# # RTSNet_Pipeline.model = torch.load('RTSNet/new_architecture/linear/best-model_linear2x2rq020T100.pt',map_location=dev)
+# [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results)
+# ## Test Neural Network
+# [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,MSE_test_dB_std,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model, test_input, test_target, path_results)
+# RTSNet_Pipeline.save()
 
 # RTSNet with mismatched model
 ## Build Neural Network
@@ -140,14 +140,14 @@ RTSNet_Pipeline.save()
 # RTSNet_model = RTSNetNN()
 # RTSNet_model.NNBuild(sys_model_partialh)
 # ## Train Neural Network
-# RTSNet_Pipeline = Pipeline(strTime, "RTSNetPartialH", "RTSNetPartialH")
+# RTSNet_Pipeline = Pipeline(strTime, "RTSNet", "RTSNet")
 # RTSNet_Pipeline.setssModel(sys_model_partialh)
 # RTSNet_Pipeline.setModel(RTSNet_model)
-# RTSNet_Pipeline.setTrainingParams(n_Epochs=500, n_Batch=30, learningRate=1E-3, weightDecay=1E-5)
-# # RTSNet_Pipeline.model = torch.load('ERTSNet/best-model_DTfull_rq3050_T2000.pt',map_location=dev)
-# [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model_partialh, cv_input, cv_target, train_input, train_target, path_results)
+# # RTSNet_Pipeline.setTrainingParams(n_Epochs=500, n_Batch=30, learningRate=1E-3, weightDecay=1E-5)
+# RTSNet_Pipeline.model = torch.load('RTSNet/new_architecture/linear/best-model_hrot10_linear2x2rq-1010T100.pt',map_location=dev)
+# # [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model_partialh, cv_input, cv_target, train_input, train_target, path_results)
 # ## Test Neural Network
-# [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model_partialh, test_input, test_target, path_results)
+# [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,MSE_test_dB_std,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model_partialh, test_input, test_target, path_results)
 # RTSNet_Pipeline.save()
 
 
