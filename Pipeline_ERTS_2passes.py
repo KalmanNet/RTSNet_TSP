@@ -102,7 +102,7 @@ class Pipeline_ERTS:
                     init_conditions = SysModel.m1x_0
 
                 y_training = train_input[n_e, :, :]
-                self.model.InitSequence(init_conditions, SysModel.m2x_0, SysModel.T)
+                self.model.InitSequence(init_conditions, SysModel.T)
                 x_out_training_forward = torch.empty(SysModel.m, SysModel.T).to(dev, non_blocking=True)
                 x_out_training = torch.empty(SysModel.m, SysModel.T).to(dev, non_blocking=True)
                 for t in range(0, SysModel.T):
@@ -182,7 +182,7 @@ class Pipeline_ERTS:
                     else:
                         init_conditions = SysModel.m1x_0
 
-                    self.model.InitSequence(init_conditions, SysModel.m2x_0, SysModel.T_test)   
+                    self.model.InitSequence(init_conditions, SysModel.T_test)   
                     y_cv = cv_input[j, :, :]
 
                     x_out_cv_forward = torch.empty(SysModel.m, SysModel.T_test).to(dev, non_blocking=True)
@@ -259,12 +259,12 @@ class Pipeline_ERTS:
         start = time.time()
         for j in range(0, self.N_T):
             if nclt:
-                self.model.InitSequence(SysModel.m1x_0, SysModel.m2x_0, SysModel.T_test)
+                self.model.InitSequence(SysModel.m1x_0, SysModel.T_test)
             elif IC is None:
-                self.model.InitSequence(torch.unsqueeze(test_target[j, :, 0], dim=1), SysModel.m2x_0, SysModel.T_test)
+                self.model.InitSequence(torch.unsqueeze(test_target[j, :, 0], dim=1), SysModel.T_test)
             else:
                 init_cond = torch.reshape(IC[j, :], SysModel.m1x_0.shape)
-                self.model.InitSequence(init_cond, SysModel.m2x_0, SysModel.T_test)
+                self.model.InitSequence(init_cond, SysModel.T_test)
 
             y_mdl_tst = test_input[j, :, :]
 

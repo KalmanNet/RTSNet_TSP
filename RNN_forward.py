@@ -42,19 +42,18 @@ class RNN_FW(torch.nn.Module):
         # input dim for GRU
         input_dim_RNN = (self.m + self.n) * in_mult
         # Hidden Dimension for GRU
-        hidden_dim_RNN = ((self.n * self.n) + (self.m * self.m)) * out_mult
+        self.hidden_dim = ((self.n * self.n) + (self.m * self.m)) * out_mult
 
-        self.InitRNN(input_dim_RNN, hidden_dim_RNN)
+        self.InitRNN(input_dim_RNN)
 
     ######################################
     ### Initialize Kalman Gain Network ###
     ######################################
-    def InitRNN(self, input_dim_RNN, hidden_dim_RNN):
+    def InitRNN(self, input_dim_RNN):
 
         self.seq_len_input = 1
         self.batch_size = 1
         self.n_layers = nGRU_FW
-        self.hidden_dim = hidden_dim_RNN
         # Hidden Sequence Length
         self.seq_len_hidden = self.n_layers
 

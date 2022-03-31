@@ -44,34 +44,33 @@ class Vanilla_RNN(RNN_FW):
         # input dim for FW GRU
         input_dim_RNN = (self.m + self.n) * in_mult
         # Hidden Dimension for FW GRU
-        hidden_dim_RNN = ((self.n * self.n) + (self.m * self.m)) * out_mult
+        self.hidden_dim = ((self.n * self.n) + (self.m * self.m)) * out_mult
         
-        self.InitRNN(input_dim_RNN, hidden_dim_RNN)
+        self.InitRNN(input_dim_RNN)
 
         # input dim for BW GRU
         input_dim_RNN = (self.m + self.m) * in_mult
         # Hidden Dimension for BW GRU
-        hidden_dim_RNN = 2 * self.m * self.m * out_mult
+        self.hidden_dim_bw = 2 * self.m * self.m * out_mult
 
-        self.InitRNN_BW(input_dim_RNN, hidden_dim_RNN)
+        self.InitRNN_BW(input_dim_RNN)
 
     ######################################
     ### Initialize Kalman Gain Network ###
     ######################################
-    def InitRNN_BW(self, input_dim_RNN, hidden_dim_RNN):
+    def InitRNN_BW(self, input_dim_RNN):
 
         self.seq_len_input = 1
         self.batch_size = 1
         self.n_layers = nGRU_BW
-        self.hidden_dim = hidden_dim_RNN
         # Hidden Sequence Length
         self.seq_len_hidden = self.n_layers
 
         # Initialize a Tensor for Hidden State
-        self.hn_BW = torch.randn(self.seq_len_hidden, self.batch_size, self.hidden_dim)
+        self.hn_bw = torch.randn(self.seq_len_hidden, self.batch_size, self.hidden_dim_bw)
 
         # GRUs
-        self.rnn_GRU_BW = nn.GRU(input_dim_RNN, self.hidden_dim, self.n_layers)
+        self.rnn_GRU_bw = nn.GRU(input_dim_RNN, self.hidden_dim_bw, self.n_layers)
         
         # Fully connected 3
         self.d_input_FC3 = self.m
@@ -81,7 +80,7 @@ class Vanilla_RNN(RNN_FW):
                 nn.ReLU())
 
         # Fully connected 4
-        self.d_input_FC4 = self.hidden_dim
+        self.d_input_FC4 = self.hidden_dim_bw
         self.d_output_FC4 = self.m 
         self.FC4 = nn.Sequential(
                 nn.Linear(self.d_input_FC4, self.d_output_FC4),
@@ -136,9 +135,9 @@ class Vanilla_RNN(RNN_FW):
         in_FC3 = torch.cat((filter_x, s_m1x_nexttime), 2)
         out_FC3 = self.FC3(in_FC3)
        
-        # GRU        
-        GRU_out, self.hn_BW = self.rnn_GRU_BW(expand_dim(out_FC3), self.hn_BW)
-        GRU_out_reshape = torch.reshape(GRU_out, (1, self.hidden_dim))
+        # BW GRU        
+        GRU_out, self.hn_bw = self.rnn_GRU_bw(expand_dim(out_FC3), self.hn_bw)
+        GRU_out_reshape = torch.reshape(GRU_out, (1, self.hidden_dim_bw))
 
         # FC 4
         in_FC4 = GRU_out_reshape 
@@ -161,13 +160,17 @@ class Vanilla_RNN(RNN_FW):
 
         
 
-     #########################
+    #########################
     ### Init Hidden State ###
     #########################
-    def init_hidden_BW(self):
+    def init_hidden(self):
+        ### FW hn
         weight = next(self.parameters()).data
         hidden = weight.new(self.n_layers, self.batch_size, self.hidden_dim).zero_()
-        self.hn_BW = hidden.data
+        self.hn = hidden.data
+        ### BW hn
+        hidden = weight.new(self.n_layers, self.batch_size, self.hidden_dim_bw).zero_()
+        self.hn_bw = hidden.data
 
 
 

@@ -138,6 +138,7 @@ RTSNet_Pipeline.save()
 
 ### Vanilla RNN with full info ###################################################################################
 ## Build RNN
+print("Vanilla RNN with full model info")
 RNN_model = Vanilla_RNN()
 RNN_model.Build(sys_model)
 print("Number of trainable parameters for RNN:",sum(p.numel() for p in RNN_model.parameters() if p.requires_grad))

@@ -221,5 +221,33 @@ class RTSNetNN(KalmanNetNN):
             # FW pass
             yt = yt.to(dev, non_blocking=True)
             return self.KNet_step(yt)
+    
+    #########################
+    ### Init Hidden State ###
+    #########################
+    def init_hidden(self):
+        ### FW GRUs
+        weight = next(self.parameters()).data
+        hidden = weight.new(1, self.batch_size, self.d_hidden_S).zero_()
+        
+        self.h_S = hidden.data
+        self.h_S[0, 0, :] = self.prior_S.flatten()
+
+        hidden = weight.new(1, self.batch_size, self.d_hidden_Sigma).zero_()
+        self.h_Sigma = hidden.data
+        self.h_Sigma[0, 0, :] = self.prior_Sigma.flatten()
+
+        hidden = weight.new(1, self.batch_size, self.d_hidden_Q).zero_()
+        self.h_Q = hidden.data
+        self.h_Q[0, 0, :] = self.prior_Q.flatten()
+
+        ### BW GRUs
+        hidden = weight.new(1, self.batch_size, self.d_hidden_Q_bw).zero_()
+        self.h_Q_bw = hidden.data
+        self.h_Q_bw[0, 0, :] = self.prior_Q.flatten()
+
+        hidden = weight.new(1, self.batch_size, self.d_hidden_Sigma_bw).zero_()
+        self.h_Sigma_bw = hidden.data
+        self.h_Sigma_bw[0, 0, :] = self.prior_Sigma.flatten()
 
         
