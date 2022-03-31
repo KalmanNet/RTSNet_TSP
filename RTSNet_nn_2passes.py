@@ -30,7 +30,7 @@ class RTSNetNN_2passes(RTSNetNN):
     def NNBuild(self, ssModel, infoString = 'fullInfo'):
 
         self.InitSystemDynamics(ssModel.f, ssModel.h, ssModel.m, ssModel.n, infoString = 'fullInfo')
-        self.InitSequence(ssModel.m1x_0, ssModel.m2x_0, ssModel.T)
+        self.InitSequence(ssModel.m1x_0, ssModel.T)
 
         self.InitKGainNet(ssModel.prior_Q, ssModel.prior_Sigma, ssModel.prior_S)
 

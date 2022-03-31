@@ -157,9 +157,8 @@ class KalmanNetNN(torch.nn.Module):
     ###########################
     ### Initialize Sequence ###
     ###########################
-    def InitSequence(self, M1_0, M2_0, T):
+    def InitSequence(self, M1_0, T):
         self.T = T
-        self.x_out = torch.empty(self.m, T).to(dev, non_blocking=True)
 
         self.m1x_posterior = torch.squeeze(M1_0).to(dev, non_blocking=True)
         self.m1x_posterior_previous = self.m1x_posterior.to(dev, non_blocking=True)
@@ -317,13 +316,7 @@ class KalmanNetNN(torch.nn.Module):
     def forward(self, y):
         y = torch.squeeze(y).to(dev, non_blocking=True)
 
-        '''
-        for t in range(0, self.T):
-            self.x_out[:, t] = self.KNet_step(y[:, t])
-        '''
-        self.x_out = self.KNet_step(y)
-
-        return self.x_out
+        return self.KNet_step(y)
 
     #########################
     ### Init Hidden State ###

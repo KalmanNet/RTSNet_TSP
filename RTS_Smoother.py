@@ -7,20 +7,20 @@ import torch
 class rts_smoother:
 
     def __init__(self, SystemModel): 
-        self.F = SystemModel.F;
-        self.F_T = torch.transpose(self.F, 0, 1);
+        self.F = SystemModel.F
+        self.F_T = torch.transpose(self.F, 0, 1)
         self.m = SystemModel.m
 
-        self.Q = SystemModel.Q;
+        self.Q = SystemModel.Q
 
-        self.H = SystemModel.H;
-        self.H_T = torch.transpose(self.H, 0, 1);
+        self.H = SystemModel.H
+        self.H_T = torch.transpose(self.H, 0, 1)
         self.n = SystemModel.n
 
-        self.R = SystemModel.R;
+        self.R = SystemModel.R
 
-        self.T = SystemModel.T;
-        self.T_test = SystemModel.T_test;
+        self.T = SystemModel.T
+        self.T_test = SystemModel.T_test
 
 
     # Compute the Smoother Gain
@@ -70,7 +70,7 @@ class rts_smoother:
         for t in range(T-2,-1,-1):
             filter_xt = filter_x[:, t]
             filter_sigmat = filter_sigma[:, :, t]
-            s_xt,s_sigmat = self.S_Update(filter_xt, filter_sigmat);
+            s_xt,s_sigmat = self.S_Update(filter_xt, filter_sigmat)
             self.s_x[:, t] = torch.squeeze(s_xt)
             self.s_sigma[:, :, t] = torch.squeeze(s_sigmat)
 

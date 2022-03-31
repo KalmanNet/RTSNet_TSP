@@ -8,6 +8,7 @@ from Pipeline_ERTS import Pipeline_ERTS as Pipeline
 
 from datetime import datetime
 from RTSNet_nn import RTSNetNN
+from RNN_FWandBW import Vanilla_RNN
 
 from KalmanFilter_test import KFTest
 from RTS_Smoother_test import S_Test
@@ -118,23 +119,38 @@ print("Evaluate RTS Smoother Partial")
 ### RTSNet Pipeline ###
 #######################
 
-# RTSNet with full info
-## Build Neural Network
-# print("RTSNet with full model info")
-# RTSNet_model = RTSNetNN()
-# RTSNet_model.NNBuild(sys_model)
-# ## Train Neural Network
-# RTSNet_Pipeline = Pipeline(strTime, "RTSNet", "RTSNet")
-# RTSNet_Pipeline.setssModel(sys_model)
-# RTSNet_Pipeline.setModel(RTSNet_model)
-# RTSNet_Pipeline.setTrainingParams(n_Epochs=1000, n_Batch=50, learningRate=1E-4, weightDecay=1E-5)
-# # RTSNet_Pipeline.model = torch.load('RTSNet/new_architecture/linear/best-model_linear2x2rq020T100.pt',map_location=dev)
-# [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results)
-# ## Test Neural Network
-# [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,MSE_test_dB_std,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model, test_input, test_target, path_results)
-# RTSNet_Pipeline.save()
+### RTSNet with full info ##############################################################################################
+# Build Neural Network
+print("RTSNet with full model info")
+RTSNet_model = RTSNetNN()
+RTSNet_model.NNBuild(sys_model)
+print("Number of trainable parameters for RTSNet:",sum(p.numel() for p in RTSNet_model.parameters() if p.requires_grad))
+## Train Neural Network
+RTSNet_Pipeline = Pipeline(strTime, "RTSNet", "RTSNet")
+RTSNet_Pipeline.setssModel(sys_model)
+RTSNet_Pipeline.setModel(RTSNet_model)
+RTSNet_Pipeline.setTrainingParams(n_Epochs=1000, n_Batch=50, learningRate=1E-4, weightDecay=1E-5)
+# RTSNet_Pipeline.model = torch.load('RTSNet/new_architecture/linear/best-model_linear2x2rq020T100.pt',map_location=dev)
+[MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results)
+## Test Neural Network
+[MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,MSE_test_dB_std,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model, test_input, test_target, path_results)
+RTSNet_Pipeline.save()
 
-# RTSNet with mismatched model
+### Vanilla RNN with full info ###################################################################################
+## Build RNN
+RNN_model = Vanilla_RNN()
+RNN_model.Build(sys_model)
+print("Number of trainable parameters for RNN:",sum(p.numel() for p in RNN_model.parameters() if p.requires_grad))
+RNN_Pipeline = Pipeline(strTime, "RTSNet", "VanillaRNN")
+RNN_Pipeline.setssModel(sys_model)
+RNN_Pipeline.setModel(RNN_model)
+RNN_Pipeline.setTrainingParams(n_Epochs=100, n_Batch=10, learningRate=1e-3, weightDecay=1e-6)
+RNN_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results)
+## Test Neural Network
+[MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,MSE_test_dB_std,rtsnet_out,RunTime] = RNN_Pipeline.NNTest(sys_model, test_input, test_target, path_results)
+RNN_Pipeline.save()
+
+### RTSNet with mismatched model #################################################################################
 ## Build Neural Network
 # print("RTSNet with observation model mismatch")
 # RTSNet_model = RTSNetNN()

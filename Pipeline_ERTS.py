@@ -213,7 +213,10 @@ class Pipeline_ERTS:
                 if (self.MSE_cv_dB_epoch[ti] < self.MSE_cv_dB_opt):
                     self.MSE_cv_dB_opt = self.MSE_cv_dB_epoch[ti]
                     self.MSE_cv_idx_opt = ti
-                    torch.save(self.model, path_results + 'best-model.pt')
+                    if(rnn):
+                        torch.save(self.model, path_results + 'rnn_best-model.pt')
+                    else:
+                        torch.save(self.model, path_results + 'best-model.pt')
 
             ########################
             ### Training Summary ###
@@ -240,7 +243,10 @@ class Pipeline_ERTS:
         # MSE LOSS Function
         loss_fn = nn.MSELoss(reduction='mean')
 
-        self.model = torch.load(path_results+'best-model.pt', map_location=dev)
+        if (rnn):
+            self.model = torch.load(path_results+'rnn_best-model.pt', map_location=dev)
+        else:
+            self.model = torch.load(path_results+'best-model.pt', map_location=dev)
 
         self.model.eval()
 

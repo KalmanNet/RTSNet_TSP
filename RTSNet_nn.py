@@ -14,7 +14,6 @@ else:
 
 in_mult = 5
 out_mult = 40
-nGRU = 4
 
 class RTSNetNN(KalmanNetNN):
 
@@ -30,7 +29,7 @@ class RTSNetNN(KalmanNetNN):
     def NNBuild(self, ssModel, infoString = 'fullInfo'):
 
         self.InitSystemDynamics(ssModel.f, ssModel.h, ssModel.m, ssModel.n, infoString = 'fullInfo')
-        self.InitSequence(ssModel.m1x_0, ssModel.m2x_0, ssModel.T)
+        self.InitSequence(ssModel.m1x_0, ssModel.T)
 
         self.InitKGainNet(ssModel.prior_Q, ssModel.prior_Sigma, ssModel.prior_S)
 
@@ -216,8 +215,10 @@ class RTSNetNN(KalmanNetNN):
     ###############
     def forward(self, yt, filter_x, filter_x_nexttime, smoother_x_tplus2):
         if yt is None:
+            # BW pass
             return self.RTSNet_step(filter_x, filter_x_nexttime, smoother_x_tplus2)
         else:
+            # FW pass
             yt = yt.to(dev, non_blocking=True)
             return self.KNet_step(yt)
 
