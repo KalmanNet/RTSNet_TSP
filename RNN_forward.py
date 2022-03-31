@@ -44,6 +44,10 @@ class RNN_FW(torch.nn.Module):
         # Hidden Dimension for GRU
         self.hidden_dim = ((self.n * self.n) + (self.m * self.m)) * out_mult
 
+        self.n_layers = nGRU_FW
+        # Hidden Sequence Length
+        self.seq_len_hidden = self.n_layers
+
         self.InitRNN(input_dim_RNN)
 
     ######################################
@@ -53,9 +57,6 @@ class RNN_FW(torch.nn.Module):
 
         self.seq_len_input = 1
         self.batch_size = 1
-        self.n_layers = nGRU_FW
-        # Hidden Sequence Length
-        self.seq_len_hidden = self.n_layers
 
         # Initialize a Tensor for Hidden State
         self.hn = torch.randn(self.seq_len_hidden, self.batch_size, self.hidden_dim)

@@ -12,8 +12,9 @@ if torch.cuda.is_available():
 else:
     dev = torch.device("cpu")
 
-in_mult = 3
-out_mult = 2
+in_mult_bw = 3
+out_mult_bw = 2
+nGRU_FW = 3
 nGRU_BW = 2
 
 class Vanilla_RNN(RNN_FW):
@@ -42,16 +43,20 @@ class Vanilla_RNN(RNN_FW):
         self.InitSequence(SysModel.m1x_0, SysModel.T)
 
         # input dim for FW GRU
-        input_dim_RNN = (self.m + self.n) * in_mult
+        input_dim_RNN = (self.m + self.n) * in_mult_bw
         # Hidden Dimension for FW GRU
-        self.hidden_dim = ((self.n * self.n) + (self.m * self.m)) * out_mult
+        self.hidden_dim = ((self.n * self.n) + (self.m * self.m)) * out_mult_bw
+        # FW GRU layers
+        self.n_layers = nGRU_FW
+        # Hidden Sequence Length
+        self.seq_len_hidden = self.n_layers
         
         self.InitRNN(input_dim_RNN)
 
         # input dim for BW GRU
-        input_dim_RNN = (self.m + self.m) * in_mult
+        input_dim_RNN = (self.m + self.m) * in_mult_bw
         # Hidden Dimension for BW GRU
-        self.hidden_dim_bw = 2 * self.m * self.m * out_mult
+        self.hidden_dim_bw = 2 * self.m * self.m * out_mult_bw
 
         self.InitRNN_BW(input_dim_RNN)
 
@@ -62,18 +67,18 @@ class Vanilla_RNN(RNN_FW):
 
         self.seq_len_input = 1
         self.batch_size = 1
-        self.n_layers = nGRU_BW
+        self.n_layers_bw = nGRU_BW
         # Hidden Sequence Length
-        self.seq_len_hidden = self.n_layers
+        self.seq_len_hidden_bw = self.n_layers_bw
 
         # Initialize a Tensor for Hidden State
-        self.hn_bw = torch.randn(self.seq_len_hidden, self.batch_size, self.hidden_dim_bw)
+        self.hn_bw = torch.randn(self.seq_len_hidden_bw, self.batch_size, self.hidden_dim_bw)
 
         # GRUs
-        self.rnn_GRU_bw = nn.GRU(input_dim_RNN, self.hidden_dim_bw, self.n_layers)
+        self.rnn_GRU_bw = nn.GRU(input_dim_RNN, self.hidden_dim_bw, self.n_layers_bw)
         
         # Fully connected 3
-        self.d_input_FC3 = self.m
+        self.d_input_FC3 = self.m + self.m
         self.d_output_FC3 = input_dim_RNN
         self.FC3 = nn.Sequential(
                 nn.Linear(self.d_input_FC3, self.d_output_FC3),
@@ -169,7 +174,7 @@ class Vanilla_RNN(RNN_FW):
         hidden = weight.new(self.n_layers, self.batch_size, self.hidden_dim).zero_()
         self.hn = hidden.data
         ### BW hn
-        hidden = weight.new(self.n_layers, self.batch_size, self.hidden_dim_bw).zero_()
+        hidden = weight.new(self.n_layers_bw, self.batch_size, self.hidden_dim_bw).zero_()
         self.hn_bw = hidden.data
 
 
