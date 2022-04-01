@@ -68,7 +68,7 @@ F = F10[0:m, 0:m]
 H = torch.eye(2)
 m1_0 = torch.tensor([[0.0], [0.0]]).to(dev)
 # m1x_0_design = torch.tensor([[10.0], [-10.0]])
-m2_0 = 0 * 0 * torch.eye(m).to(dev)
+m2_0 = 100 * 100 * torch.eye(m).to(dev)
 
 
 #############

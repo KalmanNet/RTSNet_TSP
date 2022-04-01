@@ -48,7 +48,7 @@ class Pipeline_ERTS:
         # self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizer, 'min',factor=0.9, patience=20)
 
 
-    def NNTrain(self, SysModel, cv_input, cv_target, train_input, train_target, path_results, kitti=False, rnn=False, epochs=None, multipass=False):
+    def NNTrain(self, SysModel, cv_input, cv_target, train_input, train_target, path_results, kitti=False, rnn=False, epochs=None, multipass=False, KnownInit = True):
 
         self.N_E = len(train_input)
         self.N_CV = len(cv_input)
@@ -94,7 +94,7 @@ class Pipeline_ERTS:
                 y_training = train_input[n_e]
                 SysModel.T = y_training.size()[-1]
                 
-                if(kitti):
+                if(kitti or KnownInit):
                     init_conditions = train_target[n_e][:,0]
                 else:
                     init_conditions = SysModel.m1x_0
@@ -169,7 +169,7 @@ class Pipeline_ERTS:
                     y_cv = cv_input[j]
                     SysModel.T_test = y_cv.size()[-1]
                     # Initialize next sequence
-                    if(kitti):
+                    if(kitti or KnownInit):
                         init_conditions = cv_target[j][:,0]
                     else:
                         init_conditions = SysModel.m1x_0
@@ -234,7 +234,7 @@ class Pipeline_ERTS:
 
         return [self.MSE_cv_linear_epoch, self.MSE_cv_dB_epoch, self.MSE_train_linear_epoch, self.MSE_train_dB_epoch]
 
-    def NNTest(self, SysModel, test_input, test_target, path_results, kitti=False, rnn=False,multipass=False):
+    def NNTest(self, SysModel, test_input, test_target, path_results, kitti=False, rnn=False,multipass=False,KnownInit=True):
 
         self.N_T = len(test_input)
 
@@ -258,7 +258,7 @@ class Pipeline_ERTS:
 
             y_mdl_tst = test_input[j]
             SysModel.T_test = y_mdl_tst.size()[-1]
-            if kitti:
+            if (kitti or KnownInit):
                 self.model.InitSequence(test_target[j][:,0], SysModel.T_test)
             else:
                 init_cond = SysModel.m1x_0
