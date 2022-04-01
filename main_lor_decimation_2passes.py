@@ -162,24 +162,22 @@ for rindex in range(0, len(r)):
    ## Test Neural Network
    # RTSNet_Pipeline.model = torch.load('ERTSNet/model_KNetNew_DT_procmis_r30q50_T2000.pt',map_location=cuda0)
    [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model, test_input, test_target, path_results)
-   # Print MSE Cross Validation
-   print("MSE Test:", MSE_test_dB_avg, "[dB]")
    
    # Save trajectories
-   trajfolderName = 'ERTSNet' + '/'
-   DataResultName = traj_resultName[rindex]
-   target_sample = torch.reshape(test_target[0,:,:],[1,m,T_test])
-   input_sample = torch.reshape(test_input[0,:,:],[1,n,T_test])
-   torch.save({#'PF J=5':PF_out,
-               #'PF J=2':PF_out_partial,
-               'True':target_sample,
-               'Observation':input_sample,
-               # 'EKF J=5':EKF_out,
-               # 'EKF J=2':EKF_out_partial,
-               # 'RTS J=5':ERTS_out,
-               # 'RTS J=2':ERTS_out_partial,
-               'RTSNet': rtsnet_out,
-               }, trajfolderName+DataResultName)
+   # trajfolderName = 'ERTSNet' + '/'
+   # DataResultName = traj_resultName[rindex]
+   # target_sample = torch.reshape(test_target[0,:,:],[1,m,T_test])
+   # input_sample = torch.reshape(test_input[0,:,:],[1,n,T_test])
+   # torch.save({#'PF J=5':PF_out,
+   #             #'PF J=2':PF_out_partial,
+   #             'True':target_sample,
+   #             'Observation':input_sample,
+   #             # 'EKF J=5':EKF_out,
+   #             # 'EKF J=2':EKF_out_partial,
+   #             # 'RTS J=5':ERTS_out,
+   #             # 'RTS J=2':ERTS_out_partial,
+   #             'RTSNet': rtsnet_out,
+   #             }, trajfolderName+DataResultName)
 
    ## Save histogram
    # MSE_ResultName = 'Partial_MSE_KNet' 

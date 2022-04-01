@@ -242,6 +242,7 @@ class RTSNetNN(KalmanNetNN):
         self.h_Q[0, 0, :] = self.prior_Q.flatten()
 
         ### BW GRUs
+        weight = next(self.parameters()).data
         hidden = weight.new(1, self.batch_size, self.d_hidden_Q_bw).zero_()
         self.h_Q_bw = hidden.data
         self.h_Q_bw[0, 0, :] = self.prior_Q.flatten()

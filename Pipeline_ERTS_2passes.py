@@ -308,9 +308,15 @@ class Pipeline_ERTS:
         self.MSE_test_linear_avg = torch.mean(self.MSE_test_linear_arr)
         self.MSE_test_dB_avg = 10 * torch.log10(self.MSE_test_linear_avg)
 
-        # Print MSE Cross Validation
+        # Standard deviation
+        self.MSE_test_dB_std = torch.std(self.MSE_test_linear_arr, unbiased=True)
+        self.MSE_test_dB_std = 10 * torch.log10(self.MSE_test_dB_std)
+
+        # Print MSE Cross Validation and STD
         str = self.modelName + "-" + "MSE Test:"
         print(str, self.MSE_test_dB_avg, "[dB]")
+        str = self.modelName + "-" + "STD Test:"
+        print(str, self.MSE_test_dB_std, "[dB]")
         # Print Run Time
         print("Inference Time:", t)
 

@@ -4,7 +4,7 @@ path_model_Toy = 'Simulations/Toy_problems/'
 path_model_Pendulum = 'Simulations/Pendulum/'
 path_model_kitti = 'Simulations/KITTI/'
 
-path_model = path_model_kitti
+path_model = path_model_Lor
 path_session = path_model + 'Experiment_GPS_RNN/'
 
 '''
