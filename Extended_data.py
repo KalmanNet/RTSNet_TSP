@@ -26,7 +26,7 @@ N_T = 200
 
 # Sequence Length for Linear Case
 T = 100
-T_test = 100
+T_test = 1000
 
 
 
