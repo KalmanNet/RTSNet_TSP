@@ -145,10 +145,10 @@ print("Number of trainable parameters for RNN:",sum(p.numel() for p in RNN_model
 RNN_Pipeline = Pipeline(strTime, "RTSNet", "VanillaRNN")
 RNN_Pipeline.setssModel(sys_model)
 RNN_Pipeline.setModel(RNN_model)
-RNN_Pipeline.setTrainingParams(n_Epochs=100, n_Batch=10, learningRate=1e-3, weightDecay=1e-6)
-RNN_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results)
+RNN_Pipeline.setTrainingParams(n_Epochs=1000, n_Batch=50, learningRate=5e-3, weightDecay=1e-5)
+RNN_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results, rnn=True)
 ## Test Neural Network
-[MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,MSE_test_dB_std,rtsnet_out,RunTime] = RNN_Pipeline.NNTest(sys_model, test_input, test_target, path_results)
+[MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,MSE_test_dB_std,rtsnet_out,RunTime] = RNN_Pipeline.NNTest(sys_model, test_input, test_target, path_results, rnn=True)
 RNN_Pipeline.save()
 
 ### RTSNet with mismatched model #################################################################################
