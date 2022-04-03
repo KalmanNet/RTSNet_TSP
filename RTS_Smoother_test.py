@@ -38,10 +38,9 @@ def S_Test(SysModel, test_input, test_target, kitti=False):
 
     # Standard deviation
     MSE_RTS_linear_std = torch.std(MSE_RTS_linear_arr, unbiased=True)
-    MSE_RTS_dB_std = 10 * torch.log10(MSE_RTS_linear_std)
 
     print("RTS Smoother - MSE LOSS:", MSE_RTS_dB_avg, "[dB]")
-    print("RTS Smoother - MSE STD:", MSE_RTS_dB_std, "[dB]")
+    print("RTS Smoother - MSE STD:", MSE_RTS_linear_std, "[linear scale]")
     # Print Run Time
     print("Inference Time:", t)
     return [MSE_RTS_linear_arr, MSE_RTS_linear_avg, MSE_RTS_dB_avg]

@@ -26,7 +26,7 @@ class RNN_FW(torch.nn.Module):
     ### Initialize Kalman Gain Network ###
     ######################################
 
-    def Build(self, SysModel, fully_agnostic = True):
+    def Build(self, SysModel, fully_agnostic = False):
         self.fully_agnostic = fully_agnostic
 
         # Set State Evolution Function

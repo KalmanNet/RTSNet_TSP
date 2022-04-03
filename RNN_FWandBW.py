@@ -29,7 +29,7 @@ class Vanilla_RNN(RNN_FW):
     ### Initialize Kalman Gain Network ###
     ######################################
 
-    def Build(self, SysModel, fully_agnostic = True):
+    def Build(self, SysModel, fully_agnostic = False):
         self.fully_agnostic = fully_agnostic
 
         # Set State Evolution Function
@@ -102,10 +102,13 @@ class Vanilla_RNN(RNN_FW):
     def step_est_BW(self, filter_x):
         # If fully agnostic, xhat is the smoothed x_t. 
         # Else, xhat computes the fix to the prior of x_t.
-        self.s_m1x = self.BW_step(filter_x)
+        self.s_m1x_increment = self.BW_step(filter_x)
 
         # Reshape to a Matrix
-        self.s_m1x = torch.reshape(self.s_m1x, (self.m, 1))
+        self.s_m1x_increment = torch.reshape(self.s_m1x_increment, (self.m, 1))
+
+        # Add increment to the filtered x
+        self.s_m1x = filter_x +  self.s_m1x_increment
 
     ########################
     ### Vanilla RNN Step ###

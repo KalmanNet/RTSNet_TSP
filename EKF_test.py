@@ -40,49 +40,48 @@ def EKFTest(SysModel, test_input, test_target, modelKnowledge = 'full', allState
 
     # Standard deviation
     MSE_EKF_linear_std = torch.std(MSE_EKF_linear_arr, unbiased=True)
-    MSE_EKF_dB_std = 10 * torch.log10(MSE_EKF_linear_std)
     
     print("Extended Kalman Filter - MSE LOSS:", MSE_EKF_dB_avg, "[dB]")
-    print("Extended Kalman Filter - MSE STD:", MSE_EKF_dB_std, "[dB]")
+    print("Extended Kalman Filter - MSE STD:", MSE_EKF_linear_std, "[linear scale]")
     # Print Run Time
     print("Inference Time:", t)
 
     return [MSE_EKF_linear_arr, MSE_EKF_linear_avg, MSE_EKF_dB_avg, KG_array, EKF_out]
 
 
-def EKFTest_evol(SysModel, test_input, test_target, modelKnowledge = 'full'):
+# def EKFTest_evol(SysModel, test_input, test_target, modelKnowledge = 'full'):
 
-    N_T = test_target.size()[0]
+#     N_T = test_target.size()[0]
 
-    # LOSS
-    loss_fn = nn.MSELoss(reduction='none')
+#     # LOSS
+#     loss_fn = nn.MSELoss(reduction='none')
     
-    # MSE [Linear]
-    MSE_EKF_linear_arr = torch.empty(N_T,SysModel.m, SysModel.T_test)
-    EKF = ExtendedKalmanFilter(SysModel, modelKnowledge)
-    EKF.InitSequence(SysModel.m1x_0, SysModel.m2x_0)
+#     # MSE [Linear]
+#     MSE_EKF_linear_arr = torch.empty(N_T,SysModel.m, SysModel.T_test)
+#     EKF = ExtendedKalmanFilter(SysModel, modelKnowledge)
+#     EKF.InitSequence(SysModel.m1x_0, SysModel.m2x_0)
 
-    KG_array = torch.empty([N_T, SysModel.T_test, SysModel.m, SysModel.n])
-    KG_trace = torch.empty([SysModel.T_test])
-    EKF_out = torch.empty([N_T, SysModel.m, SysModel.T_test])
+#     KG_array = torch.empty([N_T, SysModel.T_test, SysModel.m, SysModel.n])
+#     KG_trace = torch.empty([SysModel.T_test])
+#     EKF_out = torch.empty([N_T, SysModel.m, SysModel.T_test])
     
-    for j in range(0, N_T):
-        EKF.GenerateSequence(test_input[j, :, :], EKF.T_test)
+#     for j in range(0, N_T):
+#         EKF.GenerateSequence(test_input[j, :, :], EKF.T_test)
 
-        MSE_EKF_linear_arr[j,:,:] = loss_fn(EKF.x, test_target[j, :, :])
-        KG_array[j,:,:,:] = EKF.KG_array
-        EKF_out[j,:,:] = EKF.x
-    # Average KG_array over Test Examples
+#         MSE_EKF_linear_arr[j,:,:] = loss_fn(EKF.x, test_target[j, :, :])
+#         KG_array[j,:,:,:] = EKF.KG_array
+#         EKF_out[j,:,:] = EKF.x
+#     # Average KG_array over Test Examples
 
-    KG_avg = torch.mean(KG_array,0)
-    for j in range(0, SysModel.T_test):
-        KG_trace[j] = torch.trace(KG_avg[j,:,:])
+#     KG_avg = torch.mean(KG_array,0)
+#     for j in range(0, SysModel.T_test):
+#         KG_trace[j] = torch.trace(KG_avg[j,:,:])
 
-    MSE_EKF_linear_avg = torch.mean(MSE_EKF_linear_arr, [0,1])
-    MSE_EKF_dB_avg = 10 * torch.log10(MSE_EKF_linear_avg)
-    trace_dB_avg = 10* torch.log10(KG_trace)
+#     MSE_EKF_linear_avg = torch.mean(MSE_EKF_linear_arr, [0,1])
+#     MSE_EKF_dB_avg = 10 * torch.log10(MSE_EKF_linear_avg)
+#     trace_dB_avg = 10* torch.log10(KG_trace)
 
-    return [MSE_EKF_dB_avg, trace_dB_avg]
+#     return [MSE_EKF_dB_avg, trace_dB_avg]
 
 
 
