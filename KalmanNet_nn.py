@@ -17,7 +17,6 @@ else:
 
 in_mult = 5
 out_mult = 40
-nGRU = 4
 
 class KalmanNetNN(torch.nn.Module):
 

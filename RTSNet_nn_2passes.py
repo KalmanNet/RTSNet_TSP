@@ -14,7 +14,6 @@ else:
 
 in_mult = 5
 out_mult = 40
-nGRU = 4
 
 class RTSNetNN_2passes(RTSNetNN):
 
@@ -166,11 +165,6 @@ class RTSNetNN_2passes(RTSNetNN):
                 nn.Linear(self.d_input_FC4_bw_2, self.d_output_FC4_bw_2),
                 nn.ReLU())
 
-    ####################################
-    ### Initialize Backward Sequence ###
-    ####################################
-    def InitBackward(self, filter_x):
-        self.s_m1x_nexttime = torch.squeeze(filter_x)
 
     ##############################
     ### Innovation Computation ###

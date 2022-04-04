@@ -106,15 +106,15 @@ for rindex in range(0, len(r)):
    sys_model.InitSequence(m1x_0, m2x_0)
 
    # Model with partial Info
-   sys_model_partialh = SystemModel(f, q[0], hInacc, r[0], T, T_test,m,n)
-   sys_model_partialh.InitSequence(m1x_0, m2x_0)
+   # sys_model_partialh = SystemModel(f, q[0], hInacc, r[0], T, T_test,m,n)
+   # sys_model_partialh.InitSequence(m1x_0, m2x_0)
    
    #Evaluate EKF true
-   print("Evaluate EKF true")
-   [MSE_EKF_linear_arr, MSE_EKF_linear_avg, MSE_EKF_dB_avg, EKF_KG_array, EKF_out] = EKFTest(sys_model, test_input, test_target)
-   #Evaluate EKF partial (h or r)
-   print("Evaluate EKF partial")
-   [MSE_EKF_linear_arr_partial, MSE_EKF_linear_avg_partial, MSE_EKF_dB_avg_partial, EKF_KG_array_partial, EKF_out_partial] = EKFTest(sys_model_partialh, test_input, test_target)
+   # print("Evaluate EKF true")
+   # [MSE_EKF_linear_arr, MSE_EKF_linear_avg, MSE_EKF_dB_avg, EKF_KG_array, EKF_out] = EKFTest(sys_model, test_input, test_target)
+   # #Evaluate EKF partial (h or r)
+   # print("Evaluate EKF partial")
+   # [MSE_EKF_linear_arr_partial, MSE_EKF_linear_avg_partial, MSE_EKF_dB_avg_partial, EKF_KG_array_partial, EKF_out_partial] = EKFTest(sys_model_partialh, test_input, test_target)
    #Evaluate EKF partial optq
   #  [MSE_EKF_linear_arr_partialoptq, MSE_EKF_linear_avg_partialoptq, MSE_EKF_dB_avg_partialoptq, EKF_KG_array_partialoptq, EKF_out_partialoptq] = EKFTest(sys_model_partialf_optq, test_input, test_target)
   #  #Evaluate EKF partialh optr
@@ -124,11 +124,11 @@ for rindex in range(0, len(r)):
    # [MSE_PF_linear_arr_partial, MSE_PF_linear_avg_partial, MSE_PF_dB_avg_partial, PF_out_partial, t_PF] = PFTest(sys_model_partialh, test_input, test_target, init_cond=None)
    # print(f"MSE PF H NL: {MSE_PF_dB_avg_partial} [dB] (T = {T_test})")
    #Evaluate RTS true
-   print("Evaluate RTS true")
-   [MSE_ERTS_linear_arr, MSE_ERTS_linear_avg, MSE_ERTS_dB_avg, ERTS_out] = S_Test(sys_model, test_input, test_target)
-   #Evaluate RTS partialh optr
-   print("Evaluate RTS partial")
-   [MSE_ERTS_linear_arr_partialoptr, MSE_ERTS_linear_avg_partialoptr, MSE_ERTS_dB_avg_partialoptr, ERTS_out_partialoptr] = S_Test(sys_model_partialh, test_input, test_target)
+   # print("Evaluate RTS true")
+   # [MSE_ERTS_linear_arr, MSE_ERTS_linear_avg, MSE_ERTS_dB_avg, ERTS_out] = S_Test(sys_model, test_input, test_target)
+   # #Evaluate RTS partialh optr
+   # print("Evaluate RTS partial")
+   # [MSE_ERTS_linear_arr_partialoptr, MSE_ERTS_linear_avg_partialoptr, MSE_ERTS_dB_avg_partialoptr, ERTS_out_partialoptr] = S_Test(sys_model_partialh, test_input, test_target)
    
    
    # Save results
@@ -164,13 +164,16 @@ for rindex in range(0, len(r)):
 
    ## RTSNet with full info
    ## Build Neural Network
-   # print("RTSNet with full model info")
-   # RTSNet_model = RTSNetNN()
-   # RTSNet_model.NNBuild(sys_model)
+   print("RTSNet with full model info")
+   RTSNet_model = RTSNetNN()
+   RTSNet_model.NNBuild(sys_model)
    # ## Train Neural Network
-   # RTSNet_Pipeline = Pipeline(strTime, "RTSNet", "RTSNet")
-   # RTSNet_Pipeline.setssModel(sys_model)
-   # RTSNet_Pipeline.setModel(RTSNet_model)
+   RTSNet_Pipeline = Pipeline(strTime, "RTSNet", "RTSNet")
+   RTSNet_Pipeline.setssModel(sys_model)
+   RTSNet_Pipeline.setModel(RTSNet_model)
+   # NumofParameter = RTSNet_Pipeline.count_parameters()
+   # print("Number of parameters for RTSNet: ",NumofParameter)
+   print("Number of trainable parameters for RTSNet:",sum(p.numel() for p in RTSNet_model.parameters() if p.requires_grad))
    # RTSNet_Pipeline.setTrainingParams(n_Epochs=1000, n_Batch=30, learningRate=1e-3, weightDecay=1e-6) 
    # # RTSNet_Pipeline.model = torch.load('ERTSNet/best-model_DTfull_rq3050_T2000.pt',map_location=dev)
    # [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results)
@@ -178,7 +181,7 @@ for rindex in range(0, len(r)):
    # [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model, test_input, test_target, path_results)
    
    ## RTSNet_2passes with full info 
-   print("RTSNet with full model info")
+   print("RTSNet_2passes with full model info")
    RTSNet_model = RTSNetNN_2passes()
    RTSNet_model.NNBuild(sys_model)
    ## Train Neural Network
@@ -186,8 +189,9 @@ for rindex in range(0, len(r)):
    RTSNet_Pipeline.setssModel(sys_model)
    RTSNet_Pipeline.setModel(RTSNet_model)
    RTSNet_Pipeline.setTrainingParams(n_Epochs=1000, n_Batch=1, learningRate=1e-3, weightDecay=1e-4)
-   NumofParameter = RTSNet_Pipeline.count_parameters()
-   print("Number of parameters for RTSNet: ",NumofParameter)
+   # NumofParameter = RTSNet_Pipeline.count_parameters()
+   # print("Number of parameters for RTSNet_2passes: ",NumofParameter)
+   print("Number of trainable parameters for RTSNet_2passes:",sum(p.numel() for p in RTSNet_model.parameters() if p.requires_grad))
    [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results)
    ## Test Neural Network
    # RTSNet_Pipeline.model = torch.load('ERTSNet/model_KNetNew_DT_procmis_r30q50_T2000.pt',map_location=cuda0)
