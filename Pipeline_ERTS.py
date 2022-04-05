@@ -313,7 +313,7 @@ class Pipeline_ERTS:
         # Print Run Time
         print("Inference Time:", t)
 
-        return [self.MSE_test_linear_arr, self.MSE_test_linear_avg, self.MSE_test_dB_avg, self.MSE_test_dB_std, x_out_list, t]
+        return [self.MSE_test_linear_arr, self.MSE_test_linear_avg, self.MSE_test_dB_avg, x_out_list, t]
 
     def PlotTrain_KF(self, MSE_KF_linear_arr, MSE_KF_dB_avg):
 

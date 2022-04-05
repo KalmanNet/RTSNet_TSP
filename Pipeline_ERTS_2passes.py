@@ -188,18 +188,18 @@ class Pipeline_ERTS:
                         x_out_cv[:, t] = self.model(None, x_out_cv_forward[:, t], x_out_cv_forward[:, t+1],x_out_cv[:, t+2])
                     
                     ### second pass
-                    x_out_cv_forward_2 = torch.empty(SysModel.m,SysModel.T).to(dev, non_blocking=True)
-                    x_out_cv_2 = torch.empty(SysModel.m, SysModel.T).to(dev, non_blocking=True)
+                    x_out_cv_forward_2 = torch.empty(SysModel.m,SysModel.T_test).to(dev, non_blocking=True)
+                    x_out_cv_2 = torch.empty(SysModel.m, SysModel.T_test).to(dev, non_blocking=True)
                     # Init with results from pass1
                     self.model.InitSequence(x_out_cv[:, 0], SysModel.T_test)
                     # second filtering pass
-                    for t in range(0, SysModel.T):
+                    for t in range(0, SysModel.T_test):
                         x_out_cv_forward_2[:, t] = self.model(x_out_cv[:, t], None, None, None,pass2=True)
-                    x_out_cv_2[:, SysModel.T-1] = x_out_cv_forward_2[:, SysModel.T-1] # backward smoothing starts from x_T|T 
-                    self.model.InitBackward(x_out_cv_2[:, SysModel.T-1]) 
-                    x_out_cv_2[:, SysModel.T-2] = self.model(None, x_out_cv_forward_2[:, SysModel.T-2], x_out_cv_forward_2[:, SysModel.T-1],None,pass2=True)
+                    x_out_cv_2[:, SysModel.T_test-1] = x_out_cv_forward_2[:, SysModel.T_test-1] # backward smoothing starts from x_T|T 
+                    self.model.InitBackward(x_out_cv_2[:, SysModel.T_test-1]) 
+                    x_out_cv_2[:, SysModel.T_test-2] = self.model(None, x_out_cv_forward_2[:, SysModel.T_test-2], x_out_cv_forward_2[:, SysModel.T_test-1],None,pass2=True)
                     # second smoothing pass
-                    for t in range(SysModel.T-3, -1, -1):
+                    for t in range(SysModel.T_test-3, -1, -1):
                         x_out_cv_2[:, t] = self.model(None, x_out_cv_forward_2[:, t], x_out_cv_forward_2[:, t+1],x_out_cv_2[:, t+2],pass2=True)          
                     x_out_cv = x_out_cv_2
                     # Compute Training Loss

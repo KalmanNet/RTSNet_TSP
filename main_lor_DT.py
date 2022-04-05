@@ -188,7 +188,7 @@ for rindex in range(0, len(r)):
    RTSNet_Pipeline = Pipeline_2passes(strTime, "RTSNet", "RTSNet")
    RTSNet_Pipeline.setssModel(sys_model)
    RTSNet_Pipeline.setModel(RTSNet_model)
-   RTSNet_Pipeline.setTrainingParams(n_Epochs=1000, n_Batch=1, learningRate=1e-3, weightDecay=1e-4)
+   RTSNet_Pipeline.setTrainingParams(n_Epochs=1000, n_Batch=1, learningRate=1e-4, weightDecay=1e-3)
    # NumofParameter = RTSNet_Pipeline.count_parameters()
    # print("Number of parameters for RTSNet_2passes: ",NumofParameter)
    print("Number of trainable parameters for RTSNet_2passes:",sum(p.numel() for p in RTSNet_model.parameters() if p.requires_grad))
@@ -196,8 +196,6 @@ for rindex in range(0, len(r)):
    ## Test Neural Network
    # RTSNet_Pipeline.model = torch.load('ERTSNet/model_KNetNew_DT_procmis_r30q50_T2000.pt',map_location=cuda0)
    [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model, test_input, test_target, path_results)
-   # Print MSE Cross Validation
-   print("MSE Test:", MSE_test_dB_avg, "[dB]")
 
 
    ## RTSNet with model mismatch
