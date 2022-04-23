@@ -112,7 +112,7 @@ class Pipeline_ERTS:
                 self.model.InitSequence(x_out_training[:, 0], SysModel.T)
                 # second filtering pass
                 for t in range(0, SysModel.T):
-                    x_out_train_forward_2[:, t] = self.model(x_out_training[:, t], None, None, None,pass2=True)
+                    x_out_train_forward_2[:, t] = self.model(y_training[:, t],x_out_training[:, t],None, None,pass2=True)
                 x_out_train_2[:, SysModel.T-1] = x_out_train_forward_2[:, SysModel.T-1] # backward smoothing starts from x_T|T 
                 self.model.InitBackward(x_out_train_2[:, SysModel.T-1]) 
                 x_out_train_2[:, SysModel.T-2] = self.model(None, x_out_train_forward_2[:, SysModel.T-2], x_out_train_forward_2[:, SysModel.T-1],None,pass2=True)
@@ -179,11 +179,13 @@ class Pipeline_ERTS:
 
                     x_out_cv_forward = torch.empty(SysModel.m, SysModel.T_test).to(dev, non_blocking=True)
                     x_out_cv = torch.empty(SysModel.m, SysModel.T_test).to(dev, non_blocking=True)
+                    # first filtering pass
                     for t in range(0, SysModel.T_test):
                         x_out_cv_forward[:, t] = self.model(y_cv[:, t], None, None, None)
                     x_out_cv[:, SysModel.T_test-1] = x_out_cv_forward[:, SysModel.T_test-1] # backward smoothing starts from x_T|T
                     self.model.InitBackward(x_out_cv[:, SysModel.T_test-1]) 
                     x_out_cv[:, SysModel.T_test-2] = self.model(None, x_out_cv_forward[:, SysModel.T_test-2], x_out_cv_forward[:, SysModel.T_test-1],None)
+                    # First smoothing pass
                     for t in range(SysModel.T_test-3, -1, -1):
                         x_out_cv[:, t] = self.model(None, x_out_cv_forward[:, t], x_out_cv_forward[:, t+1],x_out_cv[:, t+2])
                     
@@ -194,7 +196,7 @@ class Pipeline_ERTS:
                     self.model.InitSequence(x_out_cv[:, 0], SysModel.T_test)
                     # second filtering pass
                     for t in range(0, SysModel.T_test):
-                        x_out_cv_forward_2[:, t] = self.model(x_out_cv[:, t], None, None, None,pass2=True)
+                        x_out_cv_forward_2[:, t] = self.model(y_cv[:, t],x_out_cv[:, t], None, None,pass2=True)
                     x_out_cv_2[:, SysModel.T_test-1] = x_out_cv_forward_2[:, SysModel.T_test-1] # backward smoothing starts from x_T|T 
                     self.model.InitBackward(x_out_cv_2[:, SysModel.T_test-1]) 
                     x_out_cv_2[:, SysModel.T_test-2] = self.model(None, x_out_cv_forward_2[:, SysModel.T_test-2], x_out_cv_forward_2[:, SysModel.T_test-1],None,pass2=True)
@@ -281,11 +283,13 @@ class Pipeline_ERTS:
             x_out_test_2 = torch.empty(SysModel.m, SysModel.T_test).to(dev, non_blocking=True)
             # Init with results from pass1
             self.model.InitSequence(x_out_test[:, 0], SysModel.T_test)
+            # Second filtering pass
             for t in range(0, SysModel.T_test):
-                x_out_test_forward_2[:, t] = self.model(x_out_test[:, t], None, None, None,pass2=True)
+                x_out_test_forward_2[:, t] = self.model(y_mdl_tst[:, t],x_out_test[:, t],None, None,pass2=True)
             x_out_test_2[:, SysModel.T_test-1] = x_out_test_forward_2[:, SysModel.T_test-1] # backward smoothing starts from x_T|T 
             self.model.InitBackward(x_out_test_2[:, SysModel.T_test-1]) 
             x_out_test_2[:, SysModel.T_test-2] = self.model(None, x_out_test_forward_2[:, SysModel.T_test-2], x_out_test_forward_2[:, SysModel.T_test-1],None,pass2=True)
+            # Second smoothing pass
             for t in range(SysModel.T_test-3, -1, -1):
                 x_out_test_2[:, t] = self.model(None, x_out_test_forward_2[:, t], x_out_test_forward_2[:, t+1],x_out_test_2[:, t+2],pass2=True)          
             x_out_test = x_out_test_2

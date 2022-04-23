@@ -230,7 +230,7 @@ class RTSNetNN_2passes(RTSNetNN):
     #######################
     ### Kalman Net Step ###
     #######################
-    def KNet_step_pass2(self, y):
+    def KNet_step_pass2(self, y, x_pass1):
 
         # Compute Priors
         self.step_prior()
@@ -249,7 +249,7 @@ class RTSNetNN_2passes(RTSNetNN):
         # Compute the 1-st posterior moment
         INOV = torch.matmul(self.KGain_pass2, dy)
         self.m1x_posterior_previous = self.m1x_posterior
-        self.m1x_posterior = self.m1x_prior + INOV
+        self.m1x_posterior = x_pass1 + INOV #Instead of self.m1x_prior, add on x_pass1
 
         #self.state_process_posterior_0 = self.state_process_prior_0
         self.m1x_prior_previous = self.m1x_prior
@@ -407,14 +407,18 @@ class RTSNetNN_2passes(RTSNetNN):
     def forward(self, yt, filter_x, filter_x_nexttime, smoother_x_tplus2,pass2=False):
         if pass2:
             if yt is None:
+                # BW pass 2
                 return self.RTSNet_step_pass2(filter_x, filter_x_nexttime, smoother_x_tplus2)
             else:
+                # FW pass 2
                 yt = yt.to(dev, non_blocking=True)
-                return self.KNet_step_pass2(yt)
+                return self.KNet_step_pass2(yt, filter_x)#note that here filter_x is from pass1
         else:
             if yt is None:
+                # BW pass 1
                 return self.RTSNet_step(filter_x, filter_x_nexttime, smoother_x_tplus2)
             else:
+                # FW pass 1
                 yt = yt.to(dev, non_blocking=True)
                 return self.KNet_step(yt)
 

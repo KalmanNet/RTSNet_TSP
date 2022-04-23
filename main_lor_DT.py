@@ -54,7 +54,7 @@ offset = 0
 chop = False
 sequential_training = False
 path_results = 'ERTSNet/'
-DatafolderName = 'Simulations/Lorenz_Atractor/data/T2000_NT100' + '/'
+DatafolderName = 'Simulations/Lorenz_Atractor/data/T200' + '/'
 
 r2 = torch.tensor([1])
 # r2 = torch.tensor([100, 10, 1, 0.1, 0.01])
@@ -75,7 +75,7 @@ print("1/r2 [dB]: ", 10 * torch.log10(1/r[0]**2))
 print("1/q2 [dB]: ", 10 * torch.log10(1/q[0]**2))
 
 # traj_resultName = ['traj_lor_KNetFull_rq1030_T2000_NT100.pt']#,'partial_lor_r4.pt','partial_lor_r5.pt','partial_lor_r6.pt']
-dataFileName = ['data_lor_v20_rq020_T2000.pt']#,'data_lor_v20_r1e-2_T100.pt','data_lor_v20_r1e-3_T100.pt','data_lor_v20_r1e-4_T100.pt']
+dataFileName = ['data_lor_v20_rq020_T200.pt']#,'data_lor_v20_r1e-2_T100.pt','data_lor_v20_r1e-3_T100.pt','data_lor_v20_r1e-4_T100.pt']
 # KFRTSResultName = 'KFRTS_partialh_rq3050_T2000' 
 
 #Generate and load data DT case
