@@ -32,8 +32,11 @@ def S_Test(SysModel, test_input, test_target, modelKnowledge = 'full'):
     # Standard deviation
     MSE_ERTS_linear_std = torch.std(MSE_ERTS_linear_arr, unbiased=True)
 
+    # Confidence interval
+    ERTS_std_dB = 10 * torch.log10(MSE_ERTS_linear_std + MSE_ERTS_linear_avg) - MSE_ERTS_dB_avg
+
     print("Extended RTS Smoother - MSE LOSS:", MSE_ERTS_dB_avg, "[dB]")
-    print("Extended RTS Smoother - MSE STD:", MSE_ERTS_linear_std, "[linear scale]")
+    print("Extended RTS Smoother - STD:", ERTS_std_dB, "[dB]")
     # Print Run Time
     print("Inference Time:", t)
 

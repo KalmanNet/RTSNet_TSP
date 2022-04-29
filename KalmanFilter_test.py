@@ -29,8 +29,11 @@ def KFTest(SysModel, test_input, test_target):
     # Standard deviation
     MSE_KF_linear_std = torch.std(MSE_KF_linear_arr, unbiased=True)
 
+    # Confidence interval
+    KF_std_dB = 10 * torch.log10(MSE_KF_linear_std + MSE_KF_linear_avg) - MSE_KF_dB_avg
+
     print("Kalman Filter - MSE LOSS:", MSE_KF_dB_avg, "[dB]")
-    print("Kalman Filter - MSE STD:", MSE_KF_linear_std, "[linear scale]")
+    print("Kalman Filter - STD:", KF_std_dB, "[dB]")
     # Print Run Time
     print("Inference Time:", t)
     return [MSE_KF_linear_arr, MSE_KF_linear_avg, MSE_KF_dB_avg]

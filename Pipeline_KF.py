@@ -192,14 +192,17 @@ class Pipeline_KF:
         self.MSE_test_dB_avg = 10 * torch.log10(self.MSE_test_linear_avg)
 
         # Standard deviation
-        self.MSE_test_dB_std = torch.std(self.MSE_test_linear_arr, unbiased=True)
-        self.MSE_test_dB_std = 10 * torch.log10(self.MSE_test_dB_std)
+        self.MSE_test_linear_std = torch.std(self.MSE_test_linear_arr, unbiased=True)
+
+        # Confidence interval
+        self.test_std_dB = 10 * torch.log10(self.MSE_test_linear_std + self.MSE_test_linear_avg) - self.MSE_test_dB_avg
+
 
         # Print MSE Cross Validation
         str = self.modelName + "-" + "MSE Test:"
         print(str, self.MSE_test_dB_avg, "[dB]")
         str = self.modelName + "-" + "STD Test:"
-        print(str, self.MSE_test_dB_std, "[dB]")
+        print(str, self.test_std_dB, "[dB]")
         # Print Run Time
         print("Inference Time:", t)
 

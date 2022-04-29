@@ -314,11 +314,14 @@ class Pipeline_ERTS:
         # Standard deviation
         self.MSE_test_linear_std = torch.std(self.MSE_test_linear_arr, unbiased=True)
 
+        # Confidence interval
+        self.test_std_dB = 10 * torch.log10(self.MSE_test_linear_std + self.MSE_test_linear_avg) - self.MSE_test_dB_avg
+
         # Print MSE Cross Validation and STD
         str = self.modelName + "-" + "MSE Test:"
         print(str, self.MSE_test_dB_avg, "[dB]")
         str = self.modelName + "-" + "STD Test:"
-        print(str, self.MSE_test_linear_std, "[linear scale]")
+        print(str, self.test_std_dB, "[dB]")
         # Print Run Time
         print("Inference Time:", t)
 
