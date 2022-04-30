@@ -48,7 +48,7 @@ class Pipeline_ERTS:
         # self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizer, 'min',factor=0.9, patience=20)
 
 
-    def NNTrain(self, SysModel, cv_input, cv_target, train_input, train_target, path_results, rnn=False, KnownInit = True, nclt = False):
+    def NNTrain(self, SysModel, cv_input, cv_target, train_input, train_target, path_results, KnownInit = True, nclt = False):
 
         self.N_E = train_input.size()[0]
         self.N_CV = cv_input.size()[0]
@@ -79,7 +79,7 @@ class Pipeline_ERTS:
             self.model.train()
             
             # Init Hidden State
-            self.model.init_hidden()
+            self.model.init_hidden_multipass()
 
             Batch_Optimizing_LOSS_sum = 0
 
@@ -92,7 +92,7 @@ class Pipeline_ERTS:
                     init_conditions = SysModel.m1x_0
 
                 y_training = train_input[n_e, :, :]
-                self.model.InitSequence(init_conditions, SysModel.T)
+                self.model.InitSequence_multipass(init_conditions, SysModel.T)
                 x_out_training_forward = torch.empty(SysModel.m, SysModel.T).to(dev, non_blocking=True)
                 x_out_training = torch.empty(SysModel.m, SysModel.T).to(dev, non_blocking=True)
                 for t in range(0, SysModel.T):

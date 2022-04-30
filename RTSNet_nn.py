@@ -12,8 +12,6 @@ if torch.cuda.is_available():
 else:
     dev = torch.device("cpu")
 
-in_mult = 5
-out_mult = 40
 
 class RTSNetNN(KalmanNetNN):
 
@@ -26,12 +24,11 @@ class RTSNetNN(KalmanNetNN):
     #############
     ### Build ###
     #############
-    def NNBuild(self, ssModel, infoString = 'fullInfo'):
+    def NNBuild(self, ssModel, KNet_in_mult = 5, KNet_out_mult = 40, RTSNet_in_mult = 5, RTSNet_out_mult = 40):
 
-        self.InitSystemDynamics(ssModel.f, ssModel.h, ssModel.m, ssModel.n, infoString = 'fullInfo')
-        self.InitSequence(ssModel.m1x_0, ssModel.T)
+        self.InitSystemDynamics(ssModel.f, ssModel.h, ssModel.m, ssModel.n)
 
-        self.InitKGainNet(ssModel.prior_Q, ssModel.prior_Sigma, ssModel.prior_S)
+        self.InitKGainNet(ssModel.prior_Q, ssModel.prior_Sigma, ssModel.prior_S, KNet_in_mult, KNet_out_mult)
 
         # # Number of neurons in the 1st hidden layer
         # H1_RTSNet = (ssModel.m + ssModel.m) * (10) * 8
@@ -39,12 +36,12 @@ class RTSNetNN(KalmanNetNN):
         # # Number of neurons in the 2nd hidden layer
         # H2_RTSNet = (ssModel.m * ssModel.m) * 1 * (4)
 
-        self.InitRTSGainNet(ssModel.prior_Q, ssModel.prior_Sigma)
+        self.InitRTSGainNet(ssModel.prior_Q, ssModel.prior_Sigma, RTSNet_in_mult, RTSNet_out_mult)
 
     #################################################
     ### Initialize Backward Smoother Gain Network ###
     #################################################
-    def InitRTSGainNet(self, prior_Q, prior_Sigma):
+    def InitRTSGainNet(self, prior_Q, prior_Sigma, in_mult, out_mult):
         self.seq_len_input = 1
         self.batch_size = 1
 

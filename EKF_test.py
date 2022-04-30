@@ -45,7 +45,7 @@ def EKFTest(SysModel, test_input, test_target, modelKnowledge = 'full', allState
     EKF_std_dB = 10 * torch.log10(MSE_EKF_linear_std + MSE_EKF_linear_avg) - MSE_EKF_dB_avg
     
     print("Extended Kalman Filter - MSE LOSS:", MSE_EKF_dB_avg, "[dB]")
-    print("Extended Kalman Filter - Confidence interval:", EKF_std_dB, "[dB]")
+    print("Extended Kalman Filter - STD:", EKF_std_dB, "[dB]")
     # Print Run Time
     print("Inference Time:", t)
 

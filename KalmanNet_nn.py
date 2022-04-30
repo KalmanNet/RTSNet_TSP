@@ -15,8 +15,6 @@ if torch.cuda.is_available():
 else:
     dev = torch.device("cpu")
 
-in_mult = 5
-out_mult = 40
 
 class KalmanNetNN(torch.nn.Module):
 
@@ -26,10 +24,9 @@ class KalmanNetNN(torch.nn.Module):
     def __init__(self):
         super().__init__()
     
-    def NNBuild(self, SysModel):
+    def NNBuild(self, SysModel, in_mult = 5, out_mult = 40):
 
-        self.InitSystemDynamics(SysModel.f, SysModel.h, SysModel.m, SysModel.n, infoString = "partialInfo")
-        self.InitSequence(SysModel.m1x_0, SysModel.m2x_0, SysModel.T)
+        self.InitSystemDynamics(SysModel.f, SysModel.h, SysModel.m, SysModel.n)
 
         # Number of neurons in the 1st hidden layer
         #H1_KNet = (SysModel.m + SysModel.n) * (10) * 8
@@ -37,12 +34,12 @@ class KalmanNetNN(torch.nn.Module):
         # Number of neurons in the 2nd hidden layer
         #H2_KNet = (SysModel.m * SysModel.n) * 1 * (4)
 
-        self.InitKGainNet(SysModel.prior_Q, SysModel.prior_Sigma, SysModel.prior_S)
+        self.InitKGainNet(SysModel.prior_Q, SysModel.prior_Sigma, SysModel.prior_S, in_mult, out_mult)
 
     ######################################
     ### Initialize Kalman Gain Network ###
     ######################################
-    def InitKGainNet(self, prior_Q, prior_Sigma, prior_S):
+    def InitKGainNet(self, prior_Q, prior_Sigma, prior_S, in_mult, out_mult):
 
         self.seq_len_input = 1
         self.batch_size = 1
@@ -136,14 +133,7 @@ class KalmanNetNN(torch.nn.Module):
     ##################################
     ### Initialize System Dynamics ###
     ##################################
-    def InitSystemDynamics(self, f, h, m, n, infoString = 'fullInfo'):
-        
-        if(infoString == 'partialInfo'):
-            self.fString ='ModInacc'
-            self.hString ='ObsInacc'
-        else:
-            self.fString ='ModAcc'
-            self.hString ='ObsAcc'
+    def InitSystemDynamics(self, f, h, m, n):
         
         # Set State Evolution Function
         self.f = f

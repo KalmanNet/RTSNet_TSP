@@ -12,8 +12,6 @@ if torch.cuda.is_available():
 else:
     dev = torch.device("cpu")
 
-in_mult = 5
-out_mult = 40
 
 class RTSNetNN_2passes(RTSNetNN):
 
@@ -26,23 +24,23 @@ class RTSNetNN_2passes(RTSNetNN):
     #############
     ### Build ###
     #############
-    def NNBuild(self, ssModel, infoString = 'fullInfo'):
+    def NNBuild(self, ssModel, KNet_in_mult = 5, KNet_out_mult = 40, RTSNet_in_mult = 5, RTSNet_out_mult = 40):
 
-        self.InitSystemDynamics(ssModel.f, ssModel.h, ssModel.m, ssModel.n, infoString = 'fullInfo')
+        self.InitSystemDynamics(ssModel.f, ssModel.h, ssModel.m, ssModel.n)
         self.InitSequence(ssModel.m1x_0, ssModel.T)
 
-        self.InitKGainNet(ssModel.prior_Q, ssModel.prior_Sigma, ssModel.prior_S)
+        self.InitKGainNet(ssModel.prior_Q, ssModel.prior_Sigma, ssModel.prior_S, KNet_in_mult, KNet_out_mult)
 
-        self.InitRTSGainNet(ssModel.prior_Q, ssModel.prior_Sigma)
+        self.InitRTSGainNet(ssModel.prior_Q, ssModel.prior_Sigma, RTSNet_in_mult, RTSNet_out_mult)
 
-        self.InitKGainNet_pass2()
+        self.InitKGainNet_pass2(KNet_in_mult, KNet_out_mult)
 
-        self.InitRTSGainNet_pass2()
+        self.InitRTSGainNet_pass2(RTSNet_in_mult, RTSNet_out_mult)
     
     ######################################
     ### Initialize Kalman Gain Network ###
     ######################################
-    def InitKGainNet_pass2(self):
+    def InitKGainNet_pass2(self, in_mult, out_mult):
 
         self.seq_len_input = 1
         self.batch_size = 1
@@ -119,7 +117,7 @@ class RTSNetNN_2passes(RTSNetNN):
     #################################################
     ### Initialize Backward Smoother Gain Network ###
     #################################################
-    def InitRTSGainNet_pass2(self):
+    def InitRTSGainNet_pass2(self, in_mult, out_mult):
         self.seq_len_input = 1
         self.batch_size = 1
 

@@ -89,38 +89,48 @@ class Pipeline_ERTS:
 
             for j in range(0, self.N_B):
                 
-                self.model.i = 0
                 n_e = random.randint(0, self.N_E - 1)
                 y_training = train_input[n_e]
                 SysModel.T = y_training.size()[-1]
-                
-                if(kitti or KnownInit):
-                    init_conditions = train_target[n_e][:,0]
-                else:
-                    init_conditions = SysModel.m1x_0
-                
-                self.model.InitSequence(init_conditions, SysModel.T)
+
                 x_out_training_forward = torch.empty(SysModel.m, SysModel.T).to(dev, non_blocking=True)
                 x_out_training = torch.empty(SysModel.m, SysModel.T).to(dev, non_blocking=True)
-                for t in range(0, SysModel.T):
-                    x_out_training_forward[:, t] = self.model(y_training[:, t], None, None, None)
-                x_out_training[:, SysModel.T-1] = x_out_training_forward[:, SysModel.T-1] # backward smoothing starts from x_T|T 
-                self.model.InitBackward(x_out_training[:, SysModel.T-1]) 
-                x_out_training[:, SysModel.T-2] = self.model(None, x_out_training_forward[:, SysModel.T-2], x_out_training_forward[:, SysModel.T-1],None)
-                for t in range(SysModel.T-3, -1, -1):
-                    x_out_training[:, t] = self.model(None, x_out_training_forward[:, t], x_out_training_forward[:, t+1],x_out_training[:, t+2])
                 
-                if (multipass):
-                    x_out_train_forward_2 = torch.empty(SysModel.m,SysModel.T_test).to(dev, non_blocking=True)
-                    x_out_train_2 = torch.empty(SysModel.m, SysModel.T_test).to(dev, non_blocking=True)
-                    for t in range(0, SysModel.T_test):
-                        x_out_train_forward_2[:, t] = self.model(x_out_training[:, t], None, None, None)
-                    x_out_train_2[:, SysModel.T_test-1] = x_out_train_forward_2[:, SysModel.T_test-1] # backward smoothing starts from x_T|T 
-                    self.model.InitBackward(x_out_train_2[:, SysModel.T_test-1]) 
-                    x_out_train_2[:, SysModel.T_test-2] = self.model(None, x_out_train_forward_2[:, SysModel.T_test-2], x_out_train_forward_2[:, SysModel.T_test-1],None)
-                    for t in range(SysModel.T_test-3, -1, -1):
-                        x_out_train_2[:, t] = self.model(None, x_out_train_forward_2[:, t], x_out_train_forward_2[:, t+1],x_out_training[:, t+2])          
-                    x_out_training = x_out_train_2
+                if(kitti or KnownInit):
+                    x_out_training[:,0] = train_target[n_e][:,0]
+                    self.model.InitSequence(x_out_training[:,0], SysModel.T)
+
+                    for t in range(1, SysModel.T):#start at t=1
+                        x_out_training_forward[:, t] = self.model(y_training[:, t], None, None, None)
+                    x_out_training[:, SysModel.T-1] = x_out_training_forward[:, SysModel.T-1] # backward smoothing starts from x_T|T 
+                    self.model.InitBackward(x_out_training[:, SysModel.T-1]) 
+                    x_out_training[:, SysModel.T-2] = self.model(None, x_out_training_forward[:, SysModel.T-2], x_out_training_forward[:, SysModel.T-1],None)
+                    for t in range(SysModel.T-3, 0, -1):#end at t=1
+                        x_out_training[:, t] = self.model(None, x_out_training_forward[:, t], x_out_training_forward[:, t+1],x_out_training[:, t+2])
+                
+
+                else:
+                    self.model.InitSequence(SysModel.m1x_0, SysModel.T)
+                
+                    for t in range(0, SysModel.T):
+                        x_out_training_forward[:, t] = self.model(y_training[:, t], None, None, None)
+                    x_out_training[:, SysModel.T-1] = x_out_training_forward[:, SysModel.T-1] # backward smoothing starts from x_T|T 
+                    self.model.InitBackward(x_out_training[:, SysModel.T-1]) 
+                    x_out_training[:, SysModel.T-2] = self.model(None, x_out_training_forward[:, SysModel.T-2], x_out_training_forward[:, SysModel.T-1],None)
+                    for t in range(SysModel.T-3, -1, -1):
+                        x_out_training[:, t] = self.model(None, x_out_training_forward[:, t], x_out_training_forward[:, t+1],x_out_training[:, t+2])
+                    
+                # if (multipass):
+                #     x_out_train_forward_2 = torch.empty(SysModel.m,SysModel.T_test).to(dev, non_blocking=True)
+                #     x_out_train_2 = torch.empty(SysModel.m, SysModel.T_test).to(dev, non_blocking=True)
+                #     for t in range(0, SysModel.T_test):
+                #         x_out_train_forward_2[:, t] = self.model(x_out_training[:, t], None, None, None)
+                #     x_out_train_2[:, SysModel.T_test-1] = x_out_train_forward_2[:, SysModel.T_test-1] # backward smoothing starts from x_T|T 
+                #     self.model.InitBackward(x_out_train_2[:, SysModel.T_test-1]) 
+                #     x_out_train_2[:, SysModel.T_test-2] = self.model(None, x_out_train_forward_2[:, SysModel.T_test-2], x_out_train_forward_2[:, SysModel.T_test-1],None)
+                #     for t in range(SysModel.T_test-3, -1, -1):
+                #         x_out_train_2[:, t] = self.model(None, x_out_train_forward_2[:, t], x_out_train_forward_2[:, t+1],x_out_training[:, t+2])          
+                #     x_out_training = x_out_train_2
 
                 # Compute Training Loss
                 if(kitti):
@@ -168,36 +178,44 @@ class Pipeline_ERTS:
                 for j in range(0, self.N_CV):
                     y_cv = cv_input[j]
                     SysModel.T_test = y_cv.size()[-1]
-                    # Initialize next sequence
-                    if(kitti or KnownInit):
-                        init_conditions = cv_target[j][:,0]
-                    else:
-                        init_conditions = SysModel.m1x_0
-                
-                    
-                    self.model.InitSequence(init_conditions, SysModel.T_test)                  
 
                     x_out_cv_forward = torch.empty(SysModel.m, SysModel.T_test).to(dev, non_blocking=True)
                     x_out_cv = torch.empty(SysModel.m, SysModel.T_test).to(dev, non_blocking=True)
-                    for t in range(0, SysModel.T_test):
-                        x_out_cv_forward[:, t] = self.model(y_cv[:, t], None, None, None)
-                    x_out_cv[:, SysModel.T_test-1] = x_out_cv_forward[:, SysModel.T_test-1] # backward smoothing starts from x_T|T
-                    self.model.InitBackward(x_out_cv[:, SysModel.T_test-1]) 
-                    x_out_cv[:, SysModel.T_test-2] = self.model(None, x_out_cv_forward[:, SysModel.T_test-2], x_out_cv_forward[:, SysModel.T_test-1],None)
-                    for t in range(SysModel.T_test-3, -1, -1):
-                        x_out_cv[:, t] = self.model(None, x_out_cv_forward[:, t], x_out_cv_forward[:, t+1],x_out_cv[:, t+2])
                     
-                    if (multipass):
-                        x_out_cv_forward_2 = torch.empty(SysModel.m,SysModel.T_test).to(dev, non_blocking=True)
-                        x_out_cv_2 = torch.empty(SysModel.m, SysModel.T_test).to(dev, non_blocking=True)
+                    if(kitti or KnownInit):
+                        x_out_cv[:,0] = cv_target[j][:,0]
+                        self.model.InitSequence(x_out_cv[:,0], SysModel.T_test)
+                        
+                        for t in range(1, SysModel.T_test):# start from t=1
+                            x_out_cv_forward[:, t] = self.model(y_cv[:, t], None, None, None)
+                        x_out_cv[:, SysModel.T_test-1] = x_out_cv_forward[:, SysModel.T_test-1] # backward smoothing starts from x_T|T
+                        self.model.InitBackward(x_out_cv[:, SysModel.T_test-1]) 
+                        x_out_cv[:, SysModel.T_test-2] = self.model(None, x_out_cv_forward[:, SysModel.T_test-2], x_out_cv_forward[:, SysModel.T_test-1],None)
+                        for t in range(SysModel.T_test-3, 0, -1):# end at t=0
+                            x_out_cv[:, t] = self.model(None, x_out_cv_forward[:, t], x_out_cv_forward[:, t+1],x_out_cv[:, t+2])
+                    
+                    else:
+                        self.model.InitSequence(SysModel.m1x_0, SysModel.T_test)
+ 
                         for t in range(0, SysModel.T_test):
-                            x_out_cv_forward_2[:, t] = self.model(x_out_cv[:, t], None, None, None)
-                        x_out_cv_2[:, SysModel.T_test-1] = x_out_cv_forward_2[:, SysModel.T_test-1] # backward smoothing starts from x_T|T 
-                        self.model.InitBackward(x_out_cv_2[:, SysModel.T_test-1]) 
-                        x_out_cv_2[:, SysModel.T_test-2] = self.model(None, x_out_cv_forward_2[:, SysModel.T_test-2], x_out_cv_forward_2[:, SysModel.T_test-1],None)
+                            x_out_cv_forward[:, t] = self.model(y_cv[:, t], None, None, None)
+                        x_out_cv[:, SysModel.T_test-1] = x_out_cv_forward[:, SysModel.T_test-1] # backward smoothing starts from x_T|T
+                        self.model.InitBackward(x_out_cv[:, SysModel.T_test-1]) 
+                        x_out_cv[:, SysModel.T_test-2] = self.model(None, x_out_cv_forward[:, SysModel.T_test-2], x_out_cv_forward[:, SysModel.T_test-1],None)
                         for t in range(SysModel.T_test-3, -1, -1):
-                            x_out_cv_2[:, t] = self.model(None, x_out_cv_forward_2[:, t], x_out_cv_forward_2[:, t+1],x_out_cv[:, t+2])          
-                        x_out_cv = x_out_cv_2
+                            x_out_cv[:, t] = self.model(None, x_out_cv_forward[:, t], x_out_cv_forward[:, t+1],x_out_cv[:, t+2])
+                        
+                    # if (multipass):
+                    #     x_out_cv_forward_2 = torch.empty(SysModel.m,SysModel.T_test).to(dev, non_blocking=True)
+                    #     x_out_cv_2 = torch.empty(SysModel.m, SysModel.T_test).to(dev, non_blocking=True)
+                    #     for t in range(0, SysModel.T_test):
+                    #         x_out_cv_forward_2[:, t] = self.model(x_out_cv[:, t], None, None, None)
+                    #     x_out_cv_2[:, SysModel.T_test-1] = x_out_cv_forward_2[:, SysModel.T_test-1] # backward smoothing starts from x_T|T 
+                    #     self.model.InitBackward(x_out_cv_2[:, SysModel.T_test-1]) 
+                    #     x_out_cv_2[:, SysModel.T_test-2] = self.model(None, x_out_cv_forward_2[:, SysModel.T_test-2], x_out_cv_forward_2[:, SysModel.T_test-1],None)
+                    #     for t in range(SysModel.T_test-3, -1, -1):
+                    #         x_out_cv_2[:, t] = self.model(None, x_out_cv_forward_2[:, t], x_out_cv_forward_2[:, t+1],x_out_cv[:, t+2])          
+                    #     x_out_cv = x_out_cv_2
 
                     # Compute Training Loss
                     if(kitti):
@@ -243,10 +261,10 @@ class Pipeline_ERTS:
         # MSE LOSS Function
         loss_fn = nn.MSELoss(reduction='mean')
 
-        if (rnn):
-            self.model = torch.load(path_results+'rnn_best-model.pt', map_location=dev)
-        else:
-            self.model = torch.load(path_results+'best-model.pt', map_location=dev)
+        # if (rnn):
+        #     self.model = torch.load(path_results+'rnn_best-model.pt', map_location=dev)
+        # else:
+        #     self.model = torch.load(path_results+'best-model.pt', map_location=dev)
 
         self.model.eval()
 
@@ -258,35 +276,47 @@ class Pipeline_ERTS:
 
             y_mdl_tst = test_input[j]
             SysModel.T_test = y_mdl_tst.size()[-1]
-            if (kitti or KnownInit):
-                self.model.InitSequence(test_target[j][:,0], SysModel.T_test)
-            else:
-                init_cond = SysModel.m1x_0
-                self.model.InitSequence(init_cond, SysModel.T_test)         
 
             x_out_test_forward_1 = torch.empty(SysModel.m,SysModel.T_test).to(dev, non_blocking=True)
             x_out_test = torch.empty(SysModel.m, SysModel.T_test).to(dev, non_blocking=True)
-            for t in range(0, SysModel.T_test):
-                x_out_test_forward_1[:, t] = self.model(y_mdl_tst[:, t], None, None, None)
-            x_out_test[:, SysModel.T_test-1] = x_out_test_forward_1[:, SysModel.T_test-1] # backward smoothing starts from x_T|T 
-            self.model.InitBackward(x_out_test[:, SysModel.T_test-1]) 
-            x_out_test[:, SysModel.T_test-2] = self.model(None, x_out_test_forward_1[:, SysModel.T_test-2], x_out_test_forward_1[:, SysModel.T_test-1],None)
-            for t in range(SysModel.T_test-3, -1, -1):
-                x_out_test[:, t] = self.model(None, x_out_test_forward_1[:, t], x_out_test_forward_1[:, t+1],x_out_test[:, t+2])
+
+            if (kitti or KnownInit):
+                self.model.InitSequence(test_target[j][:,0], SysModel.T_test)
+                x_out_test[:,0] = test_target[j][:,0]
+
+                for t in range(1, SysModel.T_test): # Known Initialization, so t start from 1
+                    x_out_test_forward_1[:, t] = self.model(y_mdl_tst[:, t], None, None, None)
+                x_out_test[:, SysModel.T_test-1] = x_out_test_forward_1[:, SysModel.T_test-1] # backward smoothing starts from x_T|T 
+                self.model.InitBackward(x_out_test[:, SysModel.T_test-1]) 
+                x_out_test[:, SysModel.T_test-2] = self.model(None, x_out_test_forward_1[:, SysModel.T_test-2], x_out_test_forward_1[:, SysModel.T_test-1],None)
+                for t in range(SysModel.T_test-3, 0, -1):# Known Initialization, so t end at 1
+                    x_out_test[:, t] = self.model(None, x_out_test_forward_1[:, t], x_out_test_forward_1[:, t+1],x_out_test[:, t+2])
             
+            else:
+                init_cond = SysModel.m1x_0
+                self.model.InitSequence(init_cond, SysModel.T_test)         
+           
+                for t in range(0, SysModel.T_test):
+                    x_out_test_forward_1[:, t] = self.model(y_mdl_tst[:, t], None, None, None)
+                x_out_test[:, SysModel.T_test-1] = x_out_test_forward_1[:, SysModel.T_test-1] # backward smoothing starts from x_T|T 
+                self.model.InitBackward(x_out_test[:, SysModel.T_test-1]) 
+                x_out_test[:, SysModel.T_test-2] = self.model(None, x_out_test_forward_1[:, SysModel.T_test-2], x_out_test_forward_1[:, SysModel.T_test-1],None)
+                for t in range(SysModel.T_test-3, -1, -1):
+                    x_out_test[:, t] = self.model(None, x_out_test_forward_1[:, t], x_out_test_forward_1[:, t+1],x_out_test[:, t+2])
+                
             ########################################################################
             # Second pass
-            if (multipass):
-                x_out_test_forward_2 = torch.empty(SysModel.m,SysModel.T_test).to(dev, non_blocking=True)
-                x_out_test_2 = torch.empty(SysModel.m, SysModel.T_test).to(dev, non_blocking=True)
-                for t in range(0, SysModel.T_test):
-                    x_out_test_forward_2[:, t] = self.model(x_out_test[:, t], None, None, None)
-                x_out_test_2[:, SysModel.T_test-1] = x_out_test_forward_2[:, SysModel.T_test-1] # backward smoothing starts from x_T|T 
-                self.model.InitBackward(x_out_test_2[:, SysModel.T_test-1]) 
-                x_out_test_2[:, SysModel.T_test-2] = self.model(None, x_out_test_forward_2[:, SysModel.T_test-2], x_out_test_forward_2[:, SysModel.T_test-1],None)
-                for t in range(SysModel.T_test-3, -1, -1):
-                    x_out_test_2[:, t] = self.model(None, x_out_test_forward_2[:, t], x_out_test_forward_2[:, t+1],x_out_test[:, t+2])          
-                x_out_test = x_out_test_2
+            # if (multipass):
+            #     x_out_test_forward_2 = torch.empty(SysModel.m,SysModel.T_test).to(dev, non_blocking=True)
+            #     x_out_test_2 = torch.empty(SysModel.m, SysModel.T_test).to(dev, non_blocking=True)
+            #     for t in range(0, SysModel.T_test):
+            #         x_out_test_forward_2[:, t] = self.model(x_out_test[:, t], None, None, None)
+            #     x_out_test_2[:, SysModel.T_test-1] = x_out_test_forward_2[:, SysModel.T_test-1] # backward smoothing starts from x_T|T 
+            #     self.model.InitBackward(x_out_test_2[:, SysModel.T_test-1]) 
+            #     x_out_test_2[:, SysModel.T_test-2] = self.model(None, x_out_test_forward_2[:, SysModel.T_test-2], x_out_test_forward_2[:, SysModel.T_test-1],None)
+            #     for t in range(SysModel.T_test-3, -1, -1):
+            #         x_out_test_2[:, t] = self.model(None, x_out_test_forward_2[:, t], x_out_test_forward_2[:, t+1],x_out_test[:, t+2])          
+            #     x_out_test = x_out_test_2
 
             if(kitti):
                 mask = torch.tensor([True,True,True,False,False,False])
