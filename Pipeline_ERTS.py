@@ -261,10 +261,10 @@ class Pipeline_ERTS:
         # MSE LOSS Function
         loss_fn = nn.MSELoss(reduction='mean')
 
-        # if (rnn):
-        #     self.model = torch.load(path_results+'rnn_best-model.pt', map_location=dev)
-        # else:
-        #     self.model = torch.load(path_results+'best-model.pt', map_location=dev)
+        if (rnn):
+            self.model = torch.load(path_results+'rnn_best-model.pt', map_location=dev)
+        else:
+            self.model = torch.load(path_results+'best-model.pt', map_location=dev)
 
         self.model.eval()
 
