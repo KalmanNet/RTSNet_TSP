@@ -4,7 +4,7 @@ import time
 from EKF import ExtendedKalmanFilter
 
 
-def EKFTest(SysModel, test_input, test_target, modelKnowledge = 'full', allStates=True, randomInit = False):
+def EKFTest(SysModel, test_input, test_target, modelKnowledge = 'full', allStates=True, randomInit = False,test_init=None):
 
     N_T = test_target.size()[0]
 
@@ -24,7 +24,7 @@ def EKFTest(SysModel, test_input, test_target, modelKnowledge = 'full', allState
     for sequence_target,sequence_input in zip(test_target,test_input):
 
         if(randomInit):
-            EKF.InitSequence(torch.unsqueeze(SysModel.m1x_0_rand[j,:],1), SysModel.m2x_0)
+            EKF.InitSequence(torch.unsqueeze(test_init[j,:],1), SysModel.m2x_0)
         else:       
             EKF.InitSequence(SysModel.m1x_0, SysModel.m2x_0)
         

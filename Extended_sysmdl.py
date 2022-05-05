@@ -168,7 +168,7 @@ class SystemModel:
             if(randomInit):
                 variance = 100
                 initConditions = torch.rand_like(self.m1x_0) * variance
-                self.m1x_0_rand[i,:] = initConditions
+                self.m1x_0_rand[i,:] = torch.squeeze(initConditions)
             if(seqInit):
                 initConditions = self.x_prev
                 if((i*T % T_test)==0):

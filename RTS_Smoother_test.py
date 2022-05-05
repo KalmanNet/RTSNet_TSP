@@ -4,7 +4,7 @@ import time
 from Linear_KF import KalmanFilter
 from RTS_Smoother import rts_smoother
 
-def S_Test(SysModel, test_input, test_target, randomInit = False):
+def S_Test(SysModel, test_input, test_target, randomInit = False,test_init=None):
 
     # LOSS
     loss_rts = nn.MSELoss(reduction='mean')
@@ -20,7 +20,7 @@ def S_Test(SysModel, test_input, test_target, randomInit = False):
 
     for sequence_target,sequence_input in zip(test_target,test_input):
         if(randomInit):
-            KF.InitSequence(torch.unsqueeze(SysModel.m1x_0_rand[j,:],1), SysModel.m2x_0)  
+            KF.InitSequence(torch.unsqueeze(test_init[j,:],1), SysModel.m2x_0)  
         else:
             KF.InitSequence(SysModel.m1x_0, SysModel.m2x_0)   
             

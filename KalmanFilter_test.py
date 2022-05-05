@@ -4,7 +4,7 @@ import time
 from Linear_KF import KalmanFilter
 from Extended_data import N_T
 
-def KFTest(SysModel, test_input, test_target, randomInit = False):
+def KFTest(SysModel, test_input, test_target, randomInit = False, test_init=None):
 
     # LOSS
     loss_fn = nn.MSELoss(reduction='mean')
@@ -17,7 +17,7 @@ def KFTest(SysModel, test_input, test_target, randomInit = False):
 
     for sequence_target,sequence_input in zip(test_target,test_input):
         if(randomInit):
-            KF.InitSequence(torch.unsqueeze(SysModel.m1x_0_rand[j,:],1), SysModel.m2x_0)        
+            KF.InitSequence(torch.unsqueeze(test_init[j,:],1), SysModel.m2x_0)        
         else:
             KF.InitSequence(SysModel.m1x_0, SysModel.m2x_0)
             

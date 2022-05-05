@@ -68,7 +68,7 @@ dataFileName = '2x2_rq020_T100_randinit.pt'
 # DataGen(sys_model, dataFolderName + dataFileName, T, T_test,randomInit=InitIsRandom)
 print("Data Load")
 if(InitIsRandom):
-   [train_input, train_target, train_init, cv_input, cv_target, cv_init, test_input, test_target, test_init] = DataLoader_GPU(dataFolderName + dataFileName)
+   [train_input, train_target, train_init, cv_input, cv_target, cv_init, test_input, test_target, test_init] = torch.load(dataFolderName + dataFileName,map_location=dev)
 else:
    [train_input, train_target, cv_input, cv_target, test_input, test_target] = DataLoader_GPU(dataFolderName + dataFileName)
 print("trainset size:",train_target.size())
@@ -158,8 +158,6 @@ RTSNet_Pipeline.setTrainingParams(n_Epochs=1000, n_Batch=30, learningRate=1E-3, 
 ## Test Neural Network
 [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model, test_input, test_target, path_results)
 # RTSNet_Pipeline.save()
-for i in range(N_T):
-   print(sum(rtsnet_out[i][:,0]-test_target[i][:,0]))
 
 ### Vanilla RNN with full info ###################################################################################
 ## Build RNN

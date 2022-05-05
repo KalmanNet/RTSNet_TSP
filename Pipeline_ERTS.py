@@ -231,7 +231,7 @@ class Pipeline_ERTS:
 
         return [self.MSE_cv_linear_epoch, self.MSE_cv_dB_epoch, self.MSE_train_linear_epoch, self.MSE_train_dB_epoch]
 
-    def NNTest(self, SysModel, test_input, test_target, path_results, MaskOnState=False, rnn=False,multipass=False,randomInit=True,test_init=None):
+    def NNTest(self, SysModel, test_input, test_target, path_results, MaskOnState=False, rnn=False,multipass=False,randomInit=False,test_init=None):
 
         self.N_T = len(test_input)
 
