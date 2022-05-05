@@ -86,9 +86,9 @@ class KalmanFilter:
 
         self.m1x_posterior = self.m1x_0
         self.m2x_posterior = self.m2x_0
-
+     
         for t in range(0, T):
-            yt = torch.unsqueeze(y[:, t], 1);
-            xt,sigmat = self.Update(yt);
+            yt = torch.unsqueeze(y[:, t], 1)
+            xt,sigmat = self.Update(yt)
             self.x[:, t] = torch.squeeze(xt)
             self.sigma[:, :, t] = torch.squeeze(sigmat)

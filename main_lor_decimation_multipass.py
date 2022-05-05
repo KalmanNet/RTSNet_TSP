@@ -46,7 +46,7 @@ print("Current Time =", strTime)
 ######################################
 ###  Compare EKF, RTS and RTSNet   ###
 ######################################
-iterations = 5
+iterations = 3
 offset = 0
 chop = False
 sequential_training = False

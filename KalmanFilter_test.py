@@ -4,7 +4,7 @@ import time
 from Linear_KF import KalmanFilter
 from Extended_data import N_T
 
-def KFTest(SysModel, test_input, test_target):
+def KFTest(SysModel, test_input, test_target, randomInit = False):
 
     # LOSS
     loss_fn = nn.MSELoss(reduction='mean')
@@ -13,14 +13,19 @@ def KFTest(SysModel, test_input, test_target):
     MSE_KF_linear_arr = torch.empty(N_T)
     start = time.time()
     KF = KalmanFilter(SysModel)
-    KF.InitSequence(SysModel.m1x_0, SysModel.m2x_0)
-    
-    for j in range(0, N_T):
+    j=0
 
-        KF.GenerateSequence(test_input[j, :, :], KF.T_test)
+    for sequence_target,sequence_input in zip(test_target,test_input):
+        if(randomInit):
+            KF.InitSequence(torch.unsqueeze(SysModel.m1x_0_rand[j,:],1), SysModel.m2x_0)        
+        else:
+            KF.InitSequence(SysModel.m1x_0, SysModel.m2x_0)
+            
+        KF.GenerateSequence(sequence_input, sequence_input.size()[-1])
 
-        MSE_KF_linear_arr[j] = loss_fn(KF.x, test_target[j, :, :]).item()
+        MSE_KF_linear_arr[j] = loss_fn(KF.x, sequence_target).item()
         #MSE_KF_linear_arr[j] = loss_fn(test_input[j, :, :], test_target[j, :, :]).item()
+        j=j+1
     end = time.time()
     t = end - start
     MSE_KF_linear_avg = torch.mean(MSE_KF_linear_arr)

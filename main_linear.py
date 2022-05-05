@@ -41,6 +41,7 @@ path_results = 'RTSNet/'
 ####################
 ### Design Model ###
 ####################
+InitIsRandom = True
 r2 = torch.tensor([1])
 vdB = -20 # ratio v=q2/r2
 v = 10**(vdB/10)
@@ -64,20 +65,42 @@ sys_model_partialh.InitSequence(m1_0, m2_0)
 dataFolderName = 'Simulations/Linear_canonical/Generalization' + '/'
 dataFileName = '2x2_rq020_T100_randinit.pt'
 # print("Start Data Gen")
-# DataGen(sys_model, dataFolderName + dataFileName, T, T_test,randomInit=False)
+# DataGen(sys_model, dataFolderName + dataFileName, T, T_test,randomInit=InitIsRandom)
 print("Data Load")
-[train_input, train_target, cv_input, cv_target, test_input, test_target] = DataLoader_GPU(dataFolderName + dataFileName)
+if(InitIsRandom):
+   [train_input, train_target, train_init, cv_input, cv_target, cv_init, test_input, test_target, test_init] = DataLoader_GPU(dataFolderName + dataFileName)
+else:
+   [train_input, train_target, cv_input, cv_target, test_input, test_target] = DataLoader_GPU(dataFolderName + dataFileName)
 print("trainset size:",train_target.size())
 print("cvset size:",cv_target.size())
 print("testset size:",test_target.size())
 
+########################################
+### Evaluate Observation Noise Floor ###
+########################################
+loss_obs = nn.MSELoss(reduction='mean')
+MSE_obs_linear_arr = torch.empty(N_T)# MSE [Linear]
+for j in range(0, N_T):        
+   MSE_obs_linear_arr[j] = loss_obs(test_input[j], test_target[j]).item()
+MSE_obs_linear_avg = torch.mean(MSE_obs_linear_arr)
+MSE_obs_dB_avg = 10 * torch.log10(MSE_obs_linear_avg)
+
+# Standard deviation
+MSE_obs_linear_std = torch.std(MSE_obs_linear_arr, unbiased=True)
+
+# Confidence interval
+obs_std_dB = 10 * torch.log10(MSE_obs_linear_std + MSE_obs_linear_avg) - MSE_obs_dB_avg
+
+print("Observation Noise Floor - MSE LOSS:", MSE_obs_dB_avg, "[dB]")
+print("Observation Noise Floor - STD:", obs_std_dB, "[dB]")
+
 ##############################
 ### Evaluate Kalman Filter ###
 ##############################
-# print("Evaluate Kalman Filter True")
-# [MSE_KF_linear_arr, MSE_KF_linear_avg, MSE_KF_dB_avg] = KFTest(sys_model, test_input, test_target)
-# print("Evaluate Kalman Filter Partial")
-# [MSE_KF_linear_arr_partialh, MSE_KF_linear_avg_partialh, MSE_KF_dB_avg_partialh] = KFTest(sys_model_partialh, test_input, test_target)
+print("Evaluate Kalman Filter True")
+[MSE_KF_linear_arr, MSE_KF_linear_avg, MSE_KF_dB_avg] = KFTest(sys_model, test_input, test_target)
+print("Evaluate Kalman Filter Partial")
+[MSE_KF_linear_arr_partialh, MSE_KF_linear_avg_partialh, MSE_KF_dB_avg_partialh] = KFTest(sys_model_partialh, test_input, test_target)
 
 #############################
 ### Evaluate RTS Smoother ###
@@ -129,9 +152,9 @@ print("Number of trainable parameters for RTSNet:",sum(p.numel() for p in RTSNet
 RTSNet_Pipeline = Pipeline(strTime, "RTSNet", "RTSNet")
 RTSNet_Pipeline.setssModel(sys_model)
 RTSNet_Pipeline.setModel(RTSNet_model)
-# RTSNet_Pipeline.setTrainingParams(n_Epochs=1000, n_Batch=50, learningRate=1E-4, weightDecay=1E-3)
-RTSNet_Pipeline.model = torch.load('RTSNet/new_architecture/linear_Journal/rq020_T100_randinit.pt',map_location=dev)
-# [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results)
+RTSNet_Pipeline.setTrainingParams(n_Epochs=1000, n_Batch=30, learningRate=1E-3, weightDecay=1E-3)
+# RTSNet_Pipeline.model = torch.load('RTSNet/new_architecture/linear_Journal/rq020_T100_randinit.pt',map_location=dev)
+[MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results)
 ## Test Neural Network
 [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model, test_input, test_target, path_results)
 # RTSNet_Pipeline.save()

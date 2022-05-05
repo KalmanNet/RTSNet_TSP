@@ -4,7 +4,7 @@ import time
 from EKF import ExtendedKalmanFilter
 
 
-def EKFTest(SysModel, test_input, test_target, modelKnowledge = 'full', allStates=True):
+def EKFTest(SysModel, test_input, test_target, modelKnowledge = 'full', allStates=True, randomInit = False):
 
     N_T = test_target.size()[0]
 
@@ -15,21 +15,29 @@ def EKFTest(SysModel, test_input, test_target, modelKnowledge = 'full', allState
     MSE_EKF_linear_arr = torch.empty(N_T)
     start = time.time()
     EKF = ExtendedKalmanFilter(SysModel, modelKnowledge)
-    EKF.InitSequence(SysModel.m1x_0, SysModel.m2x_0)
 
     KG_array = torch.zeros_like(EKF.KG_array)
-    EKF_out = torch.empty([N_T, SysModel.m, SysModel.T_test])
+    # Allocate empty list for output
+    EKF_out = []
+    j=0
     
-    for j in range(0, N_T):
-        EKF.GenerateSequence(test_input[j, :, :], EKF.T_test)
+    for sequence_target,sequence_input in zip(test_target,test_input):
+
+        if(randomInit):
+            EKF.InitSequence(torch.unsqueeze(SysModel.m1x_0_rand[j,:],1), SysModel.m2x_0)
+        else:       
+            EKF.InitSequence(SysModel.m1x_0, SysModel.m2x_0)
+        
+        EKF.GenerateSequence(sequence_input, sequence_input.size()[-1])
 
         if(allStates):
-            MSE_EKF_linear_arr[j] = loss_fn(EKF.x, test_target[j, :, :]).item()
+            MSE_EKF_linear_arr[j] = loss_fn(EKF.x, sequence_target).item()
         else:
             loc = torch.tensor([True,False,True,False])
-            MSE_EKF_linear_arr[j] = loss_fn(EKF.x[loc,:], test_target[j, :, :]).item()
+            MSE_EKF_linear_arr[j] = loss_fn(EKF.x[loc,:], sequence_target).item()
         KG_array = torch.add(EKF.KG_array, KG_array) 
-        EKF_out[j,:,:] = EKF.x
+        EKF_out.append(EKF.x)
+        j = j+1
     end = time.time()
     t = end - start
     # Average KG_array over Test Examples

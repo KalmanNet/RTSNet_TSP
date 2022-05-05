@@ -50,11 +50,12 @@ def f(x):
     for j in range(1,J+1):
         F_add = (torch.matrix_power(A*delta_t, j)/math.factorial(j)).to(cuda0)
         F = torch.add(F, F_add).to(cuda0)
-
-    return torch.matmul(F, x)
+    x_out = torch.matmul(F, x)
+    return x_out
 
 def h(x):
-    return torch.matmul(H_design,x).to(cuda0)
+    y = torch.matmul(H_design,x).to(cuda0)
+    return y
     #return toSpherical(x)
 
 def fInacc(x):

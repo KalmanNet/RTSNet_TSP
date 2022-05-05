@@ -123,6 +123,8 @@ def DataGen(SysModel_data, fileName, T, T_test,randomInit=False):
     SysModel_data.GenerateBatch(N_E, T, randomInit=randomInit)
     training_input = SysModel_data.Input
     training_target = SysModel_data.Target
+    if(randomInit):
+        training_init = SysModel_data.m1x_0_rand
 
     ####################################
     ### Generate Validation Sequence ###
@@ -130,6 +132,8 @@ def DataGen(SysModel_data, fileName, T, T_test,randomInit=False):
     SysModel_data.GenerateBatch(N_CV, T, randomInit=randomInit)
     cv_input = SysModel_data.Input
     cv_target = SysModel_data.Target
+    if(randomInit):
+        cv_init = SysModel_data.m1x_0_rand
 
     ##############################
     ### Generate Test Sequence ###
@@ -137,11 +141,16 @@ def DataGen(SysModel_data, fileName, T, T_test,randomInit=False):
     SysModel_data.GenerateBatch(N_T, T_test, randomInit=randomInit)
     test_input = SysModel_data.Input
     test_target = SysModel_data.Target
+    if(randomInit):
+        test_init = SysModel_data.m1x_0_rand
 
     #################
     ### Save Data ###
     #################
-    torch.save([training_input, training_target, cv_input, cv_target, test_input, test_target], fileName)
+    if(randomInit):
+        torch.save([training_input, training_target, training_init, cv_input, cv_target, cv_init, test_input, test_target, test_init], fileName)
+    else:
+        torch.save([training_input, training_target, cv_input, cv_target, test_input, test_target], fileName)
 
 def DataLoader(fileName):
 

@@ -116,6 +116,7 @@ class ExtendedKalmanFilter:
         self.m1x_posterior = torch.squeeze(self.m1x_0)
         self.m2x_posterior = torch.squeeze(self.m2x_0)
 
+
         for t in range(0, T):
             yt = torch.squeeze(y[:, t])
             xt,sigmat = self.Update(yt)

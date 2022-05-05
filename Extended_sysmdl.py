@@ -154,6 +154,10 @@ class SystemModel:
         # Allocate Empty Array for Target
         self.Target = torch.empty(size, self.m, T)
 
+        if(randomInit):
+            # Allocate Empty Array for Random Initial Conditions
+            self.m1x_0_rand = torch.empty(size, self.m)
+
         ### Generate Examples
         initConditions = self.m1x_0
 
@@ -164,6 +168,7 @@ class SystemModel:
             if(randomInit):
                 variance = 100
                 initConditions = torch.rand_like(self.m1x_0) * variance
+                self.m1x_0_rand[i,:] = initConditions
             if(seqInit):
                 initConditions = self.x_prev
                 if((i*T % T_test)==0):

@@ -111,13 +111,13 @@ for sequence in gt_data:
 ### Evaluate Kalman Filter ###
 ##############################
 print("Evaluate Kalman Filter True")
-[MSE_KF_linear_arr, MSE_KF_linear_avg, MSE_KF_dB_avg] = KFTest(sys_model, test_input, test_target,kitti=True)
+[MSE_KF_linear_arr, MSE_KF_linear_avg, MSE_KF_dB_avg] = KFTest(sys_model, test_input, test_target)
 
 ##############################
 ### Evaluate RTS Smoother ###
 ##############################
 print("Evaluate RTS Smoother True")
-[MSE_RTS_linear_arr, MSE_RTS_linear_avg, MSE_RTS_dB_avg] = S_Test(sys_model, test_input, test_target,kitti=True)
+[MSE_RTS_linear_arr, MSE_RTS_linear_avg, MSE_RTS_dB_avg] = S_Test(sys_model, test_input, test_target)
 
 #######################
 ### RTSNet Pipeline ###
