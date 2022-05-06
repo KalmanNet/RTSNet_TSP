@@ -155,13 +155,19 @@ class SystemModel:
     ######################
     ### Generate Batch ###
     ######################
-    def GenerateBatch(self, size, T, randomInit=False, seqInit=False, T_test=0):
-
-        # Allocate Empty Array for Input
-        self.Input = torch.empty(size, self.n, T)
-
-        # Allocate Empty Array for Target
-        self.Target = torch.empty(size, self.m, T)
+    def GenerateBatch(self, size, T, randomInit=False, randomLength=False):
+        if(randomLength):
+            # Allocate Empty list for Input
+            self.Input = []
+            # Allocate Empty list for Target
+            self.Target = []
+            # Init Sequence Lengths
+            T_tensor = torch.round(900*torch.rand(size)).int()+100 # Uniform distribution [100,1000]
+        else:
+            # Allocate Empty Array for Input
+            self.Input = torch.empty(size, self.n, T)
+            # Allocate Empty Array for Target
+            self.Target = torch.empty(size, self.m, T)
         
         if(randomInit):
             # Allocate Empty Array for Random Initial Conditions
@@ -178,19 +184,21 @@ class SystemModel:
                 variance = 100
                 initConditions = torch.rand_like(self.m1x_0) * variance
                 self.m1x_0_rand[i,:] = torch.squeeze(initConditions)
-            if(seqInit):
-                initConditions = self.x_prev
-                if((i*T % T_test)==0):
-                    initConditions = torch.zeros_like(self.m1x_0)
-
+            
             self.InitSequence(initConditions, self.m2x_0)
-            self.GenerateSequence(self.Q, self.R, T)
 
-            # Training sequence input
-            self.Input[i, :, :] = self.y
-
-            # Training sequence output
-            self.Target[i, :, :] = self.x
+            if(randomLength):
+                self.GenerateSequence(self.Q, self.R, T_tensor[i].item())
+                # Training sequence input
+                self.Input.append(self.y)
+                # Training sequence output
+                self.Target.append(self.x)
+            else:
+                self.GenerateSequence(self.Q, self.R, T)
+                # Training sequence input
+                self.Input[i, :, :] = self.y
+                # Training sequence output
+                self.Target[i, :, :] = self.x
 
 
     def sampling(self, q, r, gain):

@@ -41,7 +41,8 @@ path_results = 'RTSNet/'
 ####################
 ### Design Model ###
 ####################
-InitIsRandom = True
+InitIsRandom = False
+LengthIsRandom = True
 r2 = torch.tensor([1])
 vdB = -20 # ratio v=q2/r2
 v = 10**(vdB/10)
@@ -63,17 +64,29 @@ sys_model_partialh.InitSequence(m1_0, m2_0)
 ### Data Loader (Generate Data) ###
 ###################################
 dataFolderName = 'Simulations/Linear_canonical/Generalization' + '/'
-dataFileName = '2x2_rq020_T100_randinit.pt'
+dataFileName = '2x2_rq020_randLength.pt'
 # print("Start Data Gen")
-# DataGen(sys_model, dataFolderName + dataFileName, T, T_test,randomInit=InitIsRandom)
+# DataGen(sys_model, dataFolderName + dataFileName, T, T_test,randomInit=InitIsRandom,randomLength=LengthIsRandom)
 print("Data Load")
 if(InitIsRandom):
    [train_input, train_target, train_init, cv_input, cv_target, cv_init, test_input, test_target, test_init] = torch.load(dataFolderName + dataFileName,map_location=dev)
+   print("trainset size:",train_target.size())
+   print("cvset size:",cv_target.size())
+   print("testset size:",test_target.size())
+elif(LengthIsRandom):
+   [train_input, train_target, cv_input, cv_target, test_input, test_target] = torch.load(dataFolderName + dataFileName,map_location=dev)
+   ### Check sequence lengths
+   # for sequences in train_target:
+   #    print("trainset size:",sequences.size())
+   # for sequences in test_target:
+   #    print("testset size:",sequences.size())
 else:
    [train_input, train_target, cv_input, cv_target, test_input, test_target] = DataLoader_GPU(dataFolderName + dataFileName)
-print("trainset size:",train_target.size())
-print("cvset size:",cv_target.size())
-print("testset size:",test_target.size())
+   print("trainset size:",train_target.size())
+   print("cvset size:",cv_target.size())
+   print("testset size:",test_target.size())
+  
+
 
 ########################################
 ### Evaluate Observation Noise Floor ###
@@ -99,14 +112,14 @@ print("Observation Noise Floor - STD:", obs_std_dB, "[dB]")
 ##############################
 print("Evaluate Kalman Filter True")
 [MSE_KF_linear_arr, MSE_KF_linear_avg, MSE_KF_dB_avg] = KFTest(sys_model, test_input, test_target)
-print("Evaluate Kalman Filter Partial")
-[MSE_KF_linear_arr_partialh, MSE_KF_linear_avg_partialh, MSE_KF_dB_avg_partialh] = KFTest(sys_model_partialh, test_input, test_target)
+# print("Evaluate Kalman Filter Partial")
+# [MSE_KF_linear_arr_partialh, MSE_KF_linear_avg_partialh, MSE_KF_dB_avg_partialh] = KFTest(sys_model_partialh, test_input, test_target)
 
 #############################
 ### Evaluate RTS Smoother ###
 #############################
-# print("Evaluate RTS Smoother True")
-# [MSE_RTS_linear_arr, MSE_RTS_linear_avg, MSE_RTS_dB_avg] = S_Test(sys_model, test_input, test_target)
+print("Evaluate RTS Smoother True")
+[MSE_RTS_linear_arr, MSE_RTS_linear_avg, MSE_RTS_dB_avg] = S_Test(sys_model, test_input, test_target)
 # print("Evaluate RTS Smoother Partial")
 # [MSE_RTS_linear_arr_partialh, MSE_RTS_linear_avg_partialh, MSE_RTS_dB_avg_partialh] = S_Test(sys_model_partialh, test_input, test_target)
 
@@ -144,19 +157,19 @@ print("Evaluate Kalman Filter Partial")
 
 ### RTSNet with full info ##############################################################################################
 # Build Neural Network
-print("RTSNet with full model info")
-RTSNet_model = RTSNetNN()
-RTSNet_model.NNBuild(sys_model)
-print("Number of trainable parameters for RTSNet:",sum(p.numel() for p in RTSNet_model.parameters() if p.requires_grad))
-## Train Neural Network
-RTSNet_Pipeline = Pipeline(strTime, "RTSNet", "RTSNet")
-RTSNet_Pipeline.setssModel(sys_model)
-RTSNet_Pipeline.setModel(RTSNet_model)
-RTSNet_Pipeline.setTrainingParams(n_Epochs=1000, n_Batch=30, learningRate=1E-3, weightDecay=1E-3)
-# RTSNet_Pipeline.model = torch.load('RTSNet/new_architecture/linear_Journal/rq020_T100_randinit.pt',map_location=dev)
-[MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results)
-## Test Neural Network
-[MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model, test_input, test_target, path_results)
+# print("RTSNet with full model info")
+# RTSNet_model = RTSNetNN()
+# RTSNet_model.NNBuild(sys_model)
+# print("Number of trainable parameters for RTSNet:",sum(p.numel() for p in RTSNet_model.parameters() if p.requires_grad))
+# ## Train Neural Network
+# RTSNet_Pipeline = Pipeline(strTime, "RTSNet", "RTSNet")
+# RTSNet_Pipeline.setssModel(sys_model)
+# RTSNet_Pipeline.setModel(RTSNet_model)
+# RTSNet_Pipeline.setTrainingParams(n_Epochs=1000, n_Batch=30, learningRate=1E-3, weightDecay=1E-3)
+# # RTSNet_Pipeline.model = torch.load('RTSNet/new_architecture/linear_Journal/rq020_T100_randinit.pt',map_location=dev)
+# [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results)
+# ## Test Neural Network
+# [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model, test_input, test_target, path_results)
 # RTSNet_Pipeline.save()
 
 ### Vanilla RNN with full info ###################################################################################

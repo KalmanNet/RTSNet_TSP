@@ -48,7 +48,7 @@ class Pipeline_ERTS:
         # self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizer, 'min',factor=0.9, patience=20)
 
 
-    def NNTrain(self, SysModel, cv_input, cv_target, train_input, train_target, path_results, rnn=False, KnownInit = True, nclt = False):
+    def NNTrain(self, SysModel, cv_input, cv_target, train_input, train_target, path_results, rnn=False,nclt = False, randomInit = False, cv_init=None,train_init=None):
 
         self.N_E = train_input.size()[0]
         self.N_CV = cv_input.size()[0]
@@ -86,13 +86,12 @@ class Pipeline_ERTS:
             for j in range(0, self.N_B):
                 
                 n_e = random.randint(0, self.N_E - 1)
-                if(KnownInit):
-                    init_conditions = train_target[n_e][:,0]               
+                if(randomInit):
+                    self.model.InitSequence(train_init[n_e], SysModel.T)
                 else:
-                    init_conditions = SysModel.m1x_0
+                    self.model.InitSequence(SysModel.m1x_0, SysModel.T)
 
                 y_training = train_input[n_e, :, :]
-                self.model.InitSequence(init_conditions, SysModel.T)
                 x_out_training_forward = torch.empty(SysModel.m, SysModel.T).to(dev, non_blocking=True)
                 x_out_training = torch.empty(SysModel.m, SysModel.T).to(dev, non_blocking=True)
                 for t in range(0, SysModel.T):
@@ -107,8 +106,11 @@ class Pipeline_ERTS:
                 # define BW tensors
                 x_out_train_forward_2 = torch.empty(SysModel.m,SysModel.T).to(dev, non_blocking=True)
                 x_out_train_2 = torch.empty(SysModel.m, SysModel.T).to(dev, non_blocking=True)
-                # init with the results from pass1
-                self.model.InitSequence(x_out_training[:, 0], SysModel.T)
+                # init 
+                if(randomInit):
+                    self.model.InitSequence(train_init[n_e], SysModel.T)
+                else:
+                    self.model.InitSequence(SysModel.m1x_0, SysModel.T)
                 # second filtering pass
                 for t in range(0, SysModel.T):
                     x_out_train_forward_2[:, t] = self.model(y_training[:, t],x_out_training[:, t],None, None,pass2=True)
@@ -168,12 +170,11 @@ class Pipeline_ERTS:
             with torch.no_grad():
                 for j in range(0, self.N_CV):
                     # Initialize next sequence
-                    if(KnownInit):
-                        init_conditions = cv_target[j][:,0]
+                    if(randomInit):
+                        self.model.InitSequence(cv_init[j], SysModel.T_test)                       
                     else:
-                        init_conditions = SysModel.m1x_0
-
-                    self.model.InitSequence(init_conditions, SysModel.T_test)   
+                        self.model.InitSequence(SysModel.m1x_0, SysModel.T_test)
+ 
                     y_cv = cv_input[j, :, :]
 
                     x_out_cv_forward = torch.empty(SysModel.m, SysModel.T_test).to(dev, non_blocking=True)
@@ -191,8 +192,11 @@ class Pipeline_ERTS:
                     ### second pass
                     x_out_cv_forward_2 = torch.empty(SysModel.m,SysModel.T_test).to(dev, non_blocking=True)
                     x_out_cv_2 = torch.empty(SysModel.m, SysModel.T_test).to(dev, non_blocking=True)
-                    # Init with results from pass1
-                    self.model.InitSequence(x_out_cv[:, 0], SysModel.T_test)
+                    # Init 
+                    if(randomInit):
+                        self.model.InitSequence(cv_init[j], SysModel.T_test)                       
+                    else:
+                        self.model.InitSequence(SysModel.m1x_0, SysModel.T_test)
                     # second filtering pass
                     for t in range(0, SysModel.T_test):
                         x_out_cv_forward_2[:, t] = self.model(y_cv[:, t],x_out_cv[:, t], None, None,pass2=True)
@@ -238,7 +242,7 @@ class Pipeline_ERTS:
 
         return [self.MSE_cv_linear_epoch, self.MSE_cv_dB_epoch, self.MSE_train_linear_epoch, self.MSE_train_dB_epoch]
 
-    def NNTest(self, SysModel, test_input, test_target, path_results, nclt=False, rnn=False, IC=None):
+    def NNTest(self, SysModel, test_input, test_target, path_results, nclt=False, rnn=False, randomInit=False,test_init=None):
 
         self.N_T = test_input.size()[0]
 
@@ -256,13 +260,11 @@ class Pipeline_ERTS:
         x_out_array = torch.empty(self.N_T,SysModel.m, SysModel.T_test)
         start = time.time()
         for j in range(0, self.N_T):
-            if nclt:
-                self.model.InitSequence(SysModel.m1x_0, SysModel.T_test)
-            elif IC is None:
-                self.model.InitSequence(torch.unsqueeze(test_target[j, :, 0], dim=1), SysModel.T_test)
+            
+            if (randomInit):
+                self.model.InitSequence(test_init[j], SysModel.T_test)               
             else:
-                init_cond = torch.reshape(IC[j, :], SysModel.m1x_0.shape)
-                self.model.InitSequence(init_cond, SysModel.T_test)
+                self.model.InitSequence(SysModel.m1x_0, SysModel.T_test) 
 
             y_mdl_tst = test_input[j, :, :]
 
@@ -281,7 +283,10 @@ class Pipeline_ERTS:
             x_out_test_forward_2 = torch.empty(SysModel.m,SysModel.T_test).to(dev, non_blocking=True)
             x_out_test_2 = torch.empty(SysModel.m, SysModel.T_test).to(dev, non_blocking=True)
             # Init with results from pass1
-            self.model.InitSequence(x_out_test[:, 0], SysModel.T_test)
+            if (randomInit):
+                self.model.InitSequence(test_init[j], SysModel.T_test)               
+            else:
+                self.model.InitSequence(SysModel.m1x_0, SysModel.T_test) 
             # Second filtering pass
             for t in range(0, SysModel.T_test):
                 x_out_test_forward_2[:, t] = self.model(y_mdl_tst[:, t],x_out_test[:, t],None, None,pass2=True)
