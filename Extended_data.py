@@ -22,11 +22,11 @@ N_E = 1000
 # Number of Cross Validation Examples
 N_CV = 100
 
-N_T = 200
+N_T = 1000
 
 # Sequence Length for Linear Case
-T = 100
-T_test = 100
+T = 20
+T_test = 20
 
 
 
