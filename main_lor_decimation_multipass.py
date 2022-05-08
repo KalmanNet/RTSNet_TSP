@@ -46,7 +46,7 @@ print("Current Time =", strTime)
 ######################################
 ###  Compare EKF, RTS and RTSNet   ###
 ######################################
-iterations = 3
+iterations = 8
 offset = 0
 chop = False
 sequential_training = False
@@ -58,7 +58,7 @@ data_gen_file = torch.load(DatafolderName+data_gen, map_location=cuda0)
 
 r = torch.tensor([1.])
 lambda_q = torch.tensor([0.3873])
-traj_resultName = ['traj_lor_dec_RTSNetJ2_r0_2pass.pt']#,'partial_lor_r4.pt','partial_lor_r5.pt','partial_lor_r6.pt']
+traj_resultName = ['traj_lor_dec_RTSNetJ2_r0_8pass.pt']#,'partial_lor_r4.pt','partial_lor_r5.pt','partial_lor_r6.pt']
 # EKFResultName = 'EKF_obsmis_rq1030_T2000_NT100' 
 
 for rindex in range(0, len(r)):
