@@ -64,7 +64,7 @@ sys_model.InitSequence(m1_0, m2_0)
 ### Data Loader (Generate Data) ###
 ###################################
 dataFolderName = 'Simulations/Linear_canonical/Scaling_to_large_models' + '/'
-dataFileName = '2x2_rq020_T20.pt'
+dataFileName = '40x40_rq020_T20.pt'
 print("Start Data Gen")
 DataGen(sys_model, dataFolderName + dataFileName, T, T_test,randomInit=InitIsRandom,randomLength=LengthIsRandom)
 print("Data Load")
@@ -165,7 +165,7 @@ print("Number of trainable parameters for RTSNet:",sum(p.numel() for p in RTSNet
 RTSNet_Pipeline = Pipeline(strTime, "RTSNet", "RTSNet")
 RTSNet_Pipeline.setssModel(sys_model)
 RTSNet_Pipeline.setModel(RTSNet_model)
-RTSNet_Pipeline.setTrainingParams(n_Epochs=1000, n_Batch=30, learningRate=1E-3, weightDecay=1E-3)
+RTSNet_Pipeline.setTrainingParams(n_Epochs=10000, n_Batch=1, learningRate=1E-5, weightDecay=1E-2)
 # RTSNet_Pipeline.model = torch.load('RTSNet/new_architecture/linear_Journal/rq020_T100_randinit.pt',map_location=dev)
 [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results)
 ## Test Neural Network

@@ -47,38 +47,41 @@ for i in range(40):
 ############
 ## 2 x 2 ###
 ############
-m = 2
-n = 2
-F = F40[0:m, 0:m]
-H = torch.eye(2)
-m1_0 = torch.tensor([[0.0], [0.0]]).to(dev)
-# m1x_0_design = torch.tensor([[10.0], [-10.0]])
-m2_0 = 0 * 0 * torch.eye(m).to(dev)
+# m = 2
+# n = 2
+# F = F40[0:m, 0:m]
+# H = torch.eye(2)
+# m1_0 = torch.tensor([[0.0], [0.0]]).to(dev)
+# # m1x_0_design = torch.tensor([[10.0], [-10.0]])
+# m2_0 = 0 * 0 * torch.eye(m).to(dev)
 
 
 ################################
 ### 5 x 5, 10 x 10 and so on ###
 ################################
-# m = 5
-# n = 5
-# F = F40[0:m, 0:m]
-# H = H40[0:n, 10-m:10]
-# m1_0 = torch.zeros(m, 1).to(dev)
-# # m1x_0_design = torch.tensor([[1.0], [-1.0], [2.0], [-2.0], [0.0]]).to(dev)
-# m2_0 = 0 * 0 * torch.eye(m).to(dev)
+m = 40
+n = 40
+F = F40[0:m, 0:m]
+H = H40[0:n, 40-m:40]
+m1_0 = torch.zeros(m, 1).to(dev)
+# m1x_0_design = torch.tensor([[1.0], [-1.0], [2.0], [-2.0], [0.0]]).to(dev)
+m2_0 = 0 * 0 * torch.eye(m).to(dev)
 
 
 
 # Inaccurate model knowledge based on matrix rotation
-alpha_degree = 10
-rotate_alpha = torch.tensor([alpha_degree/180*torch.pi]).to(dev)
-cos_alpha = torch.cos(rotate_alpha)
-sin_alpha = torch.sin(rotate_alpha)
-rotate_matrix = torch.tensor([[cos_alpha, -sin_alpha],
-                              [sin_alpha, cos_alpha]]).to(dev)
-# print(rotate_matrix)
-F_rotated = torch.mm(F,rotate_matrix) #inaccurate process model
-H_rotated = torch.mm(H,rotate_matrix) #inaccurate observation model
+F_rotated = torch.zeros_like(F)
+H_rotated = torch.zeros_like(H)
+if(m==2):
+    alpha_degree = 10
+    rotate_alpha = torch.tensor([alpha_degree/180*torch.pi]).to(dev)
+    cos_alpha = torch.cos(rotate_alpha)
+    sin_alpha = torch.sin(rotate_alpha)
+    rotate_matrix = torch.tensor([[cos_alpha, -sin_alpha],
+                                [sin_alpha, cos_alpha]]).to(dev)
+    # print(rotate_matrix)
+    F_rotated = torch.mm(F,rotate_matrix) #inaccurate process model
+    H_rotated = torch.mm(H,rotate_matrix) #inaccurate observation model
 
 def DataGen_True(SysModel_data, fileName, T):
 
