@@ -213,7 +213,10 @@ class Pipeline_ERTS:
                     ### second pass and so on
                     for iteration in range(1, self.model.iterations):
                         if(randomInit):
-                            self.model.InitSequence_multipass(iteration, cv_init[j], SysModel.T_test)
+                            if(cv_init==None):
+                                 self.model.InitSequence_multipass(iteration, SysModel.m1x_0, SysModel.T_test)
+                            else:
+                                self.model.InitSequence_multipass(iteration, cv_init[j], SysModel.T_test)
                         else:
                             self.model.InitSequence_multipass(iteration, SysModel.m1x_0, SysModel.T_test)
                         # filtering passes

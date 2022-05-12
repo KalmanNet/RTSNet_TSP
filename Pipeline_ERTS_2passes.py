@@ -197,7 +197,10 @@ class Pipeline_ERTS:
                     x_out_cv_2 = torch.empty(SysModel.m, SysModel.T_test).to(dev, non_blocking=True)
                     # Init 
                     if(randomInit):
-                        self.model.InitSequence(cv_init[j], SysModel.T_test)                       
+                        if(cv_init==None):
+                            self.model.InitSequence(SysModel.m1x_0, SysModel.T_test)
+                        else:
+                            self.model.InitSequence(cv_init[j], SysModel.T_test)                       
                     else:
                         self.model.InitSequence(SysModel.m1x_0, SysModel.T_test)
                     # second filtering pass

@@ -1,5 +1,6 @@
 from cmath import nan
 import torch
+from Pipeline_ERTS import Pipeline_ERTS as Pipeline
 from filing_paths import path_model
 # import sys
 # sys.path.insert(1, path_model)
@@ -53,4 +54,4 @@ T_test = 10
 # print("output init:",init.size())
 ############################################################
 cv_init = None
-print(cv_init==None)
+train_init = None
