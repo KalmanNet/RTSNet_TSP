@@ -32,7 +32,7 @@ class Pipeline_ERTS:
     def setModel(self, model):
         self.model = model
 
-    def setTrainingParams(self, n_Epochs, n_Batch, learningRate, weightDecay):
+    def setTrainingParams(self, n_Epochs, n_Batch, learningRate, weightDecay,clip_value=1e7):
         self.N_Epochs = n_Epochs  # Number of Training Epochs
         self.N_B = n_Batch # Number of Samples in Batch
         self.learningRate = learningRate # Learning Rate
@@ -48,8 +48,9 @@ class Pipeline_ERTS:
         self.optimizer = []
         for i in range(self.model.iterations):
             self.optimizer.append(torch.optim.Adam(self.model.RTSNet_passes[i].parameters(), lr=self.learningRate, weight_decay=self.weightDecay))
-        # self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizer, 'min',factor=0.9, patience=20)
-
+            # self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizer, 'min',factor=0.9, patience=20)
+            for p in self.model.RTSNet_passes[i].parameters():
+                p.register_hook(lambda grad: torch.clamp(grad, -clip_value, clip_value))
 
     def NNTrain(self, SysModel, cv_input, cv_target, train_input, train_target, path_results, nclt = False,randomInit=False,train_init=None,cv_init=None):
 

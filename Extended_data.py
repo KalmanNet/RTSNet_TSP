@@ -1,3 +1,4 @@
+from signal import Handlers
 import torch
 torch.pi = torch.acos(torch.zeros(1)).item() * 2 # which is 3.1415927410125732
 import math
@@ -29,28 +30,18 @@ T = 20
 T_test = 20
 
 
-
-####################
-## Canonical F,H ###
-####################
-# F in canonical form
-F40 = torch.eye(40)
-F40[0] = torch.ones(1,40) 
-
-# H in reverse canonical form
-H40 = torch.zeros(40,40)
-H40[0] = torch.ones(1,40)
-for i in range(40):
-    H40[i,39-i] = 1
-
-
 ############
 ## 2 x 2 ###
 ############
 # m = 2
 # n = 2
-# F = F40[0:m, 0:m]
+# # F in canonical form
+# F = torch.eye(m)
+# F[0] = torch.ones(1,m) 
+
+# # H = I
 # H = torch.eye(2)
+
 # m1_0 = torch.tensor([[0.0], [0.0]]).to(dev)
 # # m1x_0_design = torch.tensor([[10.0], [-10.0]])
 # m2_0 = 0 * 0 * torch.eye(m).to(dev)
@@ -61,8 +52,16 @@ for i in range(40):
 ################################
 m = 40
 n = 40
-F = F40[0:m, 0:m]
-H = H40[0:n, 40-m:40]
+# F in canonical form
+F = torch.eye(m)
+F[0] = torch.ones(1,m) 
+
+# H in reverse canonical form
+H = torch.zeros(n,n)
+H[0] = torch.ones(1,n)
+for i in range(n):
+    H[i,n-1-i] = 1
+
 m1_0 = torch.zeros(m, 1).to(dev)
 # m1x_0_design = torch.tensor([[1.0], [-1.0], [2.0], [-2.0], [0.0]]).to(dev)
 m2_0 = 0 * 0 * torch.eye(m).to(dev)
