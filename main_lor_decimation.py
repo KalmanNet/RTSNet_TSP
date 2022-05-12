@@ -51,7 +51,7 @@ print("Current Time =", strTime)
 ###  Compare EKF, RTS and RTSNet   ###
 ######################################
 offset = 0
-chop = False
+chop = True
 sequential_training = False
 path_results = 'KNet/'
 DatafolderName = 'Simulations/Lorenz_Atractor/data/'
@@ -85,7 +85,7 @@ for rindex in range(0, len(r)):
    [cv_target_long, cv_input_long] = Decimate_and_perturbate_Data(true_sequence, delta_t_gen, delta_t, N_CV, h, r[rindex], offset)
    if chop:
       print("chop training data")  
-      [train_target, train_input] = Short_Traj_Split(train_target_long, train_input_long, T)
+      [train_target, train_input, train_init] = Short_Traj_Split(train_target_long, train_input_long, T)
    else:
       print("no chopping") 
       train_target = train_target_long
@@ -176,10 +176,13 @@ for rindex in range(0, len(r)):
    RTSNet_Pipeline.setTrainingParams(n_Epochs=1000, n_Batch=1, learningRate=1e-3, weightDecay=1e-4)
    NumofParameter = RTSNet_Pipeline.count_parameters()
    print("Number of parameters for RTSNet: ",NumofParameter)
-   [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input_long, cv_target_long, train_input, train_target, path_results,multipass=True)
+   if(chop):
+      [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input_long, cv_target_long, train_input, train_target, path_results,randomInit=True,train_init=train_init)
+   else:
+      [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input_long, cv_target_long, train_input, train_target, path_results)
    ## Test Neural Network
    # RTSNet_Pipeline.model = torch.load('ERTSNet/model_KNetNew_DT_procmis_r30q50_T2000.pt',map_location=cuda0)
-   [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model, test_input, test_target, path_results,multipass=True)
+   [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model, test_input, test_target, path_results)
    # Print MSE Cross Validation
    print("MSE Test:", MSE_test_dB_avg, "[dB]")
    

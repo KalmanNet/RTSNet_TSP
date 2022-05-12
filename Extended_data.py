@@ -21,9 +21,9 @@ else:
 N_E = 1000
 
 # Number of Cross Validation Examples
-N_CV = 100
+N_CV = 5
 
-N_T = 200
+N_T = 10
 
 # Sequence Length for Linear Case
 T = 20
@@ -190,11 +190,17 @@ def getObs(sequences, h):
     return sequences_out
 
 
-def Short_Traj_Split(data_target, data_input, T):
-    data_target = list(torch.split(data_target,T,2))
-    data_input = list(torch.split(data_input,T,2))
-    data_target.pop()
-    data_input.pop()
-    data_target = torch.squeeze(torch.cat(list(data_target), dim=0))
-    data_input = torch.squeeze(torch.cat(list(data_input), dim=0))
-    return [data_target, data_input]
+def Short_Traj_Split(data_target, data_input, T):### Random Init is automatically incorporated
+    data_target = list(torch.split(data_target,T+1,2)) # +1 to reserve for init
+    data_input = list(torch.split(data_input,T+1,2)) # +1 to reserve for init
+
+    data_target.pop()# Remove the last one which may not fullfill length T
+    data_input.pop()# Remove the last one which may not fullfill length T
+
+    data_target = torch.squeeze(torch.cat(list(data_target), dim=0))#Back to tensor and concat together
+    data_input = torch.squeeze(torch.cat(list(data_input), dim=0))#Back to tensor and concat together
+    # Split out init
+    target = data_target[:,:,1:]
+    input = data_input[:,:,1:]
+    init = data_target[:,:,0]
+    return [target, input, init]

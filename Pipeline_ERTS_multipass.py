@@ -32,7 +32,7 @@ class Pipeline_ERTS:
     def setModel(self, model):
         self.model = model
 
-    def setTrainingParams(self, n_Epochs, n_Batch, learningRate, weightDecay,clip_value=1e7):
+    def setTrainingParams(self, n_Epochs, n_Batch, learningRate, weightDecay,clip_value=1e5):
         self.N_Epochs = n_Epochs  # Number of Training Epochs
         self.N_B = n_Batch # Number of Samples in Batch
         self.learningRate = learningRate # Learning Rate
@@ -147,9 +147,9 @@ class Pipeline_ERTS:
                     LOSS = self.loss_fn(x_out_training[mask], train_target[n_e, :, :])
                 else:
                     for i in range(self.model.iterations):
-                        LOSS = LOSS + self.loss_fn(x_out_train[i], train_target[n_e, :, :])
-                        print(self.loss_fn(x_out_train[i], train_target[n_e, :, :]))
-                    print("\n")
+                        temp_loss = self.loss_fn(x_out_train[i], train_target[n_e, :, :])                       
+                        LOSS = LOSS + temp_loss
+                        print("Loss after iteration",i,":",temp_loss)
 
                 MSE_train_linear_batch[j] = LOSS.item()
 
@@ -196,7 +196,10 @@ class Pipeline_ERTS:
                     x_out_cv = torch.empty(SysModel.m, SysModel.T_test).to(dev, non_blocking=True)
                     ### first pass                  
                     if(randomInit):
-                        self.model.InitSequence_multipass(0,cv_init[j], SysModel.T_test)
+                        if(cv_init==None):
+                            self.model.InitSequence_multipass(0,SysModel.m1x_0, SysModel.T_test)
+                        else:
+                            self.model.InitSequence_multipass(0,cv_init[j], SysModel.T_test)
                     else:
                         self.model.InitSequence_multipass(0,SysModel.m1x_0, SysModel.T_test)
                     for t in range(0, SysModel.T_test):

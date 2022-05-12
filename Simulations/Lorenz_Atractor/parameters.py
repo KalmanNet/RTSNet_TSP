@@ -30,7 +30,7 @@ C = torch.tensor([[-10, 10,    0],
 
 delta_t_gen =  1e-5
 delta_t = 0.02
-delta_t_test = 0.01
+delta_t_test = 0.02
 J = 5
 
 # Decimation ratio
