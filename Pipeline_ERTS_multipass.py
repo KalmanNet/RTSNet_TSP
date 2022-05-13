@@ -295,12 +295,12 @@ class Pipeline_ERTS:
                 self.model.InitSequence_multipass(0,SysModel.m1x_0, SysModel.T_test)         
         
             for t in range(0, SysModel.T_test):
-                x_out_test_forward[:, t] = self.model(y_mdl_tst[:, t], None, None, None)
+                x_out_test_forward[:, t] = self.model(0,y_mdl_tst[:, t], None, None, None)
             x_out_test[:, SysModel.T_test-1] = x_out_test_forward[:, SysModel.T_test-1] # backward smoothing starts from x_T|T 
-            self.model.InitBackward(x_out_test[:, SysModel.T_test-1]) 
-            x_out_test[:, SysModel.T_test-2] = self.model(None, x_out_test_forward[:, SysModel.T_test-2], x_out_test_forward[:, SysModel.T_test-1],None)
+            self.model.InitBackward_multipass(0,x_out_test[:, SysModel.T_test-1]) 
+            x_out_test[:, SysModel.T_test-2] = self.model(0,None, x_out_test_forward[:, SysModel.T_test-2], x_out_test_forward[:, SysModel.T_test-1],None)
             for t in range(SysModel.T_test-3, -1, -1):
-                x_out_test[:, t] = self.model(None, x_out_test_forward[:, t], x_out_test_forward[:, t+1],x_out_test[:, t+2])
+                x_out_test[:, t] = self.model(0,None, x_out_test_forward[:, t], x_out_test_forward[:, t+1],x_out_test[:, t+2])
             
             ### second pass and so on
             for iteration in range(1, self.model.iterations):

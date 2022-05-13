@@ -29,7 +29,7 @@ class RTSNetNN_multipass(torch.nn.Module):
     #############
     ### Build ###
     #############
-    def NNBuild_multipass(self, ssModel, KNet_in_mult = 1, KNet_out_mult = 1, RTSNet_in_mult = 1, RTSNet_out_mult = 1):
+    def NNBuild_multipass(self, ssModel, KNet_in_mult = 5, KNet_out_mult = 40, RTSNet_in_mult = 5, RTSNet_out_mult = 40):
         # Set State Evolution Function
         self.f = ssModel.f
         self.m = ssModel.m
