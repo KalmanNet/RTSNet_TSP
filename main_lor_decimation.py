@@ -59,7 +59,7 @@ data_gen = 'data_gen.pt'
 data_gen_file = torch.load(DatafolderName+data_gen, map_location=dev)
 [true_sequence] = data_gen_file['All Data']
 
-r = torch.tensor([1.])
+r = torch.tensor([5.9566])
 lambda_q = torch.tensor([0.3873])
 traj_resultName = ['traj_lor_dec_RTSNetJ2_r0_2pass.pt']#,'partial_lor_r4.pt','partial_lor_r5.pt','partial_lor_r6.pt']
 # EKFResultName = 'EKF_obsmis_rq1030_T2000_NT100' 
@@ -124,19 +124,19 @@ for rindex in range(0, len(r)):
    
    # EKF
    # print("Start EKF test")
-   [MSE_EKF_linear_arr, MSE_EKF_linear_avg, MSE_EKF_dB_avg, EKF_KG_array, EKF_out] = EKF_test.EKFTest(sys_model_true, test_input, test_target)
-   print(f"MSE EKF J=5: {MSE_EKF_dB_avg} [dB] (T = {T_test})")
-   [MSE_EKF_linear_arr_partial, MSE_EKF_linear_avg_partial, MSE_EKF_dB_avg_partial, EKF_KG_array_partial, EKF_out_partial] = EKF_test.EKFTest(sys_model, test_input, test_target)
-   print(f"MSE EKF J=2: {MSE_EKF_dB_avg_partial} [dB] (T = {T_test})")
+   # [MSE_EKF_linear_arr, MSE_EKF_linear_avg, MSE_EKF_dB_avg, EKF_KG_array, EKF_out] = EKF_test.EKFTest(sys_model_true, test_input, test_target)
+   # print(f"MSE EKF J=5: {MSE_EKF_dB_avg} [dB] (T = {T_test})")
+   # [MSE_EKF_linear_arr_partial, MSE_EKF_linear_avg_partial, MSE_EKF_dB_avg_partial, EKF_KG_array_partial, EKF_out_partial] = EKF_test.EKFTest(sys_model, test_input, test_target)
+   # print(f"MSE EKF J=2: {MSE_EKF_dB_avg_partial} [dB] (T = {T_test})")
 
-   # [MSE_EKF_dB_avg, trace_dB_avg] = EKF_test.EKFTest_evol(sys_model, test_input, test_target)
+   # # [MSE_EKF_dB_avg, trace_dB_avg] = EKF_test.EKFTest_evol(sys_model, test_input, test_target)
 
-   # # MB Extended RTS
-   print("Start RTS test")
-   [MSE_ERTS_linear_arr, MSE_ERTS_linear_avg, MSE_ERTS_dB_avg, ERTS_out] = S_Test(sys_model_true, test_input, test_target)
-   print(f"MSE RTS J=5: {MSE_ERTS_dB_avg} [dB] (T = {T_test})")
-   [MSE_ERTS_linear_arr_partial, MSE_ERTS_linear_avg_partial, MSE_ERTS_dB_avg_partial, ERTS_out_partial] = S_Test(sys_model, test_input, test_target)
-   print(f"MSE RTS J=2: {MSE_ERTS_dB_avg_partial} [dB] (T = {T_test})")
+   # # # MB Extended RTS
+   # print("Start RTS test")
+   # [MSE_ERTS_linear_arr, MSE_ERTS_linear_avg, MSE_ERTS_dB_avg, ERTS_out] = S_Test(sys_model_true, test_input, test_target)
+   # print(f"MSE RTS J=5: {MSE_ERTS_dB_avg} [dB] (T = {T_test})")
+   # [MSE_ERTS_linear_arr_partial, MSE_ERTS_linear_avg_partial, MSE_ERTS_dB_avg_partial, ERTS_out_partial] = S_Test(sys_model, test_input, test_target)
+   # print(f"MSE RTS J=2: {MSE_ERTS_dB_avg_partial} [dB] (T = {T_test})")
    
    # KNet with model mismatch
    # ## Build Neural Network
@@ -173,7 +173,7 @@ for rindex in range(0, len(r)):
    ## Train Neural Network
    RTSNet_Pipeline = Pipeline(strTime, "RTSNet", "RTSNet")
    RTSNet_Pipeline.setModel(RTSNet_model)
-   RTSNet_Pipeline.setTrainingParams(n_Epochs=1000, n_Batch=1, learningRate=1e-3, weightDecay=1e-4)
+   RTSNet_Pipeline.setTrainingParams(n_Epochs=1000, n_Batch=30, learningRate=1e-3, weightDecay=1e-4)
    NumofParameter = RTSNet_Pipeline.count_parameters()
    print("Number of parameters for RTSNet: ",NumofParameter)
    if(chop):
