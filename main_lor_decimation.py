@@ -57,10 +57,11 @@ sequential_training = False
 secondpass = True
 path_results = 'ERTSNet/'
 DatafolderName = 'Simulations/Lorenz_Atractor/data/decimation/'
+DatagenfolderName = 'Simulations/Lorenz_Atractor/data/'
 DatafileName = 'decimated_r0_Ttest3000.pt'
-Datasecondpass = 'r0_outputoffirstpass'
+Datasecondpass = 'r0_outputoffirstpass.pt'
 data_gen = 'data_gen.pt'
-data_gen_file = torch.load(DatafolderName+data_gen, map_location=dev)
+data_gen_file = torch.load(DatagenfolderName+data_gen, map_location=dev)
 [true_sequence] = data_gen_file['All Data']
 
 r = torch.tensor([1]) ###[1/5.9566]
@@ -107,11 +108,12 @@ for rindex in range(0, len(r)):
    print("Data Load")
    #########################
    if(chop):
-      [train_input, train_target, train_init, cv_input_long, cv_target_long, test_input, test_target] = torch.load(DatafolderName+DatafileName)
+      [train_input, train_target, train_init, cv_input_long, cv_target_long, test_input, test_target] = torch.load(DatafolderName+DatafileName,map_location=dev)
    else:
-      [train_input, train_target, cv_input_long, cv_target_long, test_input, test_target] = torch.load(DatafolderName+DatafileName)  
+      [train_input, train_target, cv_input_long, cv_target_long, test_input, test_target] = torch.load(DatafolderName+DatafileName,map_location=dev)  
    if(secondpass):
-      train_input = torch.load(DatafolderName+Datasecondpass) 
+      traj = torch.load(DatafolderName+Datasecondpass,map_location=dev) 
+      train_input = traj['RTSNet']
       cv_input_long = train_input[0:5]
       test_input = train_input[5:15]
 
@@ -250,7 +252,7 @@ for rindex in range(0, len(r)):
    else:
       [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input_long, cv_target_long, train_input, train_target, path_results)
    ## Test Neural Network
-   RTSNet_Pipeline.model = torch.load('ERTSNet/new_arch_LA/decimation/model/best-model_r0_J2_NE1000_MSE-15.5.pt',map_location=dev)
+   # RTSNet_Pipeline.model = torch.load('ERTSNet/new_arch_LA/decimation/model/best-model_r0_J2_NE1000_MSE-15.5.pt',map_location=dev)
    [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model, test_input, test_target, path_results)
    # Print MSE Cross Validation
    print("MSE Test:", MSE_test_dB_avg, "[dB]")
