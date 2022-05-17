@@ -585,7 +585,7 @@ class Plot_extended(Plot_RTS):
         plt.rcParams["figure.constrained_layout.use"]= True
         i=0
         for title in titles:
-            inputs_numpy = inputs[i].detach().numpy()
+            inputs_numpy = inputs[i][0].detach().numpy()
             # gs1.update(wspace=-0.3,hspace=-0.3)
             if(dim==3):
                 plt.rcParams["figure.frameon"] = False
@@ -611,7 +611,7 @@ class Plot_extended(Plot_RTS):
 
                 ax.set_axis_off()
                 ax.set_title(title, y=y_al, fontdict={'fontsize': 15,'fontweight' : 20,'verticalalignment': 'baseline'})
-                ax.plot(inputs_numpy[0,0,:], inputs_numpy[0,1,:], inputs_numpy[0,2,:], c, linewidth=0.5)
+                ax.plot(inputs_numpy[0,:], inputs_numpy[1,:], inputs_numpy[2,:], c, linewidth=0.5)
 
                 ## Plot display 
                 #ax.set_yticklabels([])
@@ -623,7 +623,7 @@ class Plot_extended(Plot_RTS):
 
             if(dim==2):
                 ax = fig.add_subplot(matrix_size, matrix_size,i+1)
-                ax.plot(inputs_numpy[0,0,:],inputs_numpy[0,1,:], 'b', linewidth=0.75)
+                ax.plot(inputs_numpy[0,:],inputs_numpy[1,:], 'b', linewidth=0.75)
                 ax.set_xlabel('x1')
                 ax.set_ylabel('x2')
                 ax.set_title(title, pad=10, fontdict={'fontsize': 20,'fontweight' : 20,'verticalalignment': 'baseline'})
