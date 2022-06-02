@@ -18,7 +18,7 @@ else:
 
 class ExtendedKalmanFilter:
 
-    def __init__(self, SystemModel, mode='full'):
+    def __init__(self, SystemModel):
         self.f = SystemModel.f
         self.m = SystemModel.m
 
@@ -36,21 +36,13 @@ class ExtendedKalmanFilter:
 
         # Pre allocate KG array
         self.KG_array = torch.zeros((self.T_test,self.m,self.n))
-
-        # Full knowledge about the model or partial? (Should be made more elegant)
-        if(mode == 'full'):
-            self.fString = 'ModAcc'
-            self.hString = 'ObsAcc'
-        elif(mode == 'partial'):
-            self.fString = 'ModInacc'
-            self.hString = 'ObsInacc'
    
     # Predict
     def Predict(self):
         # Predict the 1-st moment of x
         self.m1x_prior = torch.squeeze(self.f(self.m1x_posterior))
         # Compute the Jacobians
-        self.UpdateJacobians(getJacobian(self.m1x_posterior,self.fString), getJacobian(self.m1x_prior, self.hString))
+        self.UpdateJacobians(getJacobian(self.m1x_posterior,self.f), getJacobian(self.m1x_prior, self.h))
         # Predict the 2-nd moment of x
         self.m2x_prior = torch.matmul(self.F, self.m2x_posterior)
         self.m2x_prior = torch.matmul(self.m2x_prior, self.F_T) + self.Q

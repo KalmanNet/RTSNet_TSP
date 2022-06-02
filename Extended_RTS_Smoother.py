@@ -9,7 +9,7 @@ from model import getJacobian
 
 class Extended_rts_smoother:
 
-    def __init__(self, SystemModel, mode='full'):
+    def __init__(self, SystemModel):
         self.f = SystemModel.f
         self.m = SystemModel.m
 
@@ -23,20 +23,13 @@ class Extended_rts_smoother:
         self.T = SystemModel.T
         self.T_test = SystemModel.T_test
 
-        # Full knowledge about the model or partial? (Should be made more elegant)
-        if(mode == 'full'):
-            self.fString = 'ModAcc'
-            self.hString = 'ObsAcc'
-        elif(mode == 'partial'):
-            self.fString = 'ModInacc'
-            self.hString = 'ObsInacc'
 
     # Compute the Smoothing Gain
     def SGain(self, filter_x, filter_sigma):
         # Predict the 1-st moment of x
         self.filter_x_prior = self.f(filter_x)
         # Compute the Jacobians
-        self.UpdateJacobians(getJacobian(filter_x,self.fString), getJacobian(self.filter_x_prior, self.hString))
+        self.UpdateJacobians(getJacobian(filter_x,self.f), getJacobian(self.filter_x_prior, self.h))
         self.SG = torch.matmul(filter_sigma, self.F_T)
         self.filter_sigma_prior = torch.matmul(self.F, filter_sigma)
         self.filter_sigma_prior = torch.matmul(self.filter_sigma_prior, self.F_T) + self.Q

@@ -14,6 +14,7 @@ else:
    cuda0 = torch.device("cpu")
    print("Running on the CPU")
 
+
 def f_test(x):
     
     #A = torch.add(torch.einsum('nhw,wa->nh', B, x).T,C)
@@ -76,10 +77,10 @@ def fRotate(x):
     # Taylor Expansion for F    
     F = torch.eye(m)
     for j in range(1,J+1):
-        F_add = (torch.matrix_power(A_rot*delta_t, j)/math.factorial(j)).to(cuda0)
+        F_add = (torch.matrix_power(A*delta_t, j)/math.factorial(j)).to(cuda0)
         F = torch.add(F, F_add).to(cuda0)
-
-    return torch.matmul(F, x)
+    F_rotated = torch.mm(RotMatrix,F)
+    return torch.matmul(F_rotated, x)
 
 def h_nonlinear(x):
     return toSpherical(x)
@@ -116,7 +117,7 @@ def hRotate(x):
     return torch.matmul(H_mod,x)
     #return toSpherical(x)
 
-def getJacobian(x, a):
+def getJacobian(x, g):
     
     # if(x.size()[1] == 1):
     #     y = torch.reshape((x.T),[x.size()[0]])
@@ -125,15 +126,6 @@ def getJacobian(x, a):
             y = torch.reshape((x.T),[x.size()[0]])
     except:
         y = torch.reshape((x.T),[x.size()[0]])
-        
-    if(a == 'ObsAcc'):
-        g = h
-    elif(a == 'ModAcc'):
-        g = f
-    elif(a == 'ObsInacc'):
-        g = hInacc
-    elif(a == 'ModInacc'):
-        g = fInacc
 
     Jac = autograd.functional.jacobian(g, y)
     Jac = Jac.view(-1,m)
@@ -174,13 +166,3 @@ def hInaccInv(y):
     return torch.matmul(H_mod_inv,y)
     #return toCartesian(y)
 
-'''
-x = torch.tensor([[1],[1],[1]]).float() 
-H = getJacobian(x, 'ObsAcc')
-print(H)
-print(h(x))
-
-F = getJacobian(x, 'ModAcc')
-print(F)
-print(f(x))
-'''
