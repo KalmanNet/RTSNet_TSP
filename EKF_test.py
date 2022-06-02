@@ -4,7 +4,7 @@ import time
 from EKF import ExtendedKalmanFilter
 
 
-def EKFTest(SysModel, test_input, test_target, modelKnowledge = 'full', allStates=True, randomInit = False,test_init=None):
+def EKFTest(SysModel, test_input, test_target, allStates=True, randomInit = False,test_init=None):
 
     N_T = test_target.size()[0]
 
@@ -14,7 +14,7 @@ def EKFTest(SysModel, test_input, test_target, modelKnowledge = 'full', allState
     # MSE [Linear]
     MSE_EKF_linear_arr = torch.empty(N_T)
     start = time.time()
-    EKF = ExtendedKalmanFilter(SysModel, modelKnowledge)
+    EKF = ExtendedKalmanFilter(SysModel)
 
     KG_array = torch.zeros_like(EKF.KG_array)
     # Allocate empty list for output

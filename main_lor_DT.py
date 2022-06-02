@@ -36,7 +36,6 @@ else:
 
 
 print("Pipeline Start")
-print(f(m1x_0))
 ################
 ### Get Time ###
 ################

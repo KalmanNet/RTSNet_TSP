@@ -5,7 +5,7 @@ from EKF import ExtendedKalmanFilter
 from Extended_RTS_Smoother import Extended_rts_smoother
 from Extended_data import N_T
 
-def S_Test(SysModel, test_input, test_target, modelKnowledge = 'full', randomInit = False,test_init=None):
+def S_Test(SysModel, test_input, test_target, randomInit = False,test_init=None):
 
     # LOSS
     loss_rts = nn.MSELoss(reduction='mean')
@@ -13,8 +13,8 @@ def S_Test(SysModel, test_input, test_target, modelKnowledge = 'full', randomIni
     # MSE [Linear]
     MSE_ERTS_linear_arr = torch.empty(N_T)
     start = time.time()
-    EKF = ExtendedKalmanFilter(SysModel, modelKnowledge)  
-    ERTS = Extended_rts_smoother(SysModel, modelKnowledge)
+    EKF = ExtendedKalmanFilter(SysModel)  
+    ERTS = Extended_rts_smoother(SysModel)
     # Allocate empty list for output
     ERTS_out = []
     j=0
