@@ -63,10 +63,10 @@ sys_model.InitSequence(m1_0, m2_0)
 ###################################
 ### Data Loader (Generate Data) ###
 ###################################
-dataFolderName = 'Simulations/Linear_canonical/Scaling_to_large_models' + '/'
-dataFileName = '40x40_rq020_T20.pt'
-print("Start Data Gen")
-DataGen(sys_model, dataFolderName + dataFileName, T, T_test,randomInit=InitIsRandom,randomLength=LengthIsRandom)
+dataFolderName = 'Simulations/Linear_canonical/Generalization' + '/'
+dataFileName = '2x2_rq020_T100_Ttest1000.pt'
+# print("Start Data Gen")
+# DataGen(sys_model, dataFolderName + dataFileName, T, T_test,randomInit=InitIsRandom,randomLength=LengthIsRandom)
 print("Data Load")
 if(InitIsRandom):
    [train_input, train_target, train_init, cv_input, cv_target, cv_init, test_input, test_target, test_init] = torch.load(dataFolderName + dataFileName,map_location=dev)
@@ -119,9 +119,15 @@ print("Evaluate Kalman Filter True")
 ### Evaluate RTS Smoother ###
 #############################
 print("Evaluate RTS Smoother True")
-[MSE_RTS_linear_arr, MSE_RTS_linear_avg, MSE_RTS_dB_avg] = S_Test(sys_model, test_input, test_target)
+[MSE_RTS_linear_arr, MSE_RTS_linear_avg, MSE_RTS_dB_avg, RTS_out] = S_Test(sys_model, test_input, test_target)
 # print("Evaluate RTS Smoother Partial")
 # [MSE_RTS_linear_arr_partialh, MSE_RTS_linear_avg_partialh, MSE_RTS_dB_avg_partialh] = S_Test(sys_model_partialh, test_input, test_target)
+
+PlotfolderName = 'Graphs' + '/'
+ComparedmodelName = 'Dataset'  
+Plot = Plot(PlotfolderName, ComparedmodelName)
+print("Plot")
+Plot.NNPlot_Hist(MSE_KF_linear_arr, MSE_RTS_linear_arr, MSE_obs_linear_arr)
 
 ##############################
 ###  Compare KF and RTS    ###

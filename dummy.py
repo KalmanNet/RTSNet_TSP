@@ -1,10 +1,20 @@
 from cmath import nan
+import numpy as np
 import torch
 from Pipeline_ERTS import Pipeline_ERTS as Pipeline
 from filing_paths import path_model
 # import sys
 # sys.path.insert(1, path_model)
 # from model import gt_data
+
+if torch.cuda.is_available():
+   dev = torch.device("cuda:0")  # you can continue going on here, like cuda:1 cuda:2....etc.
+   torch.set_default_tensor_type('torch.cuda.FloatTensor')
+   print("Running on the GPU")
+else:
+   dev = torch.device("cpu")
+   print("Running on the CPU")
+
 # mask = torch.tensor([True,True,True,False,False,False])
 # for sequence in gt_data:
 #     print(sequence[:,0][mask])
@@ -53,5 +63,18 @@ T_test = 10
 # print("output input:",input.size())
 # print("output init:",init.size())
 ############################################################
-cv_init = None
-train_init = None
+# cv_init = None
+# train_init = None
+# dataFolderName = 'Simulations/Linear_canonical/Scaling_to_large_models' + '/'
+# dataFileName = '40x40_rq020_T20.pt'
+# [train_input, train_target, cv_input, cv_target, test_input, test_target] = torch.load(dataFolderName+dataFileName,map_location=dev)
+# train_input = train_input.numpy().astype(np.float64)
+# print(type(train_input[0,0,0]))
+
+# state = np.array([[1, 2,3], [4,5,6]])
+# print(state.shape)
+# position = state[:, [0, 2]]
+# print(position)
+
+P_0 = np.diag([1] * 3) * 0
+print(P_0)

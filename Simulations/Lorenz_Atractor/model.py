@@ -72,8 +72,7 @@ def fInacc(x):
     return torch.matmul(F, x)
 
 def fRotate(x):
-    A = (torch.add(torch.reshape(torch.matmul(B, x),(m,m)).T,C)).to(cuda0)
-    A_rot = torch.mm(RotMatrix,A)   
+    A = (torch.add(torch.reshape(torch.matmul(B, x),(m,m)).T,C)).to(cuda0)  
     # Taylor Expansion for F    
     F = torch.eye(m)
     for j in range(1,J+1):
@@ -113,7 +112,7 @@ def f_interpolate_approx(x, n=2):
     return x
 
 
-def hInacc(x):
+def hRotate(x):
     return torch.matmul(H_mod,x)
     #return toSpherical(x)
 

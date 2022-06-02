@@ -71,22 +71,6 @@ class Plot:
         plt.savefig(fileName)
 
 
-    def NNPlot_Hist(self, MSE_KF_data_linear_arr, MSE_KN_linear_arr):
-
-        fileName = self.folderName + 'plt_hist_dB'
-
-        ####################
-        ### dB Histogram ###
-        ####################
-        plt.figure(figsize=(25, 10))
-        sns.distplot(10 * torch.log10(MSE_KN_linear_arr), hist=False, kde=True, kde_kws={'linewidth': 3}, color='g', label = self.modelName)
-        #sns.distplot(10 * torch.log10(MSE_KF_design_linear_arr), hist=False, kde=True, kde_kws={'linewidth': 3}, color= 'b', label = 'Kalman Filter - design')
-        sns.distplot(10 * torch.log10(MSE_KF_data_linear_arr), hist=False, kde=True, kde_kws={'linewidth': 3}, color= 'r', label = 'Kalman Filter')
-
-        plt.title("Histogram [dB]",fontsize=32)
-        plt.legend(fontsize=32)
-        plt.savefig(fileName)
-
     def KFPlot(res_grid):
 
         plt.figure(figsize = (50, 20))
@@ -285,17 +269,22 @@ class Plot_RTS(Plot):
         ####################
         ### dB Histogram ###
         ####################
-        plt.figure(figsize=(25, 10))
-        sns.distplot(10 * torch.log10(MSE_RTSNet_linear_arr), hist=False, kde=True, kde_kws={'linewidth': 5}, color='b', label = 'RTSNet')
-        sns.distplot(10 * torch.log10(MSE_KF_linear_arr), hist=False, kde=True, kde_kws={'linewidth': 3}, color= 'orange', label = 'Kalman Filter')
-        sns.distplot(10 * torch.log10(MSE_RTS_data_linear_arr), hist=False, kde=True, kde_kws={'linewidth': 3.2,"linestyle":'--'}, color= 'g', label = 'RTS Smoother')
-
-        plt.title(self.modelName + ":" +"Histogram [dB]",fontsize=fontSize)
-        plt.legend(fontsize=fontSize)
-        plt.xlabel('MSE Loss Value [dB]', fontsize=fontSize)
-        plt.ylabel('Percentage', fontsize=fontSize)
-        plt.tick_params(labelsize=fontSize)
+        plt.figure(figsize=(10, 25))
+        ax = sns.displot(
+            {self.modelName: 10 * torch.log10(MSE_RTSNet_linear_arr), 
+            'Kalman Filter': 10 * torch.log10(MSE_KF_linear_arr),
+            'RTS Smoother': 10 * torch.log10(MSE_RTS_data_linear_arr)},  # Use a dict to assign labels to each curve
+            kind="kde",
+            common_norm=False,  # Normalize each distribution independently: the area under each curve equals 1.
+            palette=["blue", "orange", "g"],  # Use palette for multiple colors
+            linewidth= 1,
+        )
+        plt.title(self.modelName + ":" +"Histogram [dB]")
+        plt.xlabel('MSE Loss Value [dB]')
+        plt.ylabel('Percentage')
+        sns.move_legend(ax, "upper right")
         plt.grid(True)
+        plt.tight_layout()
         plt.savefig(fileName)
 
     def KF_RTS_Plot_Linear(self, r, MSE_KF_RTS_dB,PlotResultName):
@@ -508,18 +497,33 @@ class Plot_extended(Plot_RTS):
         ### dB Histogram ###
         ####################
         plt.figure(figsize=(25, 10))
-        sns.distplot(10 * torch.log10(MSE_RTSNet_linear_arr), hist=False, kde=True, kde_kws={'linewidth': 5}, color='b', label = self.modelName)
-        sns.distplot(10 * torch.log10(MSE_EKF_linear_arr), hist=False, kde=True, kde_kws={'linewidth': 3}, color= 'orange', label = 'EKF')
-        sns.distplot(10 * torch.log10(MSE_ERTS_data_linear_arr), hist=False, kde=True, kde_kws={'linewidth': 3.2,"linestyle":'--'},color= 'g', label = 'RTS')
-
-        plt.title(self.modelName + ":" +"Histogram [dB]",fontsize=fontSize)
-        plt.legend(fontsize=fontSize)
-        plt.xlabel('MSE Loss Value [dB]', fontsize=fontSize)
-        plt.ylabel('Percentage', fontsize=fontSize)
-        plt.tick_params(labelsize=fontSize)
+        # sns.distplot(10 * torch.log10(MSE_RTSNet_linear_arr), hist=False, kde=True, kde_kws={'linewidth': 5}, color='b', label = self.modelName)
+        # sns.distplot(10 * torch.log10(MSE_EKF_linear_arr), hist=False, kde=True, kde_kws={'linewidth': 3}, color= 'orange', label = 'EKF')
+        # sns.distplot(10 * torch.log10(MSE_ERTS_data_linear_arr), hist=False, kde=True, kde_kws={'linewidth': 3.2,"linestyle":'--'},color= 'g', label = 'RTS')
+       
+        # plt.title(self.modelName + ":" +"Histogram [dB]",fontsize=fontSize)
+        # plt.legend(fontsize=fontSize)
+        # plt.xlabel('MSE Loss Value [dB]', fontsize=fontSize)
+        # plt.ylabel('Percentage', fontsize=fontSize)
+        # plt.tick_params(labelsize=fontSize)
+        # plt.grid(True)
+        # plt.savefig(fileName)
+        ax = sns.displot(
+            {self.modelName: 10 * torch.log10(MSE_RTSNet_linear_arr), 
+            'Kalman Filter': 10 * torch.log10(MSE_EKF_linear_arr),
+            'RTS Smoother': 10 * torch.log10(MSE_ERTS_data_linear_arr)},  # Use a dict to assign labels to each curve
+            kind="kde",
+            common_norm=False,  # Normalize each distribution independently: the area under each curve equals 1.
+            palette=["blue", "orange", "g"],  # Use palette for multiple colors
+            linewidth= 1,
+        )
+        plt.title(self.modelName + ":" +"Histogram [dB]")
+        plt.xlabel('MSE Loss Value [dB]')
+        plt.ylabel('Percentage')
+        sns.move_legend(ax, "upper right")
         plt.grid(True)
+        plt.tight_layout()
         plt.savefig(fileName)
-
 
     def NNPlot_epochs_KF_RTS(self, N_MiniBatchTrain_plt, BatchSize, MSE_EKF_dB_avg, MSE_ERTS_dB_avg,
                       MSE_KNet_test_dB_avg, MSE_KNet_cv_dB_epoch, MSE_KNet_train_dB_epoch,

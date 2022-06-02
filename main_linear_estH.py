@@ -99,9 +99,9 @@ for index in range(0,len(r2)):
    ### Evaluate RTS Smoother ###
    #############################
    print("Evaluate RTS Smoother True")
-   [MSE_RTS_linear_arr, MSE_RTS_linear_avg, MSE_RTS_dB_avg] = S_Test(sys_model, test_input, test_target)
+   [MSE_RTS_linear_arr, MSE_RTS_linear_avg, MSE_RTS_dB_avg, RTS_out] = S_Test(sys_model, test_input, test_target)
    print("Evaluate RTS Smoother Partial")
-   [MSE_RTS_linear_arr_partialh, MSE_RTS_linear_avg_partialh, MSE_RTS_dB_avg_partialh] = S_Test(sys_model_partialh, test_input, test_target)
+   [MSE_RTS_linear_arr_partialh, MSE_RTS_linear_avg_partialh, MSE_RTS_dB_avg_partialh, RTS_partialh_out] = S_Test(sys_model_partialh, test_input, test_target)
 
    ##################
    ###  KalmanNet ###

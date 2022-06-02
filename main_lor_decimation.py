@@ -138,12 +138,12 @@ for rindex in range(0, len(r)):
    # states, meas = traindata
    # train_target =  torch.from_numpy(np.asarray(states, dtype=np.float32).transpose(1,0)).unsqueeze(0)
    # train_input = torch.from_numpy(np.asarray(meas, dtype=np.float32).transpose(1,0)).unsqueeze(0)
-   # [train_target, train_input] = Short_Traj_Split(train_target, train_input, T)
+   # [train_target, train_input, train_init] = Short_Traj_Split(train_target, train_input, T)
    # cvdata = [data[0][(T_test+T*N_E):], data[1][(T_test+T*N_E):]]
    # states, meas = cvdata
    # cv_target_long =  torch.from_numpy(np.asarray(states, dtype=np.float32).transpose(1,0)).unsqueeze(0)
    # cv_input_long = torch.from_numpy(np.asarray(meas, dtype=np.float32).transpose(1,0)).unsqueeze(0)
-   # [cv_target_long, cv_input_long] = Short_Traj_Split(cv_target_long, cv_input_long, T)
+   # [cv_target_long, cv_input_long, cv_init] = Short_Traj_Split(cv_target_long, cv_input_long, T)
    # print("trainset size:",train_target.size())
    # print("cvset size:",cv_target_long.size())
 

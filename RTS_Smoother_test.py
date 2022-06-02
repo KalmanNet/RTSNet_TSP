@@ -15,6 +15,7 @@ def S_Test(SysModel, test_input, test_target, randomInit = False,test_init=None)
     start = time.time()
     KF = KalmanFilter(SysModel)
     RTS = rts_smoother(SysModel)
+    RTS_out = [] # allocate for saving output
     j=0
     # mask = torch.tensor([True,True,True,False,False,False])# for kitti
 
@@ -30,7 +31,8 @@ def S_Test(SysModel, test_input, test_target, randomInit = False,test_init=None)
         #     MSE_RTS_linear_arr[j] = loss_rts(RTS.s_x[mask], sequence_target[mask]).item()     
         # else:
         #     MSE_RTS_linear_arr[j] = loss_rts(RTS.s_x, sequence_target).item()  
-        MSE_RTS_linear_arr[j] = loss_rts(RTS.s_x, sequence_target).item()      
+        MSE_RTS_linear_arr[j] = loss_rts(RTS.s_x, sequence_target).item()
+        RTS_out.append(RTS.s_x)      
         j=j+1
     end = time.time()
     t = end - start
@@ -50,7 +52,7 @@ def S_Test(SysModel, test_input, test_target, randomInit = False,test_init=None)
     print("RTS Smoother - STD:", RTS_std_dB, "[dB]")
     # Print Run Time
     print("Inference Time:", t)
-    return [MSE_RTS_linear_arr, MSE_RTS_linear_avg, MSE_RTS_dB_avg]
+    return [MSE_RTS_linear_arr, MSE_RTS_linear_avg, MSE_RTS_dB_avg ,RTS_out]
 
 
 
