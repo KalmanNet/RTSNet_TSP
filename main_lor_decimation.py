@@ -14,6 +14,7 @@ from Pipeline_concat_models import Pipeline_twoRTSNets
 
 from KalmanNet_nn import KalmanNetNN
 from RTSNet_nn import RTSNetNN
+from RNN_FWandBW import Vanilla_RNN
 
 # from PF_test import PFTest
 
@@ -25,7 +26,7 @@ from filing_paths import path_model, path_session
 import sys
 sys.path.insert(1, path_model)
 from parameters import T, T_test, m1x_0, m2x_0, m, n,delta_t_gen,delta_t
-from model import f, h, fInacc, hInacc, fRotate
+from model import f, h, fInacc, hRotate, fRotate
 
 if torch.cuda.is_available():
    dev = torch.device("cuda:0")  # you can continue going on here, like cuda:1 cuda:2....etc.
@@ -52,9 +53,9 @@ print("Current Time =", strTime)
 ###  Compare EKF, RTS and RTSNet   ###
 ######################################
 offset = 0
-chop = False
+chop = True
 sequential_training = False
-secondpass = True
+secondpass = False
 path_results = 'ERTSNet/'
 DatafolderName = 'Simulations/Lorenz_Atractor/data/decimation/'
 DatagenfolderName = 'Simulations/Lorenz_Atractor/data/'
@@ -234,49 +235,48 @@ for rindex in range(0, len(r)):
    # print("Plot")
    # Plot.error_evolution(MSE_knet_test_dB_avg,trace_knet_dB_avg,MSE_EKF_dB_avg, trace_dB_avg)
 
-   # ###################################
-   # ### RTSNet with model mismatch  ###
-   # ###################################
-   # ## Build Neural Network
-   print("RTSNet with model mismatch")
-   RTSNet_model = RTSNetNN()
-   RTSNet_model.NNBuild(sys_model)
-   ## Train Neural Network
-   RTSNet_Pipeline = Pipeline(strTime, "RTSNet", "RTSNet")
-   RTSNet_Pipeline.setModel(RTSNet_model)
-   RTSNet_Pipeline.setTrainingParams(n_Epochs=1000, n_Batch=1, learningRate=1e-3, weightDecay=1e-4)
-   NumofParameter = RTSNet_Pipeline.count_parameters()
-   print("Number of parameters for RTSNet: ",NumofParameter)
+   ######################
+   ### Vanilla RNN ######
+   ######################
+   # Build RNN
+   print("Vanilla RNN with model mismatch")
+   RNN_model = Vanilla_RNN()
+   RNN_model.Build(sys_model)
+   print("Number of trainable parameters for RNN:",sum(p.numel() for p in RNN_model.parameters() if p.requires_grad))
+   RNN_Pipeline = Pipeline(strTime, "RTSNet", "VanillaRNN")
+   RNN_Pipeline.setssModel(sys_model)
+   RNN_Pipeline.setModel(RNN_model)
+   RNN_Pipeline.setTrainingParams(n_Epochs=1000, n_Batch=50, learningRate=1e-3, weightDecay=1e-5)
    if(chop):
-      [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input_long, cv_target_long, train_input, train_target, path_results,randomInit=True,train_init=train_init)
+      [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RNN_Pipeline.NNTrain(sys_model, cv_input_long, cv_target_long, train_input, train_target, path_results,randomInit=True,train_init=train_init)
    else:
-      [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input_long, cv_target_long, train_input, train_target, path_results)
+      [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RNN_Pipeline.NNTrain(sys_model, cv_input_long, cv_target_long, train_input, train_target, path_results)
    ## Test Neural Network
-   # RTSNet_Pipeline.model = torch.load('ERTSNet/new_arch_LA/decimation/model/best-model_r0_J2_NE1000_MSE-15.5.pt',map_location=dev)
-   [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model, test_input, test_target, path_results)
-   # Print MSE Cross Validation
-   print("MSE Test:", MSE_test_dB_avg, "[dB]")
-   
-  #  # Save trajectories
-  #  trajfolderName = 'ERTSNet' + '/'
-  #  DataResultName = traj_resultName[rindex]
-  #  target_sample = torch.reshape(test_target[0,:,:],[1,m,T_test])
-  #  input_sample = torch.reshape(test_input[0,:,:],[1,n,T_test])
-  #  torch.save({#'PF J=5':PF_out,
-  #              #'PF J=2':PF_out_partial,
-  #              'True':target_sample,
-  #              'Observation':input_sample,
-  #              # 'EKF J=5':EKF_out,
-  #              # 'EKF J=2':EKF_out_partial,
-  #              # 'RTS J=5':ERTS_out,
-  #              # 'RTS J=2':ERTS_out_partial,
-  #              'RTSNet': rtsnet_out,
-  #              }, trajfolderName+DataResultName)
+   [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rnn_out,RunTime] = RNN_Pipeline.NNTest(sys_model, test_input, test_target, path_results)
+   RNN_Pipeline.save()
 
-  #  titles = ["True Trajectory","Observation","RTSNet",]#, "Observation", "EKF J=2","EKF J=2 with optimal q"]
-  #  input = [target_sample,input_sample,rtsnet_out]#,EKF_sample,EKF_partial_sample,EKF_partialoptq_sample]
-  #  Net_Plot = Plot(trajfolderName,DataResultName)
-  #  Net_Plot.plotTrajectories(input,3, titles,trajfolderName+"RTSNet_firstpass.png")
+
+   ###################################
+   ### RTSNet with model mismatch  ###
+   ###################################
+   # ## Build Neural Network
+   # print("RTSNet with model mismatch")
+   # RTSNet_model = RTSNetNN()
+   # RTSNet_model.NNBuild(sys_model)
+   # ## Train Neural Network
+   # RTSNet_Pipeline = Pipeline(strTime, "RTSNet", "RTSNet")
+   # RTSNet_Pipeline.setModel(RTSNet_model)
+   # RTSNet_Pipeline.setTrainingParams(n_Epochs=1000, n_Batch=1, learningRate=1e-3, weightDecay=1e-4)
+   # NumofParameter = RTSNet_Pipeline.count_parameters()
+   # print("Number of parameters for RTSNet: ",NumofParameter)
+   # if(chop):
+   #    [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input_long, cv_target_long, train_input, train_target, path_results,randomInit=True,train_init=train_init)
+   # else:
+   #    [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input_long, cv_target_long, train_input, train_target, path_results)
+   # ## Test Neural Network
+   # # RTSNet_Pipeline.model = torch.load('ERTSNet/new_arch_LA/decimation/model/best-model_r0_J2_NE1000_MSE-15.5.pt',map_location=dev)
+   # [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model, test_input, test_target, path_results)
+   
 
    # ## Save histogram
    # MSE_ResultName = 'Partial_MSE_KNet' 
@@ -296,25 +296,25 @@ for rindex in range(0, len(r)):
 #    NumofParameter = RTSNet_Pipeline.count_parameters()
 #    print("Number of parameters for RTSNet: ",NumofParameter)
 #    ## Test Neural Network
-#    [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model, test_input, test_target, path_results)
-#    # Print MSE Cross Validation
-#    print("MSE Test:", MSE_test_dB_avg, "[dB]")
+#    [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out_2pass,RunTime] = RTSNet_Pipeline.NNTest(sys_model, test_input, test_target, path_results)
 
-#   # Save trajectories
-#    trajfolderName = 'ERTSNet' + '/'
-#    DataResultName = traj_resultName[rindex]
-#    target_sample = torch.reshape(test_target[0,:,:],[1,m,T_test])
-#    input_sample = torch.reshape(test_input[0,:,:],[1,n,T_test])
-#    torch.save({#'PF J=5':PF_out,
-#                #'PF J=2':PF_out_partial,
-#                'True':target_sample,
-#                'Observation':input_sample,
-#                # 'EKF J=5':EKF_out,
-#                # 'EKF J=2':EKF_out_partial,
-#                # 'RTS J=5':ERTS_out,
-#                # 'RTS J=2':ERTS_out_partial,
-#                'RTSNet': rtsnet_out,
-#                }, trajfolderName+DataResultName)
+  # Save trajectories
+   trajfolderName = 'ERTSNet' + '/'
+   DataResultName = 'traj_lor_dec_RNN'
+   target_sample = torch.reshape(test_target[0,:,:],[1,m,T_test])
+   input_sample = torch.reshape(test_input[0,:,:],[1,n,T_test])
+   torch.save({#'PF J=5':PF_out,
+               #'PF J=2':PF_out_partial,
+               # 'True':target_sample,
+               # 'Observation':input_sample,
+               # 'EKF J=5':EKF_out,
+               # 'EKF J=2':EKF_out_partial,
+               # 'RTS J=5':ERTS_out,
+               # 'RTS J=2':ERTS_out_partial,
+               # 'RTSNet': rtsnet_out,
+               # 'RTSNet_2pass': rtsnet_out_2pass,
+               'RNN J=2': rnn_out,
+               }, trajfolderName+DataResultName)
 
 #    titles = ["True Trajectory","Observation","RTSNet",]#, "Observation", "EKF J=2","EKF J=2 with optimal q"]
 #    input = [target_sample,input_sample,rtsnet_out]#,EKF_sample,EKF_partial_sample,EKF_partialoptq_sample]
