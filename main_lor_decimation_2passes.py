@@ -19,7 +19,7 @@ from datetime import datetime
 from filing_paths import path_model, path_session
 import sys
 sys.path.insert(1, path_model)
-from parameters import T, T_test, m1x_0, m2x_0, m, n,delta_t_gen,delta_t
+from parameters import m1x_0, m2x_0, m, n,delta_t_gen,delta_t
 from model import f, h, fInacc, hRotate, fRotate
 
 if torch.cuda.is_available():
@@ -57,6 +57,8 @@ data_gen_file = torch.load(DatafolderName+data_gen, map_location=cuda0)
 
 r = torch.tensor([1.])
 lambda_q = torch.tensor([0.3873])
+T = 3000
+T_test = 3000
 traj_resultName = ['traj_lor_dec_RTSNetJ2_r0_2pass.pt']#,'partial_lor_r4.pt','partial_lor_r5.pt','partial_lor_r6.pt']
 # EKFResultName = 'EKF_obsmis_rq1030_T2000_NT100' 
 

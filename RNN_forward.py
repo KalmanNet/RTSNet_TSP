@@ -100,8 +100,9 @@ class RNN_FW(torch.nn.Module):
         # Else, xhat computes the fix to the prior of x_t+1.
         xhat = self.xhat_step(self.xhat_previous, y)
 
-        # Reshape to a Matrix
-        self.xhat = torch.reshape(xhat, (self.m, 1))
+        # Reshape to a Matrix(linear case) or Squeeze (NL case)
+        # self.xhat = torch.reshape(xhat, (self.m, 1))
+        self.xhat = torch.squeeze(xhat)
 
     ########################
     ### Vanilla RNN Step ###

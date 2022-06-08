@@ -7,7 +7,6 @@ import EKF_test
 from Extended_RTS_Smoother_test import S_Test
 from Extended_sysmdl import SystemModel
 from Extended_data import DataGen,DataLoader,DataLoader_GPU, Decimate_and_perturbate_Data,Short_Traj_Split
-from Extended_data import N_E, N_CV, N_T
 from Pipeline_EKF import Pipeline_EKF
 from Pipeline_ERTS import Pipeline_ERTS as Pipeline
 from Pipeline_concat_models import Pipeline_twoRTSNets
@@ -25,7 +24,7 @@ from datetime import datetime
 from filing_paths import path_model, path_session
 import sys
 sys.path.insert(1, path_model)
-from parameters import T, T_test, m1x_0, m2x_0, m, n,delta_t_gen,delta_t
+from parameters import m1x_0, m2x_0, m, n,delta_t_gen,delta_t
 from model import f, h, fInacc, hRotate, fRotate
 
 if torch.cuda.is_available():
@@ -67,6 +66,8 @@ data_gen_file = torch.load(DatagenfolderName+data_gen, map_location=dev)
 
 r = torch.tensor([1]) ###[1/5.9566]
 lambda_q = torch.tensor([0.3873])
+T = 100
+T_test = 3000
 traj_resultName = ['traj_lor_dec_RTSNetJ2_r0_2pass.pt']#,'partial_lor_r4.pt','partial_lor_r5.pt','partial_lor_r6.pt']
 # EKFResultName = 'EKF_obsmis_rq1030_T2000_NT100' 
 
@@ -108,10 +109,12 @@ for rindex in range(0, len(r)):
    #########################
    print("Data Load")
    #########################
+   [train_input, train_target, cv_input_long, cv_target_long, test_input, test_target] = torch.load(DatafolderName+DatafileName,map_location=dev)  
+   
    if(chop):
-      [train_input, train_target, train_init, cv_input_long, cv_target_long, test_input, test_target] = torch.load(DatafolderName+DatafileName,map_location=dev)
-   else:
-      [train_input, train_target, cv_input_long, cv_target_long, test_input, test_target] = torch.load(DatafolderName+DatafileName,map_location=dev)  
+      print("chop training data")  
+      [train_target, train_input, train_init] = Short_Traj_Split(train_target, train_input, T)
+   
    if(secondpass):
       traj = torch.load(DatafolderName+Datasecondpass,map_location=dev) 
       train_input = traj['RTSNet']
@@ -151,6 +154,7 @@ for rindex in range(0, len(r)):
    ########################################
    ### Evaluate Observation Noise Floor ###
    ########################################
+   N_T = len(test_input)
    loss_obs = nn.MSELoss(reduction='mean')
    MSE_obs_linear_arr = torch.empty(N_T)# MSE [Linear]
    for j in range(0, N_T):        
@@ -167,8 +171,9 @@ for rindex in range(0, len(r)):
    print("Observation Noise Floor(test dataset) - MSE LOSS:", MSE_obs_dB_avg, "[dB]")
    print("Observation Noise Floor(test dataset) - STD:", obs_std_dB, "[dB]")
    ###################################################
-   MSE_obs_linear_arr = torch.empty(N_T)# MSE [Linear]
-   for j in range(0, N_T):        
+   N_E = len(train_input)
+   MSE_obs_linear_arr = torch.empty(N_E)# MSE [Linear]
+   for j in range(0, N_E):        
     MSE_obs_linear_arr[j] = loss_obs(train_input[j], train_target[j]).item()
    MSE_obs_linear_avg = torch.mean(MSE_obs_linear_arr)
    MSE_obs_dB_avg = 10 * torch.log10(MSE_obs_linear_avg)

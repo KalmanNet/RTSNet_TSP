@@ -104,8 +104,8 @@ class Vanilla_RNN(RNN_FW):
         # Else, xhat computes the fix to the prior of x_t.
         self.s_m1x_increment = self.BW_step(filter_x)
 
-        # Reshape to a Matrix
-        self.s_m1x_increment = torch.reshape(self.s_m1x_increment, (self.m, 1))
+        # Reshape to a Matrix(linear case) or Squeeze (NL case)
+        self.s_m1x_increment =  torch.squeeze(self.s_m1x_increment)
 
         # Add increment to the filtered x
         self.s_m1x = filter_x +  self.s_m1x_increment

@@ -23,7 +23,7 @@ from Plot import Plot_extended as Plot
 from filing_paths import path_model, path_session
 import sys
 sys.path.insert(1, path_model)
-from parameters import T, T_test, m1x_0, m2x_0, m, n,delta_t_gen,delta_t,H_mod
+from parameters import T, T_test, m1x_0, m2x_0, m, n,H_mod, H_mod_inv
 from model import f, h, fInacc, hRotate, fRotate, h_nonlinear
 
 if torch.cuda.is_available():
@@ -46,9 +46,9 @@ strNow = now.strftime("%H:%M:%S")
 strTime = strToday + "_" + strNow
 print("Current Time =", strTime)
 
-######################################
-###  Compare EKF, RTS and RTSNet   ###
-######################################
+###################
+###  Settings   ###
+###################
 offset = 0
 chop = False
 sequential_training = False
@@ -77,7 +77,9 @@ print("1/q2 [dB]: ", 10 * torch.log10(1/q[0]**2))
 dataFileName = ['data_lor_v20_rq020_T100.pt']#,'data_lor_v20_r1e-2_T100.pt','data_lor_v20_r1e-3_T100.pt','data_lor_v20_r1e-4_T100.pt']
 # KFRTSResultName = 'KFRTS_partialh_rq3050_T2000' 
 
-#Generate and load data DT case
+#########################################
+###  Generate and load data DT case   ###
+#########################################
 sys_model = SystemModel(f, q[0], hRotate, r[0], T, T_test, m, n)
 sys_model.InitSequence(m1x_0, m2x_0)
 print("Start Data Gen")
@@ -105,7 +107,32 @@ print("testset size:",test_target.size())
 sys_model_partial = SystemModel(f, q[0], h, r[0], T, T_test, m, n)
 sys_model_partial.InitSequence(m1x_0, m2x_0)
 
+########################################
+### Evaluate Observation Noise Floor ###
+########################################
+N_T = len(test_input)
+loss_obs = nn.MSELoss(reduction='mean')
+MSE_obs_linear_arr = torch.empty(N_T)# MSE [Linear]
 
+for j in range(0, N_T): 
+   reversed_target = torch.matmul(H_mod_inv, test_input[j])      
+   MSE_obs_linear_arr[j] = loss_obs(reversed_target, test_target[j]).item()
+MSE_obs_linear_avg = torch.mean(MSE_obs_linear_arr)
+MSE_obs_dB_avg = 10 * torch.log10(MSE_obs_linear_avg)
+
+# Standard deviation
+MSE_obs_linear_std = torch.std(MSE_obs_linear_arr, unbiased=True)
+
+# Confidence interval
+obs_std_dB = 10 * torch.log10(MSE_obs_linear_std + MSE_obs_linear_avg) - MSE_obs_dB_avg
+
+print("Observation Noise Floor(test dataset) - MSE LOSS:", MSE_obs_dB_avg, "[dB]")
+print("Observation Noise Floor(test dataset) - STD:", obs_std_dB, "[dB]")
+
+
+######################################
+### Evaluate Filters and Smoothers ###
+######################################
 #Evaluate EKF true
 print("Evaluate EKF true")
 [MSE_EKF_linear_arr, MSE_EKF_linear_avg, MSE_EKF_dB_avg, EKF_KG_array, EKF_out] = EKFTest(sys_model, test_input, test_target)
@@ -159,6 +186,9 @@ print("Evaluate RTS partial")
 #             'KNet_MSE_test_dB_avg': KNet_MSE_test_dB_avg,
 #             }, EKFfolderName+EKFResultName)
 
+#######################
+### Evaluate RTSNet ###
+#######################
 ## RTSNet with full info
 ## Build Neural Network
 print("RTSNet with full model info")
