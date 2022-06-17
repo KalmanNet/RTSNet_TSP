@@ -82,7 +82,7 @@ def fRotate(x):
     return torch.matmul(F_rotated, x)
 
 def h_nonlinear(x):
-    return toSpherical(x)
+    return torch.squeeze(toSpherical(x))
 
 
 def f_interpolate(x, n=2):

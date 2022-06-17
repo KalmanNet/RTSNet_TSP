@@ -108,11 +108,11 @@ print("testset size:",test_target.size())
 ### Evaluate Lower Bound (KS with H=I) ###
 ##########################################
 N_T = len(test_target)
-test_input_LB = torch.zeros_like(test_input)
+test_input_LB = []
 
 for j in range(0, N_T): 
    # Observations; additive Gaussian Noise  
-   test_input_LB[j,:,:] = test_target[j] + torch.randn_like(test_target) * r[0]  
+   test_input_LB.append(test_target[j] + torch.randn_like(test_target[j]) * r[0])
 
 # Model with H=I          
 sys_model_LB = SystemModel(f, q[0], h, r[0], T, T_test, m, n)
@@ -173,7 +173,7 @@ RTSNet_Pipeline = Pipeline(strTime, "RTSNet", "RTSNet")
 RTSNet_Pipeline.setssModel(sys_model)
 RTSNet_Pipeline.setModel(RTSNet_model)
 print("Number of trainable parameters for RTSNet:",sum(p.numel() for p in RTSNet_model.parameters() if p.requires_grad))
-RTSNet_Pipeline.setTrainingParams(n_Epochs=1000, n_Batch=30, learningRate=1e-3, weightDecay=1e-6) 
+RTSNet_Pipeline.setTrainingParams(n_Epochs=1000, n_Batch=30, learningRate=1e-4, weightDecay=1e-6) 
 # RTSNet_Pipeline.model = torch.load('ERTSNet/best-model_DTfull_rq3050_T2000.pt',map_location=dev)
 if(chop):
    [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results,randomInit=True,train_init=train_init)
