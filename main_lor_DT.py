@@ -80,8 +80,9 @@ dataFileName = ['data_lor_v20_rq020_T100.pt']#,'data_lor_v20_r1e-2_T100.pt','dat
 #########################################
 ###  Generate and load data DT case   ###
 #########################################
-sys_model = SystemModel(f, q[0], hRotate, r[0], T, T_test, m, n)
-sys_model.InitSequence(m1x_0, m2x_0)
+
+sys_model = SystemModel(f, q[0], hRotate, r[0], T, T_test, m, n)# parameters for GT
+sys_model.InitSequence(m1x_0, m2x_0)# x0 and P0
 print("Start Data Gen")
 DataGen(sys_model, DatafolderName + dataFileName[0], T, T_test,randomInit=False)
 print("Data Load")

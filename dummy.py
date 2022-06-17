@@ -3,9 +3,11 @@ import numpy as np
 import torch
 from Pipeline_ERTS import Pipeline_ERTS as Pipeline
 from filing_paths import path_model
-# import sys
-# sys.path.insert(1, path_model)
+import sys
+sys.path.insert(1, path_model)
 # from model import gt_data
+from model import toSpherical, toCartesian
+
 
 if torch.cuda.is_available():
    dev = torch.device("cuda:0")  # you can continue going on here, like cuda:1 cuda:2....etc.
@@ -76,5 +78,10 @@ T_test = 10
 # position = state[:, [0, 2]]
 # print(position)
 
-P_0 = np.diag([1] * 3) * 0
-print(P_0)
+m1x_0 = torch.ones(m, 1) 
+# P_0 = np.diag([1] * 3) * 0
+print(m1x_0)
+Sx = toSpherical(m1x_0)
+print(Sx)
+xafter = toCartesian(Sx)
+print(xafter)
