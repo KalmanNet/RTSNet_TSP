@@ -24,7 +24,7 @@ from filing_paths import path_model, path_session
 import sys
 sys.path.insert(1, path_model)
 from parameters import T, T_test, m1x_0, m2x_0, m, n,H_mod
-from model import f, h, h_nonlinear
+from model import f, h, h_nonlinear, toCartesian
 
 if torch.cuda.is_available():
    dev = torch.device("cuda:0")  # you can continue going on here, like cuda:1 cuda:2....etc.
@@ -129,7 +129,7 @@ print("testset size:",test_target.size())
 # print("Evaluate EKF full")
 # [MSE_EKF_linear_arr, MSE_EKF_linear_avg, MSE_EKF_dB_avg, EKF_KG_array, EKF_out] = EKFTest(sys_model, test_input, test_target)
 
-# #Evaluate RTS full
+# # #Evaluate RTS full
 # print("Evaluate RTS full")
 # [MSE_ERTS_linear_arr, MSE_ERTS_linear_avg, MSE_ERTS_dB_avg, ERTS_out] = S_Test(sys_model, test_input, test_target)
 
@@ -160,20 +160,53 @@ print("testset size:",test_target.size())
 #             'KNet_MSE_test_dB_avg': KNet_MSE_test_dB_avg,
 #             }, EKFfolderName+EKFResultName)
 
+###################################################################
+## Test reversed input and H=I
+# Model with H=I          
+# sys_model_H = SystemModel(f, q[0], h, r[0], T, T_test, m, n)
+# sys_model_H.InitSequence(m1x_0, m2x_0)
+
+# ## reverse input
+# N_T = len(test_input)
+# test_input_reversed = torch.zeros_like(test_input)
+
+# for i in range(0, N_T): 
+#    for j in range(0,T_test):
+#       test_input_reversed[i,:,j]=toCartesian(test_input[i,:,j])
+
+# ## Evaluate reversed input
+# loss_obs = nn.MSELoss(reduction='mean')
+# MSE_obs_linear_arr = torch.empty(N_T)# MSE [Linear]
+# for j in range(0, N_T):      
+#    MSE_obs_linear_arr[j] = loss_obs(test_input_reversed[j,:,:], test_target[j]).item()
+# MSE_obs_linear_avg = torch.mean(MSE_obs_linear_arr)
+# MSE_obs_dB_avg = 10 * torch.log10(MSE_obs_linear_avg)
+# # Standard deviation
+# MSE_obs_linear_std = torch.std(MSE_obs_linear_arr, unbiased=True)
+# # Confidence interval
+# obs_std_dB = 10 * torch.log10(MSE_obs_linear_std + MSE_obs_linear_avg) - MSE_obs_dB_avg
+# print("Observation Noise Floor(test dataset) - MSE LOSS:", MSE_obs_dB_avg, "[dB]")
+# print("Observation Noise Floor(test dataset) - STD:", obs_std_dB, "[dB]")
+
+# # #Evaluate RTS full
+# print("Evaluate RTS H=I")
+# [MSE_ERTS_linear_arr, MSE_ERTS_linear_avg, MSE_ERTS_dB_avg, ERTS_out] = S_Test(sys_model_H, test_input_reversed, test_target)
+
+
 #######################
 ### Evaluate RTSNet ###
 #######################
-## RTSNet with full info
-## Build Neural Network
+# RTSNet with full info
+# Build Neural Network
 print("RTSNet with full model info")
 RTSNet_model = RTSNetNN()
-RTSNet_model.NNBuild(sys_model)
+RTSNet_model.NNBuild(sys_model, KNet_in_mult = 40, KNet_out_mult = 30, RTSNet_in_mult = 40, RTSNet_out_mult = 30)
 # ## Train Neural Network
 RTSNet_Pipeline = Pipeline(strTime, "RTSNet", "RTSNet")
 RTSNet_Pipeline.setssModel(sys_model)
 RTSNet_Pipeline.setModel(RTSNet_model)
 print("Number of trainable parameters for RTSNet:",sum(p.numel() for p in RTSNet_model.parameters() if p.requires_grad))
-RTSNet_Pipeline.setTrainingParams(n_Epochs=1000, n_Batch=30, learningRate=1e-4, weightDecay=1e-6) 
+RTSNet_Pipeline.setTrainingParams(n_Epochs=1000, n_Batch=10, learningRate=1e-5, weightDecay=1e-9) 
 # RTSNet_Pipeline.model = torch.load('ERTSNet/best-model_DTfull_rq3050_T2000.pt',map_location=dev)
 if(chop):
    [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results,randomInit=True,train_init=train_init)

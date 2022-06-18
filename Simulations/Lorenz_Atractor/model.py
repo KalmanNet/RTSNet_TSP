@@ -143,9 +143,9 @@ def toSpherical(cart):
 
 def toCartesian(sphe):
 
-    rho = sphe[0,:]
-    theta = sphe[1,:]
-    phi = sphe[2,:]
+    rho = sphe[0]
+    theta = sphe[1]
+    phi = sphe[2]
 
     x = (rho * torch.sin(theta) * torch.cos(phi)).view(1,-1)
     y = (rho * torch.sin(theta) * torch.sin(phi)).view(1,-1)
@@ -153,7 +153,7 @@ def toCartesian(sphe):
 
     cart = torch.cat([x,y,z],dim=0)
 
-    return cart
+    return torch.squeeze(cart)
 
 def hInv(y):
     return torch.matmul(H_design_inv,y)

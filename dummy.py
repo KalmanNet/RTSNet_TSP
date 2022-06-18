@@ -81,7 +81,7 @@ T_test = 10
 m1x_0 = torch.ones(m, 1) 
 # P_0 = np.diag([1] * 3) * 0
 print(m1x_0)
-Sx = toSpherical(m1x_0)
+Sx = torch.squeeze(toSpherical(m1x_0))
 print(Sx)
 xafter = toCartesian(Sx)
 print(xafter)
