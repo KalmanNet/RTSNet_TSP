@@ -53,7 +53,7 @@ offset = 0
 chop = False
 sequential_training = False
 path_results = 'ERTSNet/'
-DatafolderName = 'Simulations/Lorenz_Atractor/data/T100_hNL' + '/'
+DatafolderName = 'Simulations/Lorenz_Atractor/data/T20_hNL' + '/'
 
 r2 = torch.tensor([1])
 # r2 = torch.tensor([100, 10, 1, 0.1, 0.01])
@@ -74,7 +74,7 @@ print("1/r2 [dB]: ", 10 * torch.log10(1/r[0]**2))
 print("1/q2 [dB]: ", 10 * torch.log10(1/q[0]**2))
 
 # traj_resultName = ['traj_lor_KNetFull_rq1030_T2000_NT100.pt']#,'partial_lor_r4.pt','partial_lor_r5.pt','partial_lor_r6.pt']
-dataFileName = ['data_lor_v20_rq020_T100.pt']#,'data_lor_v20_r1e-2_T100.pt','data_lor_v20_r1e-3_T100.pt','data_lor_v20_r1e-4_T100.pt']
+dataFileName = ['data_lor_v20_rq020_T20.pt']#,'data_lor_v20_r1e-2_T100.pt','data_lor_v20_r1e-3_T100.pt','data_lor_v20_r1e-4_T100.pt']
 # KFRTSResultName = 'KFRTS_partialh_rq3050_T2000' 
 
 #########################################
@@ -83,8 +83,8 @@ dataFileName = ['data_lor_v20_rq020_T100.pt']#,'data_lor_v20_r1e-2_T100.pt','dat
 
 sys_model = SystemModel(f, q[0], h_nonlinear, r[0], T, T_test, m, n)# parameters for GT
 sys_model.InitSequence(m1x_0, m2x_0)# x0 and P0
-# print("Start Data Gen")
-# DataGen(sys_model, DatafolderName + dataFileName[0], T, T_test,randomInit=False)
+print("Start Data Gen")
+DataGen(sys_model, DatafolderName + dataFileName[0], T, T_test,randomInit=False)
 print("Data Load")
 print(dataFileName[0])
 [train_input_long,train_target_long, cv_input, cv_target, test_input, test_target] =  torch.load(DatafolderName + dataFileName[0],map_location=dev)  
@@ -107,31 +107,31 @@ print("testset size:",test_target.size())
 ##########################################
 ### Evaluate Lower Bound (KS with H=I) ###
 ##########################################
-# N_T = len(test_target)
-# test_input_LB = []
+N_T = len(test_target)
+test_input_LB = []
 
-# for j in range(0, N_T): 
-#    # Observations; additive Gaussian Noise  
-#    test_input_LB.append(test_target[j] + torch.randn_like(test_target[j]) * r[0])
+for j in range(0, N_T): 
+   # Observations; additive Gaussian Noise  
+   test_input_LB.append(test_target[j] + torch.randn_like(test_target[j]) * r[0])
 
-# # Model with H=I          
-# sys_model_LB = SystemModel(f, q[0], h, r[0], T, T_test, m, n)
-# sys_model_LB.InitSequence(m1x_0, m2x_0)
-# print("Evaluate ERTS H=I")
-# S_Test(sys_model_LB, test_input_LB, test_target)
+# Model with H=I          
+sys_model_LB = SystemModel(f, q[0], h, r[0], T, T_test, m, n)
+sys_model_LB.InitSequence(m1x_0, m2x_0)
+print("Evaluate ERTS H=I")
+S_Test(sys_model_LB, test_input_LB, test_target)
 
 
 
 ######################################
 ### Evaluate Filters and Smoothers ###
 ######################################
-#Evaluate EKF full
-# print("Evaluate EKF full")
-# [MSE_EKF_linear_arr, MSE_EKF_linear_avg, MSE_EKF_dB_avg, EKF_KG_array, EKF_out] = EKFTest(sys_model, test_input, test_target)
+## Evaluate EKF full
+print("Evaluate EKF full")
+[MSE_EKF_linear_arr, MSE_EKF_linear_avg, MSE_EKF_dB_avg, EKF_KG_array, EKF_out] = EKFTest(sys_model, test_input, test_target)
 
-# # #Evaluate RTS full
-# print("Evaluate RTS full")
-# [MSE_ERTS_linear_arr, MSE_ERTS_linear_avg, MSE_ERTS_dB_avg, ERTS_out] = S_Test(sys_model, test_input, test_target)
+## Evaluate RTS full
+print("Evaluate RTS full")
+[MSE_ERTS_linear_arr, MSE_ERTS_linear_avg, MSE_ERTS_dB_avg, ERTS_out] = S_Test(sys_model, test_input, test_target)
 
 
 # Save results
@@ -162,12 +162,13 @@ print("testset size:",test_target.size())
 
 ###################################################################
 ## Test reversed input and H=I
-# Model with H=I          
+## Model with H=I          
 # sys_model_H = SystemModel(f, q[0], h, r[0], T, T_test, m, n)
 # sys_model_H.InitSequence(m1x_0, m2x_0)
 
 # ## reverse input
 # N_T = len(test_input)
+# train_input_reversed = torch.zeros_like(test_input)
 # test_input_reversed = torch.zeros_like(test_input)
 
 # for i in range(0, N_T): 
@@ -188,25 +189,44 @@ print("testset size:",test_target.size())
 # print("Observation Noise Floor(test dataset) - MSE LOSS:", MSE_obs_dB_avg, "[dB]")
 # print("Observation Noise Floor(test dataset) - STD:", obs_std_dB, "[dB]")
 
-# # #Evaluate RTS full
-# print("Evaluate RTS H=I")
-# [MSE_ERTS_linear_arr, MSE_ERTS_linear_avg, MSE_ERTS_dB_avg, ERTS_out] = S_Test(sys_model_H, test_input_reversed, test_target)
+# # # #Evaluate RTS full
+# # print("Evaluate RTS H=I")
+# # [MSE_ERTS_linear_arr, MSE_ERTS_linear_avg, MSE_ERTS_dB_avg, ERTS_out] = S_Test(sys_model_H, test_input_reversed, test_target)
+
+# # RTSNet with full info
+# # Build Neural Network
+# print("RTSNet with full model info")
+# RTSNet_model = RTSNetNN()
+# RTSNet_model.NNBuild(sys_model_H, KNet_in_mult = 5, KNet_out_mult = 40, RTSNet_in_mult = 5, RTSNet_out_mult = 40)
+# # ## Train Neural Network
+# RTSNet_Pipeline = Pipeline(strTime, "RTSNet", "RTSNet")
+# RTSNet_Pipeline.setssModel(sys_model_H)
+# RTSNet_Pipeline.setModel(RTSNet_model)
+# print("Number of trainable parameters for RTSNet:",sum(p.numel() for p in RTSNet_model.parameters() if p.requires_grad))
+# RTSNet_Pipeline.setTrainingParams(n_Epochs=1000, n_Batch=10, learningRate=1e-5, weightDecay=1e-9) 
+# # RTSNet_Pipeline.model = torch.load('ERTSNet/best-model_DTfull_rq3050_T2000.pt',map_location=dev)
+# if(chop):
+#    [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model_H, cv_input, cv_target, train_input, train_target, path_results,randomInit=True,train_init=train_init)
+# else:
+#    [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model_H, cv_input, cv_target, train_input, train_target, path_results)
+# ## Test Neural Network
+# [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model_H, test_input, test_target, path_results)
 
 
 #######################
 ### Evaluate RTSNet ###
 #######################
-# RTSNet with full info
-# Build Neural Network
+## RTSNet with full info
+## Build Neural Network
 print("RTSNet with full model info")
 RTSNet_model = RTSNetNN()
-RTSNet_model.NNBuild(sys_model, KNet_in_mult = 40, KNet_out_mult = 30, RTSNet_in_mult = 40, RTSNet_out_mult = 30)
-# ## Train Neural Network
+RTSNet_model.NNBuild(sys_model, KNet_in_mult = 40, KNet_out_mult = 5, RTSNet_in_mult = 40, RTSNet_out_mult = 5)
+## Train Neural Network
 RTSNet_Pipeline = Pipeline(strTime, "RTSNet", "RTSNet")
 RTSNet_Pipeline.setssModel(sys_model)
 RTSNet_Pipeline.setModel(RTSNet_model)
 print("Number of trainable parameters for RTSNet:",sum(p.numel() for p in RTSNet_model.parameters() if p.requires_grad))
-RTSNet_Pipeline.setTrainingParams(n_Epochs=1000, n_Batch=10, learningRate=1e-5, weightDecay=1e-9) 
+RTSNet_Pipeline.setTrainingParams(n_Epochs=1000, n_Batch=100, learningRate=1e-5, weightDecay=1e-9) 
 # RTSNet_Pipeline.model = torch.load('ERTSNet/best-model_DTfull_rq3050_T2000.pt',map_location=dev)
 if(chop):
    [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results,randomInit=True,train_init=train_init)
