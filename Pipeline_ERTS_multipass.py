@@ -61,9 +61,9 @@ class Pipeline_ERTS:
         self.MSE_cv_linear_epoch = torch.empty([self.N_Epochs]).to(dev, non_blocking=True)
         self.MSE_cv_dB_epoch = torch.empty([self.N_Epochs]).to(dev, non_blocking=True)
 
-        MSE_train_linear_batch = torch.empty([self.N_B]).to(dev, non_blocking=True)
-        self.MSE_train_linear_epoch = torch.empty([self.N_Epochs]).to(dev, non_blocking=True)
-        self.MSE_train_dB_epoch = torch.empty([self.N_Epochs]).to(dev, non_blocking=True)
+        MSE_train_linear_batch_iterations = torch.empty([self.N_B, self.model.iterations]).to(dev, non_blocking=True)
+        self.MSE_train_linear_epoch_iterations = torch.empty([self.N_Epochs, self.model.iterations]).to(dev, non_blocking=True)
+        self.MSE_train_dB_epoch_iterations = torch.empty([self.N_Epochs, self.model.iterations]).to(dev, non_blocking=True)
 
         ##############
         ### Epochs ###
@@ -147,17 +147,16 @@ class Pipeline_ERTS:
                     LOSS = self.loss_fn(x_out_training[mask], train_target[n_e, :, :])
                 else:
                     for i in range(self.model.iterations):
-                        temp_loss = self.loss_fn(x_out_train[i], train_target[n_e, :, :])                       
+                        temp_loss = self.loss_fn(x_out_train[i], train_target[n_e, :, :]) 
+                        MSE_train_linear_batch_iterations[j,i] = temp_loss.item()                      
                         LOSS = LOSS + temp_loss
-                        # print("Loss after iteration",i,":",temp_loss)#Check if loss decreases through iterations
-
-                MSE_train_linear_batch[j] = LOSS.item()
+                        # print("Loss after iteration",i,":",temp_loss)#Check if loss decreases through iterations                  
 
                 Batch_Optimizing_LOSS_sum = Batch_Optimizing_LOSS_sum + LOSS
 
             # Average
-            self.MSE_train_linear_epoch[ti] = torch.mean(MSE_train_linear_batch)
-            self.MSE_train_dB_epoch[ti] = 10 * torch.log10(self.MSE_train_linear_epoch[ti])
+            self.MSE_train_linear_epoch_iterations[ti, :] = torch.mean(MSE_train_linear_batch_iterations, 0)
+            self.MSE_train_dB_epoch_iterations[ti, :] = 10 * torch.log10(self.MSE_train_linear_epoch_iterations[ti, :])
 
             ##################
             ### Optimizing ###
@@ -252,18 +251,18 @@ class Pipeline_ERTS:
             ########################
             ### Training Summary ###
             ########################
-            print(ti, "MSE Training :", self.MSE_train_dB_epoch[ti], "[dB]", "MSE Validation :", self.MSE_cv_dB_epoch[ti],
-                  "[dB]")
+            for i in range(self.model.iterations):
+                print(ti, "MSE Training iteration",i,":", self.MSE_train_dB_epoch_iterations[ti,i], "[dB]")
+            print(ti, "MSE Validation :", self.MSE_cv_dB_epoch[ti], "[dB]")
             
             
             if (ti > 1):
-                d_train = self.MSE_train_dB_epoch[ti] - self.MSE_train_dB_epoch[ti - 1]
                 d_cv = self.MSE_cv_dB_epoch[ti] - self.MSE_cv_dB_epoch[ti - 1]
-                print("diff MSE Training :", d_train, "[dB]", "diff MSE Validation :", d_cv, "[dB]")
+                print("diff MSE Validation :", d_cv, "[dB]")
 
             print("Optimal idx:", self.MSE_cv_idx_opt, "Optimal :", self.MSE_cv_dB_opt, "[dB]")
 
-        return [self.MSE_cv_linear_epoch, self.MSE_cv_dB_epoch, self.MSE_train_linear_epoch, self.MSE_train_dB_epoch]
+        return [self.MSE_cv_linear_epoch, self.MSE_cv_dB_epoch, self.MSE_train_linear_epoch_iterations, self.MSE_train_dB_epoch_iterations]
 
     def NNTest(self, SysModel, test_input, test_target, path_results, nclt=False, rnn=False, randomInit=False,test_init=None):
 
@@ -357,7 +356,7 @@ class Pipeline_ERTS:
         self.Plot = Plot(self.folderName, self.modelName)
 
         self.Plot.NNPlot_epochs(self.N_Epochs, self.N_B, MSE_KF_dB_avg,
-                                self.MSE_test_dB_avg, self.MSE_cv_dB_epoch, self.MSE_train_dB_epoch)
+                                self.MSE_test_dB_avg, self.MSE_cv_dB_epoch, self.MSE_train_dB_epoch_iterations[:,-1])
 
         self.Plot.NNPlot_Hist(MSE_KF_linear_arr, self.MSE_test_linear_arr)
 
@@ -366,7 +365,7 @@ class Pipeline_ERTS:
         self.Plot = Plot(self.folderName, self.modelName)
 
         # self.Plot.NNPlot_epochs(self.N_E,self.N_Epochs, self.N_B, MSE_KF_dB_avg, MSE_RTS_dB_avg,
-                                # self.MSE_test_dB_avg, self.MSE_cv_dB_epoch, self.MSE_train_dB_epoch)
+                                # self.MSE_test_dB_avg, self.MSE_cv_dB_epoch, self.MSE_train_dB_epoch_iterations[:,-1])
 
         self.Plot.NNPlot_Hist(MSE_KF_linear_arr, MSE_RTS_linear_arr, self.MSE_test_linear_arr)
 

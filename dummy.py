@@ -78,10 +78,17 @@ T_test = 10
 # position = state[:, [0, 2]]
 # print(position)
 
-m1x_0 = torch.ones(m, 1) 
+# m1x_0 = torch.ones(m, 1) 
+# # P_0 = np.diag([1] * 3) * 0
+# print(m1x_0)
+# Sx = torch.squeeze(toSpherical(m1x_0))
+# print(Sx)
+# xafter = toCartesian(Sx)
+# print(xafter)
+
+m1x_0 = torch.ones(3, 2) 
+m1x_0[2,1] = 0
 # P_0 = np.diag([1] * 3) * 0
 print(m1x_0)
-Sx = torch.squeeze(toSpherical(m1x_0))
+Sx = m1x_0[:,-1]
 print(Sx)
-xafter = toCartesian(Sx)
-print(xafter)
