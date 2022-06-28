@@ -149,7 +149,7 @@ class Pipeline_ERTS:
                     for i in range(self.model.iterations):
                         temp_loss = self.loss_fn(x_out_train[i], train_target[n_e, :, :])                       
                         LOSS = LOSS + temp_loss
-                        print("Loss after iteration",i,":",temp_loss)
+                        # print("Loss after iteration",i,":",temp_loss)#Check if loss decreases through iterations
 
                 MSE_train_linear_batch[j] = LOSS.item()
 
@@ -374,4 +374,5 @@ class Pipeline_ERTS:
         parameter_num = 0
         for i in range(self.model.iterations):
             parameter_num += sum(p.numel() for p in self.model.RTSNet_passes[i].parameters() if p.requires_grad)
+        print("Number of parameters for RTSNet: ",parameter_num)
         return parameter_num

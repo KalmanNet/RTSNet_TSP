@@ -30,15 +30,8 @@ class RTSNetNN_multipass(torch.nn.Module):
     ### Build ###
     #############
     def NNBuild_multipass(self, ssModel, KNet_in_mult = 5, KNet_out_mult = 40, RTSNet_in_mult = 5, RTSNet_out_mult = 40):
-        # Set State Evolution Function
-        self.f = ssModel.f
-        self.m = ssModel.m
 
-        # Set Observation Function
-        self.h = ssModel.h
-        self.n = ssModel.n
-
-        self.InitSystemDynamics_multipass(self.f,self.h,self.m,self.n)
+        self.InitSystemDynamics_multipass(ssModel.f,ssModel.h,ssModel.m,ssModel.n)
 
         for i in range(self.iterations):
             self.RTSNet_passes[i].InitKGainNet(ssModel.prior_Q, ssModel.prior_Sigma, ssModel.prior_S, KNet_in_mult, KNet_out_mult)
@@ -47,15 +40,28 @@ class RTSNetNN_multipass(torch.nn.Module):
     ##################################
     ### Initialize System Dynamics ###
     ##################################
-    def InitSystemDynamics_multipass(self, f, h, m, n):
-        for i in range(self.iterations):
+    def h_identity(self, x):
+        H_identity = torch.eye(self.RTSNet_passes[0].m) # use m not n: use the estimated state from previous pass as input
+        y = torch.matmul(H_identity,x).to(dev)
+        return y
+    
+    def InitSystemDynamics_multipass(self, f, h, m, n):       
+        # Set State Evolution Function
+        self.RTSNet_passes[0].f = f        
+        self.RTSNet_passes[0].m = m
+
+        # Set Observation Function
+        self.RTSNet_passes[0].h = h
+        self.RTSNet_passes[0].n = n
+
+        for i in range(1, self.iterations):
             # Set State Evolution Function
             self.RTSNet_passes[i].f = f
             self.RTSNet_passes[i].m = m
 
-            # Set Observation Function
-            self.RTSNet_passes[i].h = h
-            self.RTSNet_passes[i].n = n
+            # Set Observation Function to be H=I and dim=m
+            self.RTSNet_passes[i].h = self.h_identity 
+            self.RTSNet_passes[i].n = m
 
     ###########################
     ### Initialize Sequence ###
@@ -66,7 +72,7 @@ class RTSNetNN_multipass(torch.nn.Module):
         self.RTSNet_passes[i].m1x_posterior = torch.squeeze(M1_0).to(dev, non_blocking=True)
         self.RTSNet_passes[i].m1x_posterior_previous = self.RTSNet_passes[i].m1x_posterior.to(dev, non_blocking=True)
         self.RTSNet_passes[i].m1x_prior_previous = self.RTSNet_passes[i].m1x_posterior.to(dev, non_blocking=True)
-        self.RTSNet_passes[i].y_previous = self.h(self.RTSNet_passes[i].m1x_posterior).to(dev, non_blocking=True)
+        self.RTSNet_passes[i].y_previous = self.RTSNet_passes[i].h(self.RTSNet_passes[i].m1x_posterior).to(dev, non_blocking=True)
 
     ####################################
     ### Initialize Backward Sequence ###
