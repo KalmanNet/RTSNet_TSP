@@ -32,12 +32,12 @@ class Pipeline_ERTS:
     def setModel(self, model):
         self.model = model
 
-    def setTrainingParams(self, n_Epochs, n_Batch, learningRate, weightDecay,clip_value=1e5):
+    def setTrainingParams(self, n_Epochs, n_Batch, learningRate, weightDecay,clip_value=1e5,alpha=0.5):
         self.N_Epochs = n_Epochs  # Number of Training Epochs
         self.N_B = n_Batch # Number of Samples in Batch
         self.learningRate = learningRate # Learning Rate
         self.weightDecay = weightDecay # L2 Weight Regularization - Weight Decay
-
+        self.alpha = alpha # Composition Loss
         # MSE LOSS Function
         self.loss_fn = nn.MSELoss(reduction='mean')
 
@@ -52,7 +52,7 @@ class Pipeline_ERTS:
             for p in self.model.RTSNet_passes[i].parameters():
                 p.register_hook(lambda grad: torch.clamp(grad, -clip_value, clip_value))
 
-    def NNTrain(self, SysModel, cv_input, cv_target, train_input, train_target, path_results, nclt = False,randomInit=False,train_init=None,cv_init=None):
+    def NNTrain(self, SysModel, cv_input, cv_target, train_input, train_target, path_results,CompositionLoss=False, nclt = False,randomInit=False,train_init=None,cv_init=None):
 
         self.N_E = train_input.size()[0]
         self.N_CV = cv_input.size()[0]
@@ -139,18 +139,25 @@ class Pipeline_ERTS:
                     x_out_train.append(x_out_training)
 
                 # Compute Training Loss
-                if(nclt):
-                    if x_out_training.size()[0]==6:
-                        mask = torch.tensor([True,False,False,True,False,False])
-                    else:
-                        mask = torch.tensor([True,False,True,False])
-                    LOSS = self.loss_fn(x_out_training[mask], train_target[n_e, :, :])
+                if (CompositionLoss):
+                    y_hat = torch.empty([SysModel.n, SysModel.T]).to(dev, non_blocking=True) 
+                    for t in range(SysModel.T):
+                        y_hat[:,t] = SysModel.h(x_out_train[self.model.iterations-1][:,t])
+                    LOSS = self.alpha * self.loss_fn(x_out_train[self.model.iterations-1], train_target[n_e])+(1-self.alpha)*self.loss_fn(y_hat, train_input[n_e])
+                
                 else:
-                    for i in range(self.model.iterations):
-                        temp_loss = self.loss_fn(x_out_train[i], train_target[n_e, :, :]) 
-                        MSE_train_linear_batch_iterations[j,i] = temp_loss.item()                      
-                        LOSS = LOSS + temp_loss
-                        # print("Loss after iteration",i,":",temp_loss)#Check if loss decreases through iterations                  
+                    if(nclt):
+                        if x_out_training.size()[0]==6:
+                            mask = torch.tensor([True,False,False,True,False,False])
+                        else:
+                            mask = torch.tensor([True,False,True,False])
+                        LOSS = self.loss_fn(x_out_training[mask], train_target[n_e, :, :])
+                    else:
+                        for i in range(self.model.iterations):
+                            temp_loss = self.loss_fn(x_out_train[i], train_target[n_e, :, :]) 
+                            MSE_train_linear_batch_iterations[j,i] = temp_loss.item()                      
+                            LOSS = LOSS + temp_loss
+                            # print("Loss after iteration",i,":",temp_loss)#Check if loss decreases through iterations                  
 
                 Batch_Optimizing_LOSS_sum = Batch_Optimizing_LOSS_sum + LOSS
 

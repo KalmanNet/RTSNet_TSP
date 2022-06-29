@@ -128,8 +128,8 @@ print("testset size:",test_target.size())
 ### Evaluate Filters and Smoothers ###
 ######################################
 ## Evaluate EKF full
-print("Evaluate EKF full")
-[MSE_EKF_linear_arr, MSE_EKF_linear_avg, MSE_EKF_dB_avg, EKF_KG_array, EKF_out] = EKFTest(sys_model, test_input, test_target)
+# print("Evaluate EKF full")
+# [MSE_EKF_linear_arr, MSE_EKF_linear_avg, MSE_EKF_dB_avg, EKF_KG_array, EKF_out] = EKFTest(sys_model, test_input, test_target)
 
 # ## Evaluate RTS full
 # print("Evaluate RTS full")
@@ -219,7 +219,7 @@ print("Evaluate EKF full")
 # Build Neural Network
 print("RTSNet with LMMSE of Jacobian of h")
 RTSNet_model = RTSNet_lmmseh()
-RTSNet_model.NNBuild(sys_model, KNet_in_mult = 5, KNet_out_mult = 40, RTSNet_in_mult = 5, RTSNet_out_mult = 40)
+RTSNet_model.NNBuild(sys_model, KNet_in_mult = 40, KNet_out_mult = 5, RTSNet_in_mult = 40, RTSNet_out_mult = 5)
 # ## Train Neural Network
 RTSNet_Pipeline = Pipeline(strTime, "RTSNet", "RTSNet")
 RTSNet_Pipeline.setssModel(sys_model)
@@ -228,9 +228,9 @@ print("Number of trainable parameters for RTSNet:",sum(p.numel() for p in RTSNet
 RTSNet_Pipeline.setTrainingParams(n_Epochs=2000, n_Batch=100, learningRate=1e-4, weightDecay=1e-4) 
 # RTSNet_Pipeline.model = torch.load('ERTSNet/best-model_DTfull_rq3050_T2000.pt',map_location=dev)
 if(chop):
-   [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results,randomInit=True,train_init=train_init)
+   [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results,CompositionLoss=True,randomInit=True,train_init=train_init)
 else:
-   [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results)
+   [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results,CompositionLoss=True)
 ## Test Neural Network
 [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model, test_input, test_target, path_results)
 
@@ -261,22 +261,22 @@ else:
 ### RTSNet Multipass ###
 ########################
 ## Build Neural Network
-# print("RTSNet multipass")
-# iterations = 2 # number of passes
-# RTSNet_model = RTSNetNN_multipass(iterations)
-# RTSNet_model.NNBuild_multipass(sys_model)
-# ## Train Neural Network
-# RTSNet_Pipeline = Pipeline_multipass(strTime, "RTSNet", "RTSNet")
-# RTSNet_Pipeline.setModel(RTSNet_model)
-# RTSNet_Pipeline.setTrainingParams(n_Epochs=2000, n_Batch=100, learningRate=1e-4, weightDecay=1e-4)
-# NumofParameter = RTSNet_Pipeline.count_parameters()
-# if(chop):
-#    [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results,randomInit=True,train_init=train_init)
-# else:
-#    [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results)
-# ## Test Neural Network
-# # RTSNet_Pipeline.model = torch.load('ERTSNet/model_KNetNew_DT_procmis_r30q50_T2000.pt',map_location=cuda0)
-# [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model, test_input, test_target, path_results)
+print("RTSNet multipass")
+iterations = 2 # number of passes
+RTSNet_model = RTSNetNN_multipass(iterations)
+RTSNet_model.NNBuild_multipass(sys_model)
+## Train Neural Network
+RTSNet_Pipeline = Pipeline_multipass(strTime, "RTSNet", "RTSNet")
+RTSNet_Pipeline.setModel(RTSNet_model)
+RTSNet_Pipeline.setTrainingParams(n_Epochs=2000, n_Batch=100, learningRate=1e-4, weightDecay=1e-4)
+NumofParameter = RTSNet_Pipeline.count_parameters()
+if(chop):
+   [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results,CompositionLoss=True,randomInit=True,train_init=train_init)
+else:
+   [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results,CompositionLoss=True)
+## Test Neural Network
+# RTSNet_Pipeline.model = torch.load('ERTSNet/model_KNetNew_DT_procmis_r30q50_T2000.pt',map_location=cuda0)
+[MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model, test_input, test_target, path_results)
    
 
 

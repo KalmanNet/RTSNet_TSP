@@ -31,12 +31,12 @@ class Pipeline_ERTS:
     def setModel(self, model):
         self.model = model
 
-    def setTrainingParams(self, n_Epochs, n_Batch, learningRate, weightDecay):
+    def setTrainingParams(self, n_Epochs, n_Batch, learningRate, weightDecay, alpha=0.5):
         self.N_Epochs = n_Epochs  # Number of Training Epochs
         self.N_B = n_Batch # Number of Samples in Batch
         self.learningRate = learningRate # Learning Rate
         self.weightDecay = weightDecay # L2 Weight Regularization - Weight Decay
-
+        self.alpha = alpha # Composition loss
         # MSE LOSS Function
         self.loss_fn = nn.MSELoss(reduction='mean')
 
@@ -48,7 +48,7 @@ class Pipeline_ERTS:
         # self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizer, 'min',factor=0.9, patience=20)
 
 
-    def NNTrain(self, SysModel, cv_input, cv_target, train_input, train_target, path_results, MaskOnState=False, rnn=False, epochs=None, multipass=False, randomInit = False, cv_init=None,train_init=None):
+    def NNTrain(self, SysModel, cv_input, cv_target, train_input, train_target, path_results, CompositionLoss = False, MaskOnState=False, rnn=False, randomInit = False, cv_init=None,train_init=None):
 
         self.N_E = len(train_input)
         self.N_CV = len(cv_input)
@@ -68,12 +68,7 @@ class Pipeline_ERTS:
         self.MSE_cv_dB_opt = 1000
         self.MSE_cv_idx_opt = 0
 
-        if epochs is None:
-            N = self.N_Epochs
-        else:
-            N = epochs
-
-        for ti in range(0, N):
+        for ti in range(0, self.N_Epochs):
 
             ###############################
             ### Training Sequence Batch ###
@@ -122,11 +117,27 @@ class Pipeline_ERTS:
                 #     x_out_training = x_out_train_2
 
                 # Compute Training Loss
-                if(MaskOnState):
-                    mask = torch.tensor([True,True,True,False,False,False])
-                    LOSS = self.loss_fn(x_out_training[mask], train_target[n_e][mask])
+                LOSS = 0
+                if (CompositionLoss):
+                    if(MaskOnState):
+                        mask = torch.tensor([True,True,True,False,False,False])
+                        y_hat = torch.empty([SysModel.n, SysModel.T]).to(dev, non_blocking=True) 
+                        for t in range(SysModel.T):
+                            y_hat[:,t] = SysModel.h(x_out_training[:,t])
+                        LOSS = self.alpha * self.loss_fn(x_out_training[mask], train_target[n_e][mask])+(1-self.alpha)*self.loss_fn(y_hat[mask], train_input[n_e][mask])
+                    else:
+                        y_hat = torch.empty([SysModel.n, SysModel.T]).to(dev, non_blocking=True) 
+                        for t in range(SysModel.T):
+                            y_hat[:,t] = SysModel.h(x_out_training[:,t])
+                        LOSS = self.alpha * self.loss_fn(x_out_training, train_target[n_e])+(1-self.alpha)*self.loss_fn(y_hat, train_input[n_e])
+                
                 else:
-                    LOSS = self.loss_fn(x_out_training, train_target[n_e])
+                    if(MaskOnState):
+                        mask = torch.tensor([True,True,True,False,False,False])
+                        LOSS = self.loss_fn(x_out_training[mask], train_target[n_e][mask])
+                    else:
+                        LOSS = self.loss_fn(x_out_training, train_target[n_e])
+                
                 MSE_train_linear_batch[j] = LOSS.item()
 
                 Batch_Optimizing_LOSS_sum = Batch_Optimizing_LOSS_sum + LOSS
@@ -199,7 +210,7 @@ class Pipeline_ERTS:
                     #         x_out_cv_2[:, t] = self.model(None, x_out_cv_forward_2[:, t], x_out_cv_forward_2[:, t+1],x_out_cv[:, t+2])          
                     #     x_out_cv = x_out_cv_2
 
-                    # Compute Training Loss
+                    # Compute CV Loss
                     if(MaskOnState):
                         mask = torch.tensor([True,True,True,False,False,False])
                         MSE_cv_linear_batch[j] = self.loss_fn(x_out_cv[mask], cv_target[j][mask]).item()
