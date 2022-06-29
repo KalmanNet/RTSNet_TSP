@@ -251,14 +251,15 @@ class Pipeline_ERTS:
             ########################
             ### Training Summary ###
             ########################
-            for i in range(self.model.iterations):
-                print(ti, "MSE Training iteration",i,":", self.MSE_train_dB_epoch_iterations[ti,i], "[dB]")
-            print(ti, "MSE Validation :", self.MSE_cv_dB_epoch[ti], "[dB]")
+            print(ti, "MSE Training Loss after pass",0,":", self.MSE_train_dB_epoch_iterations[ti,0], "[dB]")
+            for i in range(1,self.model.iterations):
+                print("MSE Training Loss after pass",i,":", self.MSE_train_dB_epoch_iterations[ti,i], "[dB]")
+            print("MSE Validation :", self.MSE_cv_dB_epoch[ti], "[dB]")
             
             
-            if (ti > 1):
-                d_cv = self.MSE_cv_dB_epoch[ti] - self.MSE_cv_dB_epoch[ti - 1]
-                print("diff MSE Validation :", d_cv, "[dB]")
+            # if (ti > 1):
+            #     d_cv = self.MSE_cv_dB_epoch[ti] - self.MSE_cv_dB_epoch[ti - 1]
+            #     print("diff MSE Validation :", d_cv, "[dB]")
 
             print("Optimal idx:", self.MSE_cv_idx_opt, "Optimal :", self.MSE_cv_dB_opt, "[dB]")
 

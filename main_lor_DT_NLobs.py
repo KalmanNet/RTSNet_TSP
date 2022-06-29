@@ -15,6 +15,7 @@ from datetime import datetime
 
 from KalmanNet_nn import KalmanNetNN
 from RTSNet_nn import RTSNetNN
+from ERTSNet.RTSNet_LMMSEh import RTSNetNN as RTSNet_lmmseh
 
 from RTSNet_nn_multipass import RTSNetNN_multipass
 from Pipeline_ERTS_multipass import Pipeline_ERTS as Pipeline_multipass
@@ -25,7 +26,7 @@ from filing_paths import path_model, path_session
 import sys
 sys.path.insert(1, path_model)
 from parameters import T, T_test, m1x_0, m2x_0, m, n,H_mod
-from model import f, h, h_nonlinear, toCartesian
+from model import f, h, h_nonlinear, toCartesian, getJacobian
 
 if torch.cuda.is_available():
    dev = torch.device("cuda:0")  # you can continue going on here, like cuda:1 cuda:2....etc.
@@ -127,8 +128,8 @@ print("testset size:",test_target.size())
 ### Evaluate Filters and Smoothers ###
 ######################################
 ## Evaluate EKF full
-# print("Evaluate EKF full")
-# [MSE_EKF_linear_arr, MSE_EKF_linear_avg, MSE_EKF_dB_avg, EKF_KG_array, EKF_out] = EKFTest(sys_model, test_input, test_target)
+print("Evaluate EKF full")
+[MSE_EKF_linear_arr, MSE_EKF_linear_avg, MSE_EKF_dB_avg, EKF_KG_array, EKF_out] = EKFTest(sys_model, test_input, test_target)
 
 # ## Evaluate RTS full
 # print("Evaluate RTS full")
@@ -168,7 +169,7 @@ print("testset size:",test_target.size())
 # sys_model_H = SystemModel(f, q[0], h, r[0], T, T_test, m, n)
 # sys_model_H.InitSequence(m1x_0, m2x_0)
 
-# ## reverse input
+## reverse input h^-1(x)
 # N_T = len(test_input)
 # train_input_reversed = torch.zeros_like(test_input)
 # test_input_reversed = torch.zeros_like(test_input)
@@ -177,7 +178,7 @@ print("testset size:",test_target.size())
 #    for j in range(0,T_test):
 #       test_input_reversed[i,:,j]=toCartesian(test_input[i,:,j])
 
-# ## Evaluate reversed input
+## Evaluate reversed input
 # loss_obs = nn.MSELoss(reduction='mean')
 # MSE_obs_linear_arr = torch.empty(N_T)# MSE [Linear]
 # for j in range(0, N_T):      
@@ -191,12 +192,12 @@ print("testset size:",test_target.size())
 # print("Observation Noise Floor(test dataset) - MSE LOSS:", MSE_obs_dB_avg, "[dB]")
 # print("Observation Noise Floor(test dataset) - STD:", obs_std_dB, "[dB]")
 
-# # # #Evaluate RTS full
-# # print("Evaluate RTS H=I")
-# # [MSE_ERTS_linear_arr, MSE_ERTS_linear_avg, MSE_ERTS_dB_avg, ERTS_out] = S_Test(sys_model_H, test_input_reversed, test_target)
+# # #Evaluate RTS full
+# print("Evaluate RTS H=I")
+# [MSE_ERTS_linear_arr, MSE_ERTS_linear_avg, MSE_ERTS_dB_avg, ERTS_out] = S_Test(sys_model_H, test_input_reversed, test_target)
 
-# # RTSNet with full info
-# # Build Neural Network
+## RTSNet with reverse input h^-1(x)
+# Build Neural Network
 # print("RTSNet with full model info")
 # RTSNet_model = RTSNetNN()
 # RTSNet_model.NNBuild(sys_model_H, KNet_in_mult = 5, KNet_out_mult = 40, RTSNet_in_mult = 5, RTSNet_out_mult = 40)
@@ -208,11 +209,30 @@ print("testset size:",test_target.size())
 # RTSNet_Pipeline.setTrainingParams(n_Epochs=1000, n_Batch=10, learningRate=1e-5, weightDecay=1e-9) 
 # # RTSNet_Pipeline.model = torch.load('ERTSNet/best-model_DTfull_rq3050_T2000.pt',map_location=dev)
 # if(chop):
-#    [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model_H, cv_input, cv_target, train_input, train_target, path_results,randomInit=True,train_init=train_init)
+#    [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model_H, cv_input_reversed, cv_target, train_input_reversed, train_target, path_results,randomInit=True,train_init=train_init)
 # else:
-#    [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model_H, cv_input, cv_target, train_input, train_target, path_results)
+#    [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model_H, cv_input_reversed, cv_target, train_input_reversed, train_target, path_results)
 # ## Test Neural Network
-# [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model_H, test_input, test_target, path_results)
+# [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model_H, test_input_reversed, test_target, path_results)
+
+## RTSNet with reverse input linear MMSE method
+# Build Neural Network
+print("RTSNet with LMMSE of Jacobian of h")
+RTSNet_model = RTSNet_lmmseh()
+RTSNet_model.NNBuild(sys_model, KNet_in_mult = 5, KNet_out_mult = 40, RTSNet_in_mult = 5, RTSNet_out_mult = 40)
+# ## Train Neural Network
+RTSNet_Pipeline = Pipeline(strTime, "RTSNet", "RTSNet")
+RTSNet_Pipeline.setssModel(sys_model)
+RTSNet_Pipeline.setModel(RTSNet_model)
+print("Number of trainable parameters for RTSNet:",sum(p.numel() for p in RTSNet_model.parameters() if p.requires_grad))
+RTSNet_Pipeline.setTrainingParams(n_Epochs=2000, n_Batch=100, learningRate=1e-4, weightDecay=1e-4) 
+# RTSNet_Pipeline.model = torch.load('ERTSNet/best-model_DTfull_rq3050_T2000.pt',map_location=dev)
+if(chop):
+   [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results,randomInit=True,train_init=train_init)
+else:
+   [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results)
+## Test Neural Network
+[MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model, test_input, test_target, path_results)
 
 
 #######################
@@ -241,22 +261,22 @@ print("testset size:",test_target.size())
 ### RTSNet Multipass ###
 ########################
 ## Build Neural Network
-print("RTSNet multipass")
-iterations = 2 # number of passes
-RTSNet_model = RTSNetNN_multipass(iterations)
-RTSNet_model.NNBuild_multipass(sys_model)
-## Train Neural Network
-RTSNet_Pipeline = Pipeline_multipass(strTime, "RTSNet", "RTSNet")
-RTSNet_Pipeline.setModel(RTSNet_model)
-RTSNet_Pipeline.setTrainingParams(n_Epochs=2000, n_Batch=100, learningRate=1e-4, weightDecay=1e-4)
-NumofParameter = RTSNet_Pipeline.count_parameters()
-if(chop):
-   [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results,randomInit=True,train_init=train_init)
-else:
-   [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results)
-## Test Neural Network
-# RTSNet_Pipeline.model = torch.load('ERTSNet/model_KNetNew_DT_procmis_r30q50_T2000.pt',map_location=cuda0)
-[MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model, test_input, test_target, path_results)
+# print("RTSNet multipass")
+# iterations = 2 # number of passes
+# RTSNet_model = RTSNetNN_multipass(iterations)
+# RTSNet_model.NNBuild_multipass(sys_model)
+# ## Train Neural Network
+# RTSNet_Pipeline = Pipeline_multipass(strTime, "RTSNet", "RTSNet")
+# RTSNet_Pipeline.setModel(RTSNet_model)
+# RTSNet_Pipeline.setTrainingParams(n_Epochs=2000, n_Batch=100, learningRate=1e-4, weightDecay=1e-4)
+# NumofParameter = RTSNet_Pipeline.count_parameters()
+# if(chop):
+#    [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results,randomInit=True,train_init=train_init)
+# else:
+#    [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results)
+# ## Test Neural Network
+# # RTSNet_Pipeline.model = torch.load('ERTSNet/model_KNetNew_DT_procmis_r30q50_T2000.pt',map_location=cuda0)
+# [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model, test_input, test_target, path_results)
    
 
 
