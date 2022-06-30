@@ -142,9 +142,11 @@ class Pipeline_ERTS:
                 if (CompositionLoss):
                     y_hat = torch.empty([SysModel.n, SysModel.T]).to(dev, non_blocking=True) 
                     for t in range(SysModel.T):
-                        y_hat[:,t] = SysModel.h(x_out_train[self.model.iterations-1][:,t])
+                        y_hat[:,t] = SysModel.h(x_out_train[0][:,t])## want h(fold1) close to y
                     LOSS = self.alpha * self.loss_fn(x_out_train[self.model.iterations-1], train_target[n_e])+(1-self.alpha)*self.loss_fn(y_hat, train_input[n_e])
-                
+                    for i in range(self.model.iterations):
+                            temp_loss = self.loss_fn(x_out_train[i], train_target[n_e, :, :]) 
+                            MSE_train_linear_batch_iterations[j,i] = temp_loss.item()
                 else:
                     if(nclt):
                         if x_out_training.size()[0]==6:

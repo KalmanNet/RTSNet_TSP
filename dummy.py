@@ -6,7 +6,7 @@ from filing_paths import path_model
 import sys
 sys.path.insert(1, path_model)
 # from model import gt_data
-from model import toSpherical, toCartesian
+from model import h_nonlinear, getJacobian, toSpherical, toCartesian
 
 
 if torch.cuda.is_available():
@@ -22,11 +22,11 @@ else:
 #     print(sequence[:,0][mask])
 
 ############################################################
-num_of_seq = 1
+num_of_seq = 100
 m = 3
 n = 3
-T = 2
-T_test = 10
+T = 500
+T_test = 500
 # # loss_fn = torch.nn.MSELoss(reduction='mean')
 # # input = torch.empty(num_of_seq,m, T)
 # # x_out_training = torch.ones_like(input)
@@ -86,9 +86,49 @@ T_test = 10
 # xafter = toCartesian(Sx)
 # print(xafter)
 
-m1x_0 = torch.ones(3, 2) 
-m1x_0[2,1] = 0
-# P_0 = np.diag([1] * 3) * 0
-print(m1x_0)
-Sx = m1x_0[:,-1]
-print(Sx)
+# m1x_0 = torch.ones(3, 2) 
+# m1x_0[2,1] = 0
+# # P_0 = np.diag([1] * 3) * 0
+# print(m1x_0)
+# Sx = m1x_0[:,-1]
+# print(Sx)
+
+loss_fn = torch.nn.MSELoss(reduction='mean')
+x = torch.normal(mean=torch.zeros([num_of_seq,m,T]), std=1)
+
+y = torch.empty((num_of_seq,n,T))
+r = 1
+# Htest = torch.eye(3)
+# def h_nonlinear(x):
+#    return torch.squeeze(torch.matmul(Htest,x))
+def h_nonlinear(x):
+   return torch.squeeze(torch.sin(x))
+for i in range(num_of_seq):
+   for t in range(T):
+      y[i,:,t] = h_nonlinear(x[i,:,t]) 
+      mean = torch.zeros([n])
+      er = torch.normal(mean, r)
+      y[i,:,t] = torch.add(y[i,:,t],er)
+MSE_linear_arr = torch.empty(num_of_seq)
+for j in range(num_of_seq):
+   MSE_linear_arr[j] = loss_fn(y[j,:,:], x[j,:,:]).item()
+MSE_linear_avg = torch.mean(MSE_linear_arr)
+MSE_dB_avg = 10 * torch.log10(MSE_linear_avg)
+
+print("Obs LOSS:", MSE_dB_avg, "[dB]")
+
+lmmsex = torch.empty((num_of_seq,m,T))
+for i in range(num_of_seq):
+   for t in range(T):
+      Ht = getJacobian(x[i,:,t], h_nonlinear)
+      Ht_T = torch.transpose(Ht,0,1)
+      H_lmmse = torch.matmul(torch.inverse(torch.matmul(Ht_T,Ht)),Ht_T)
+      lmmsex[i,:,t] = torch.squeeze(torch.matmul(H_lmmse, y[i,:,t]))
+
+MSE_linear_arr = torch.empty(num_of_seq)
+for j in range(num_of_seq):
+   MSE_linear_arr[j] = loss_fn(lmmsex[j,:,:], x[j,:,:]).item()
+MSE_linear_avg = torch.mean(MSE_linear_arr)
+MSE_dB_avg = 10 * torch.log10(MSE_linear_avg)
+
+print("MSE LOSS:", MSE_dB_avg, "[dB]")
