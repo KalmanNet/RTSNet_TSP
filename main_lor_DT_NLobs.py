@@ -266,7 +266,7 @@ print("Number of trainable parameters for RTSNet:",sum(p.numel() for p in RTSNet
 ###############################################
 ### Train pass2 on the output of pass1
 print("test pass1 on Train Set")
-fileName = "Simulation/Lorenz_Attractor/data/T20_hNL/Pass1_rq-10-10_T20.pt"
+fileName = "Simulations/Lorenz_Atractor/data/T20_hNL/Pass1_rq-10-10_T20.pt"
 [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out_train,RunTime] = RTSNet_Pipeline.NNTest(sys_model, train_input, train_target, path_results)
 cv_input_pass2 = rtsnet_out_train[0:N_CV]
 cv_target_pass2 = train_target[0:N_CV]
