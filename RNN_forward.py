@@ -84,7 +84,7 @@ class RNN_FW(torch.nn.Module):
     ######################
     def step_prior(self):
         # Predict the 1-st moment of x
-        self.m1x_prior = self.f(self.xhat_previous)
+        self.m1x_prior = torch.squeeze(self.f(self.xhat_previous))
 
 
     ###########################

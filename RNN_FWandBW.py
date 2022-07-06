@@ -162,7 +162,7 @@ class Vanilla_RNN(RNN_FW):
             return self.BW_RNN_step(filter_x)
         else:
             # FW pass
-            y = y.to(dev, non_blocking=True)
+            y = torch.squeeze(y).to(dev, non_blocking=True)
 
             return self.FW_RNN_step(y)
 

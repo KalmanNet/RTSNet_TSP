@@ -26,45 +26,45 @@ N_CV = 100
 N_T = 200
 
 # Sequence Length for Linear Case
-T = 20
-T_test = 20
+T = 100
+T_test = 100
 
 
 ############
 ## 2 x 2 ###
 ############
-# m = 2
-# n = 2
-# # F in canonical form
-# F = torch.eye(m)
-# F[0] = torch.ones(1,m) 
+m = 2
+n = 2
+# F in canonical form
+F = torch.eye(m)
+F[0] = torch.ones(1,m) 
 
-# # H = I
-# H = torch.eye(2)
+# H = I
+H = torch.eye(2)
 
-# m1_0 = torch.tensor([[0.0], [0.0]]).to(dev)
-# # m1x_0_design = torch.tensor([[10.0], [-10.0]])
-# m2_0 = 0 * 0 * torch.eye(m).to(dev)
+m1_0 = torch.tensor([[0.0], [0.0]]).to(dev)
+# m1x_0_design = torch.tensor([[10.0], [-10.0]])
+m2_0 = 0 * 0 * torch.eye(m).to(dev)
 
 
 ################################
 ### 5 x 5, 10 x 10 and so on ###
 ################################
-m = 40
-n = 40
-# F in canonical form
-F = torch.eye(m)
-F[0] = torch.ones(1,m) 
+# m = 40
+# n = 40
+# # F in canonical form
+# F = torch.eye(m)
+# F[0] = torch.ones(1,m) 
 
-# H in reverse canonical form
-H = torch.zeros(n,n)
-H[0] = torch.ones(1,n)
-for i in range(n):
-    H[i,n-1-i] = 1
+# # H in reverse canonical form
+# H = torch.zeros(n,n)
+# H[0] = torch.ones(1,n)
+# for i in range(n):
+#     H[i,n-1-i] = 1
 
-m1_0 = torch.zeros(m, 1).to(dev)
-# m1x_0_design = torch.tensor([[1.0], [-1.0], [2.0], [-2.0], [0.0]]).to(dev)
-m2_0 = 0 * 0 * torch.eye(m).to(dev)
+# m1_0 = torch.zeros(m, 1).to(dev)
+# # m1x_0_design = torch.tensor([[1.0], [-1.0], [2.0], [-2.0], [0.0]]).to(dev)
+# m2_0 = 0 * 0 * torch.eye(m).to(dev)
 
 
 

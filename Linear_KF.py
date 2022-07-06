@@ -13,37 +13,37 @@ else:
 class KalmanFilter:
 
     def __init__(self, SystemModel):
-        self.F = SystemModel.F;
-        self.F_T = torch.transpose(self.F, 0, 1);
+        self.F = SystemModel.F
+        self.F_T = torch.transpose(self.F, 0, 1)
         self.m = SystemModel.m
 
-        self.Q = SystemModel.Q;
+        self.Q = SystemModel.Q
 
-        self.H = SystemModel.H;
-        self.H_T = torch.transpose(self.H, 0, 1);
+        self.H = SystemModel.H
+        self.H_T = torch.transpose(self.H, 0, 1)
         self.n = SystemModel.n
 
-        self.R = SystemModel.R;
+        self.R = SystemModel.R
 
-        self.T = SystemModel.T;
-        self.T_test = SystemModel.T_test;
+        self.T = SystemModel.T
+        self.T_test = SystemModel.T_test
    
     # Predict
 
     def Predict(self):
         # Predict the 1-st moment of x
-        self.m1x_prior = torch.matmul(self.F, self.m1x_posterior);
+        self.m1x_prior = torch.matmul(self.F, self.m1x_posterior)
 
         # Predict the 2-nd moment of x
-        self.m2x_prior = torch.matmul(self.F, self.m2x_posterior);
-        self.m2x_prior = torch.matmul(self.m2x_prior, self.F_T) + self.Q;
+        self.m2x_prior = torch.matmul(self.F, self.m2x_posterior)
+        self.m2x_prior = torch.matmul(self.m2x_prior, self.F_T) + self.Q
 
         # Predict the 1-st moment of y
-        self.m1y = torch.matmul(self.H, self.m1x_prior);
+        self.m1y = torch.matmul(self.H, self.m1x_prior)
 
         # Predict the 2-nd moment of y
-        self.m2y = torch.matmul(self.H, self.m2x_prior);
-        self.m2y = torch.matmul(self.m2y, self.H_T) + self.R;
+        self.m2y = torch.matmul(self.H, self.m2x_prior)
+        self.m2y = torch.matmul(self.m2y, self.H_T) + self.R
 
     # Compute the Kalman Gain
     def KGain(self):
@@ -52,7 +52,7 @@ class KalmanFilter:
 
     # Innovation
     def Innovation(self, y):
-        self.dy = y - self.m1y;
+        self.dy = y - self.m1y
 
     # Compute Posterior
     def Correct(self):
@@ -64,10 +64,10 @@ class KalmanFilter:
         self.m2x_posterior = self.m2x_prior - torch.matmul(self.KG, self.m2x_posterior)
 
     def Update(self, y):
-        self.Predict();
-        self.KGain();
-        self.Innovation(y);
-        self.Correct();
+        self.Predict()
+        self.KGain()
+        self.Innovation(y)
+        self.Correct()
 
         return self.m1x_posterior,self.m2x_posterior;
 

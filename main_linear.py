@@ -41,7 +41,7 @@ path_results = 'RTSNet/'
 ####################
 ### Design Model ###
 ####################
-InitIsRandom = False
+InitIsRandom = True
 LengthIsRandom = False
 r2 = torch.tensor([1])
 vdB = -20 # ratio v=q2/r2
@@ -64,7 +64,7 @@ sys_model.InitSequence(m1_0, m2_0)
 ### Data Loader (Generate Data) ###
 ###################################
 dataFolderName = 'Simulations/Linear_canonical/Generalization' + '/'
-dataFileName = '2x2_rq020_T100_Ttest1000.pt'
+dataFileName = '2x2_rq020_T100_randinit.pt'
 # print("Start Data Gen")
 # DataGen(sys_model, dataFolderName + dataFileName, T, T_test,randomInit=InitIsRandom,randomLength=LengthIsRandom)
 print("Data Load")
@@ -111,7 +111,10 @@ else:
 ### Evaluate Kalman Filter ###
 ##############################
 print("Evaluate Kalman Filter True")
-[MSE_KF_linear_arr, MSE_KF_linear_avg, MSE_KF_dB_avg] = KFTest(sys_model, test_input, test_target)
+if InitIsRandom:
+   [MSE_KF_linear_arr, MSE_KF_linear_avg, MSE_KF_dB_avg] = KFTest(sys_model, test_input, test_target, randomInit = True, test_init=test_init)
+else: 
+   [MSE_KF_linear_arr, MSE_KF_linear_avg, MSE_KF_dB_avg] = KFTest(sys_model, test_input, test_target)
 # print("Evaluate Kalman Filter Partial")
 # [MSE_KF_linear_arr_partialh, MSE_KF_linear_avg_partialh, MSE_KF_dB_avg_partialh] = KFTest(sys_model_partialh, test_input, test_target)
 
@@ -119,7 +122,10 @@ print("Evaluate Kalman Filter True")
 ### Evaluate RTS Smoother ###
 #############################
 # print("Evaluate RTS Smoother True")
-# [MSE_RTS_linear_arr, MSE_RTS_linear_avg, MSE_RTS_dB_avg, RTS_out] = S_Test(sys_model, test_input, test_target)
+# if InitIsRandom:
+#    [MSE_RTS_linear_arr, MSE_RTS_linear_avg, MSE_RTS_dB_avg, RTS_out] = S_Test(sys_model, test_input, test_target, randomInit = True,test_init=test_init)
+# else:
+#    [MSE_RTS_linear_arr, MSE_RTS_linear_avg, MSE_RTS_dB_avg, RTS_out] = S_Test(sys_model, test_input, test_target)
 # print("Evaluate RTS Smoother Partial")
 # [MSE_RTS_linear_arr_partialh, MSE_RTS_linear_avg_partialh, MSE_RTS_dB_avg_partialh] = S_Test(sys_model_partialh, test_input, test_target)
 
@@ -173,24 +179,34 @@ print("Evaluate Kalman Filter True")
 # RTSNet_Pipeline.setModel(RTSNet_model)
 # RTSNet_Pipeline.setTrainingParams(n_Epochs=10000, n_Batch=1, learningRate=1E-5, weightDecay=1E-2)
 # # RTSNet_Pipeline.model = torch.load('RTSNet/new_architecture/linear_Journal/rq020_T100_randinit.pt',map_location=dev)
-# [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results)
-# ## Test Neural Network
-# [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model, test_input, test_target, path_results)
+# if InitIsRandom:
+#    [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results, randomInit = True, cv_init=cv_init,train_init=train_init)
+#    ## Test Neural Network
+#    [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model, test_input, test_target, path_results,randomInit=True,test_init=test_init)
+# else:
+#    [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results)
+#    ## Test Neural Network
+#    [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model, test_input, test_target, path_results)
 # RTSNet_Pipeline.save()
 
 ### Vanilla RNN with full info ###################################################################################
 ## Build RNN
 print("Vanilla RNN with full model info")
-RNN_model = Vanilla_RNN(fully_agnostic = False)
-RNN_model.Build(sys_model)
+RNN_model = Vanilla_RNN()
+RNN_model.Build(sys_model,fully_agnostic = False)
 print("Number of trainable parameters for RNN:",sum(p.numel() for p in RNN_model.parameters() if p.requires_grad))
 RNN_Pipeline = Pipeline(strTime, "RTSNet", "VanillaRNN")
 RNN_Pipeline.setssModel(sys_model)
 RNN_Pipeline.setModel(RNN_model)
 RNN_Pipeline.setTrainingParams(n_Epochs=1000, n_Batch=50, learningRate=1e-3, weightDecay=1e-5)
-RNN_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results, rnn=True)
-## Test Neural Network
-[MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,MSE_test_dB_std,rtsnet_out,RunTime] = RNN_Pipeline.NNTest(sys_model, test_input, test_target, path_results, rnn=True)
+if InitIsRandom:
+   RNN_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results, rnn=True, randomInit = True, cv_init=cv_init,train_init=train_init)
+   ## Test Neural Network
+   [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,MSE_test_dB_std,rtsnet_out,RunTime] = RNN_Pipeline.NNTest(sys_model, test_input, test_target, path_results, rnn=True,randomInit=True,test_init=test_init)
+else:
+   RNN_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results, rnn=True)
+   ## Test Neural Network
+   [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,MSE_test_dB_std,rtsnet_out,RunTime] = RNN_Pipeline.NNTest(sys_model, test_input, test_target, path_results, rnn=True)
 RNN_Pipeline.save()
 
 ### RTSNet with mismatched model #################################################################################
