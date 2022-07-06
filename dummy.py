@@ -6,8 +6,8 @@ from filing_paths import path_model
 import sys
 sys.path.insert(1, path_model)
 # from model import gt_data
-from model import h_nonlinear, getJacobian, toSpherical, toCartesian
-
+from model import h_nonlinear,hRotate, getJacobian, toSpherical, toCartesian
+from parameters import H_mod
 
 if torch.cuda.is_available():
    dev = torch.device("cuda:0")  # you can continue going on here, like cuda:1 cuda:2....etc.
@@ -22,11 +22,15 @@ else:
 #     print(sequence[:,0][mask])
 
 ############################################################
-num_of_seq = 100
+num_of_seq = 200
 m = 3
 n = 3
-T = 500
-T_test = 500
+T = 20
+T_test = 20
+r = 1
+q = 1
+print("1/r2 [dB]: ", 10 * np.log10(1/r**2))
+print("1/q2 [dB]: ", 10 * np.log10(1/q**2))
 # # loss_fn = torch.nn.MSELoss(reduction='mean')
 # # input = torch.empty(num_of_seq,m, T)
 # # x_out_training = torch.ones_like(input)
@@ -94,41 +98,80 @@ T_test = 500
 # print(Sx)
 
 loss_fn = torch.nn.MSELoss(reduction='mean')
-x = torch.normal(mean=torch.zeros([num_of_seq,m,T]), std=1)
-
-y = torch.empty((num_of_seq,n,T))
-r = 1
-# Htest = torch.eye(3)
-# def h_nonlinear(x):
+## Load x and y linear H
+# DatafolderName = 'Simulations/Lorenz_Atractor/data/T100_Hrot1' + '/'
+# dataFileName = ['data_lor_v20_rq020_T100.pt']
+# h_function = hRotate
+## Load x and y NL H
+DatafolderName = 'Simulations/Lorenz_Atractor/data/T20_hNL' + '/'
+dataFileName = ['data_lor_v0_rq00_T20.pt']
+h_function = h_nonlinear
+print("Data Load")
+print(dataFileName[0])
+[_,_,_,_, test_input, test_target] =  torch.load(DatafolderName + dataFileName[0],map_location=dev)
+y = test_input
+x = test_target
+print("x size:",x.size())
+print("y size:",y.size())
+# print(H_mod)
+# Htest = torch.zeros(n,n)
+# Htest[0] = torch.ones(1,n)
+# for i in range(n):
+#     Htest[i,n-1-i] = 1
+# Htest = torch.ones(n,n)
+# print(Htest)
+# def h_test(x):
 #    return torch.squeeze(torch.matmul(Htest,x))
-def h_nonlinear(x):
-   return torch.squeeze(torch.sin(x))
+# def h_nonlinear(x):
+#    return torch.squeeze(torch.sin(x))
+# for i in range(num_of_seq):
+#    for t in range(T):
+#       y[i,:,t] = h_nonlinear(x[i,:,t]) 
+#       mean = torch.zeros([n])
+#       er = torch.normal(mean, r)
+#       y[i,:,t] = torch.add(y[i,:,t],er)
+# MSE_linear_arr = torch.empty(num_of_seq)
+# for j in range(num_of_seq):
+#    MSE_linear_arr[j] = loss_fn(y[j,:,:], x[j,:,:]).item()
+# MSE_linear_avg = torch.mean(MSE_linear_arr)
+# MSE_dB_avg = 10 * torch.log10(MSE_linear_avg)
+
+# print("Obs LOSS:", MSE_dB_avg, "[dB]")
+
+### LMMSE method
+# x_out = torch.empty((num_of_seq,m,T))
+# for i in range(num_of_seq):
+#    for t in range(T):
+#       ### Compute Jac at prior_x = true_x + q
+#       mean = torch.zeros([m])
+#       eq = torch.normal(mean, q)
+#       priorx = torch.add(x[i,:,t],eq)
+#       Ht = getJacobian(priorx, h_function)
+#       # print(Ht)
+#       Ht_T = torch.transpose(Ht,0,1)
+#       H_lmmse = torch.matmul(torch.inverse(torch.matmul(Ht_T,Ht)),Ht_T)
+#       x_out[i,:,t] = torch.squeeze(torch.matmul(H_lmmse, y[i,:,t]))
+
+### Invert h method
+x_out = torch.empty((num_of_seq,m,T))
 for i in range(num_of_seq):
    for t in range(T):
-      y[i,:,t] = h_nonlinear(x[i,:,t]) 
-      mean = torch.zeros([n])
-      er = torch.normal(mean, r)
-      y[i,:,t] = torch.add(y[i,:,t],er)
+      x_out[i,:,t] = toCartesian(y[i,:,t])
+
+### Linear opt RTS
+
+
 MSE_linear_arr = torch.empty(num_of_seq)
 for j in range(num_of_seq):
-   MSE_linear_arr[j] = loss_fn(y[j,:,:], x[j,:,:]).item()
+   MSE_linear_arr[j] = loss_fn(x_out[j,:,:], x[j,:,:]).item()
 MSE_linear_avg = torch.mean(MSE_linear_arr)
 MSE_dB_avg = 10 * torch.log10(MSE_linear_avg)
 
-print("Obs LOSS:", MSE_dB_avg, "[dB]")
+ # Standard deviation
+MSE_linear_std = torch.std(MSE_linear_arr, unbiased=True)
 
-lmmsex = torch.empty((num_of_seq,m,T))
-for i in range(num_of_seq):
-   for t in range(T):
-      Ht = getJacobian(x[i,:,t], h_nonlinear)
-      Ht_T = torch.transpose(Ht,0,1)
-      H_lmmse = torch.matmul(torch.inverse(torch.matmul(Ht_T,Ht)),Ht_T)
-      lmmsex[i,:,t] = torch.squeeze(torch.matmul(H_lmmse, y[i,:,t]))
-
-MSE_linear_arr = torch.empty(num_of_seq)
-for j in range(num_of_seq):
-   MSE_linear_arr[j] = loss_fn(lmmsex[j,:,:], x[j,:,:]).item()
-MSE_linear_avg = torch.mean(MSE_linear_arr)
-MSE_dB_avg = 10 * torch.log10(MSE_linear_avg)
+# Confidence interval
+std_dB = 10 * torch.log10(MSE_linear_std + MSE_linear_avg) - MSE_dB_avg
 
 print("MSE LOSS:", MSE_dB_avg, "[dB]")
+print("STD:", std_dB, "[dB]")
