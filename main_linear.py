@@ -199,14 +199,15 @@ RTSNet_Pipeline.save()
 # RNN_Pipeline.setssModel(sys_model)
 # RNN_Pipeline.setModel(RNN_model)
 # RNN_Pipeline.setTrainingParams(n_Epochs=1000, n_Batch=50, learningRate=1e-3, weightDecay=1e-5)
+# RNN_Pipeline.model = torch.load('RNN/linear/2x2_rq020_T100.pt',map_location=dev)
 # if InitIsRandom:
 #    RNN_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results, rnn=True, randomInit = True, cv_init=cv_init,train_init=train_init)
 #    ## Test Neural Network
-#    [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,MSE_test_dB_std,rtsnet_out,RunTime] = RNN_Pipeline.NNTest(sys_model, test_input, test_target, path_results, rnn=True,randomInit=True,test_init=test_init)
+#    [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RNN_Pipeline.NNTest(sys_model, test_input, test_target, path_results, rnn=True,randomInit=True,test_init=test_init)
 # else:
 #    RNN_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results, rnn=True)
 #    ## Test Neural Network
-#    [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,MSE_test_dB_std,rtsnet_out,RunTime] = RNN_Pipeline.NNTest(sys_model, test_input, test_target, path_results, rnn=True)
+#    [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RNN_Pipeline.NNTest(sys_model, test_input, test_target, path_results, rnn=True)
 # RNN_Pipeline.save()
 
 ### RTSNet with mismatched model #################################################################################
