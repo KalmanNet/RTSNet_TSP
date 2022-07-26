@@ -45,9 +45,9 @@ def PSTest(SysModel, test_input, test_target, N_FWParticles=100, M_BWTrajs=10, i
     loss_fn = nn.MSELoss(reduction='mean')
 
     # MSE [Linear] not [dB]
-    MSE_PS_linear_arr = np.empty(N_T)
+    MSE_PS_linear_arr = torch.empty(N_T)
 
-    PS_out = np.empty((N_T, test_target.size()[1], SysModel.T_test))
+    PS_out = torch.empty((N_T, test_target.size()[1], SysModel.T_test))
 
     start = time.time()
 
@@ -59,7 +59,7 @@ def PSTest(SysModel, test_input, test_target, N_FWParticles=100, M_BWTrajs=10, i
         y_in = test_input[j, :, :].T.numpy().squeeze()
         sim = simulator.Simulator(model, u=None, y=y_in)
         sim.simulate(N_FWParticles, M_BWTrajs, filter='PF', smoother='full', meas_first=False)
-        PS_out[j, :, :] = sim.get_smoothed_mean().T
+        PS_out[j, :, :] = torch.from_numpy(sim.get_smoothed_mean()[1:,].T) # start from T=1 since 0 is for x0
 
 
     for j in range(N_T):
@@ -68,8 +68,19 @@ def PSTest(SysModel, test_input, test_target, N_FWParticles=100, M_BWTrajs=10, i
     end = time.time()
     t = end - start
 
-    MSE_PS_linear_avg = np.mean(MSE_PS_linear_arr)
-    MSE_PS_dB_avg = 10 * np.log10(MSE_PS_linear_avg)
+    MSE_PS_linear_avg = torch.mean(MSE_PS_linear_arr)
+    MSE_PS_dB_avg = 10 * torch.log10(MSE_PS_linear_avg)
+
+    # Standard deviation
+    MSE_PS_linear_std = torch.std(MSE_PS_linear_arr, unbiased=True)
+
+    # Confidence interval
+    PS_std_dB = 10 * torch.log10(MSE_PS_linear_std + MSE_PS_linear_avg) - MSE_PS_dB_avg
+
+    print("Particle Smoother - MSE LOSS:", MSE_PS_dB_avg, "[dB]")
+    print("Particle Smoother - STD:", PS_std_dB, "[dB]")
+    # Print Run Time
+    print("Inference Time:", t)
 
     return [MSE_PS_linear_arr, MSE_PS_linear_avg, MSE_PS_dB_avg, PS_out, t]
 

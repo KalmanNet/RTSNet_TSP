@@ -199,11 +199,10 @@ for rindex in range(0, len(r)):
 
    
    ### EKF
-   # print("Start EKF test")
+   # print("Start EKF test J=5")
    # [MSE_EKF_linear_arr, MSE_EKF_linear_avg, MSE_EKF_dB_avg, EKF_KG_array, EKF_out] = EKF_test.EKFTest(sys_model_true, test_input, test_target)
-   # print(f"MSE EKF J=5: {MSE_EKF_dB_avg} [dB] (T = {T_test})")
+   # print("Start EKF test J=2")
    # [MSE_EKF_linear_arr_partial, MSE_EKF_linear_avg_partial, MSE_EKF_dB_avg_partial, EKF_KG_array_partial, EKF_out_partial] = EKF_test.EKFTest(sys_model, test_input, test_target)
-   # print(f"MSE EKF J=2: {MSE_EKF_dB_avg_partial} [dB] (T = {T_test})")
 
    # # [MSE_EKF_dB_avg, trace_dB_avg] = EKF_test.EKFTest_evol(sys_model, test_input, test_target)
 
@@ -214,11 +213,10 @@ for rindex in range(0, len(r)):
    [MSE_PS_linear_arr_partial, MSE_PS_linear_avg_partial, MSE_PS_dB_avg_partial, PS_out_partial, t_PS] = PSTest(sys_model, test_input, test_target, init_cond=None)
 
    ### MB Extended RTS
-   # print("Start RTS test")
+   # print("Start RTS test J=5")
    # [MSE_ERTS_linear_arr, MSE_ERTS_linear_avg, MSE_ERTS_dB_avg, ERTS_out] = S_Test(sys_model_true, test_input, test_target)
-   # print(f"MSE RTS J=5: {MSE_ERTS_dB_avg} [dB] (T = {T_test})")
+   # print("Start RTS test J=2")
    # [MSE_ERTS_linear_arr_partial, MSE_ERTS_linear_avg_partial, MSE_ERTS_dB_avg_partial, ERTS_out_partial] = S_Test(sys_model, test_input, test_target)
-   # print(f"MSE RTS J=2: {MSE_ERTS_dB_avg_partial} [dB] (T = {T_test})")
    
    # KNet with model mismatch
    # ## Build Neural Network
