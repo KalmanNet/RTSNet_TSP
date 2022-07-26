@@ -15,7 +15,8 @@ from KalmanNet_nn import KalmanNetNN
 from RTSNet_nn import RTSNetNN
 from RNN_FWandBW import Vanilla_RNN
 
-# from PF_test import PFTest
+from PF_test import PFTest
+from ParticleSmoother_test import PSTest
 
 from Plot import Plot_extended as Plot
 
@@ -52,7 +53,7 @@ print("Current Time =", strTime)
 ###  Compare EKF, RTS and RTSNet   ###
 ######################################
 offset = 0
-chop = True
+chop = False
 sequential_training = False
 secondpass = False
 path_results = 'ERTSNet/'
@@ -66,7 +67,7 @@ data_gen_file = torch.load(DatagenfolderName+data_gen, map_location=dev)
 
 r = torch.tensor([1]) ###[1/5.9566]
 lambda_q = torch.tensor([0.3873])
-T = 100
+T = 3000
 T_test = 3000
 traj_resultName = ['traj_lor_dec_RTSNetJ2_r0_2pass.pt']#,'partial_lor_r4.pt','partial_lor_r5.pt','partial_lor_r6.pt']
 # EKFResultName = 'EKF_obsmis_rq1030_T2000_NT100' 
@@ -190,14 +191,14 @@ for rindex in range(0, len(r)):
    ######################################
    ### Evaluate Filters and Smoothers ###
    ######################################
-   # Particle filter
-   # print("Start PF test")
+   ### Particle filter
+   # print("Start PF test J=5")
    # [MSE_PF_linear_arr, MSE_PF_linear_avg, MSE_PF_dB_avg, PF_out, t_PF] = PFTest(sys_model_true, test_input, test_target, init_cond=None)
-   # print(f"MSE PF J=5: {MSE_PF_dB_avg} [dB] (T = {T_test})")
+   # print("Start PF test J=2")
    # [MSE_PF_linear_arr_partial, MSE_PF_linear_avg_partial, MSE_PF_dB_avg_partial, PF_out_partial, t_PF] = PFTest(sys_model, test_input, test_target, init_cond=None)
-   # print(f"MSE PF J=2: {MSE_PF_dB_avg} [dB] (T = {T_test})")
+
    
-   # EKF
+   ### EKF
    # print("Start EKF test")
    # [MSE_EKF_linear_arr, MSE_EKF_linear_avg, MSE_EKF_dB_avg, EKF_KG_array, EKF_out] = EKF_test.EKFTest(sys_model_true, test_input, test_target)
    # print(f"MSE EKF J=5: {MSE_EKF_dB_avg} [dB] (T = {T_test})")
@@ -206,7 +207,13 @@ for rindex in range(0, len(r)):
 
    # # [MSE_EKF_dB_avg, trace_dB_avg] = EKF_test.EKFTest_evol(sys_model, test_input, test_target)
 
-   # # # MB Extended RTS
+   ### Particle Smoother
+   print("Start PS test J=5")
+   [MSE_PS_linear_arr, MSE_PS_linear_avg, MSE_PS_dB_avg, PS_out, t_PS] = PSTest(sys_model_true, test_input, test_target, init_cond=None)
+   print("Start PS test J=2")
+   [MSE_PS_linear_arr_partial, MSE_PS_linear_avg_partial, MSE_PS_dB_avg_partial, PS_out_partial, t_PS] = PSTest(sys_model, test_input, test_target, init_cond=None)
+
+   ### MB Extended RTS
    # print("Start RTS test")
    # [MSE_ERTS_linear_arr, MSE_ERTS_linear_avg, MSE_ERTS_dB_avg, ERTS_out] = S_Test(sys_model_true, test_input, test_target)
    # print(f"MSE RTS J=5: {MSE_ERTS_dB_avg} [dB] (T = {T_test})")
@@ -244,21 +251,21 @@ for rindex in range(0, len(r)):
    ### Vanilla RNN ######
    ######################
    # Build RNN
-   print("Vanilla RNN with model mismatch")
-   RNN_model = Vanilla_RNN()
-   RNN_model.Build(sys_model)
-   print("Number of trainable parameters for RNN:",sum(p.numel() for p in RNN_model.parameters() if p.requires_grad))
-   RNN_Pipeline = Pipeline(strTime, "RTSNet", "VanillaRNN")
-   RNN_Pipeline.setssModel(sys_model)
-   RNN_Pipeline.setModel(RNN_model)
-   RNN_Pipeline.setTrainingParams(n_Epochs=1000, n_Batch=50, learningRate=1e-3, weightDecay=1e-5)
-   if(chop):
-      [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RNN_Pipeline.NNTrain(sys_model, cv_input_long, cv_target_long, train_input, train_target, path_results,randomInit=True,train_init=train_init)
-   else:
-      [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RNN_Pipeline.NNTrain(sys_model, cv_input_long, cv_target_long, train_input, train_target, path_results)
-   ## Test Neural Network
-   [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rnn_out,RunTime] = RNN_Pipeline.NNTest(sys_model, test_input, test_target, path_results)
-   RNN_Pipeline.save()
+   # print("Vanilla RNN with model mismatch")
+   # RNN_model = Vanilla_RNN()
+   # RNN_model.Build(sys_model)
+   # print("Number of trainable parameters for RNN:",sum(p.numel() for p in RNN_model.parameters() if p.requires_grad))
+   # RNN_Pipeline = Pipeline(strTime, "RTSNet", "VanillaRNN")
+   # RNN_Pipeline.setssModel(sys_model)
+   # RNN_Pipeline.setModel(RNN_model)
+   # RNN_Pipeline.setTrainingParams(n_Epochs=1000, n_Batch=50, learningRate=1e-3, weightDecay=1e-5)
+   # if(chop):
+   #    [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RNN_Pipeline.NNTrain(sys_model, cv_input_long, cv_target_long, train_input, train_target, path_results,randomInit=True,train_init=train_init)
+   # else:
+   #    [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RNN_Pipeline.NNTrain(sys_model, cv_input_long, cv_target_long, train_input, train_target, path_results)
+   # ## Test Neural Network
+   # [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rnn_out,RunTime] = RNN_Pipeline.NNTest(sys_model, test_input, test_target, path_results)
+   # RNN_Pipeline.save()
 
 
    ###################################
@@ -305,7 +312,7 @@ for rindex in range(0, len(r)):
 
   # Save trajectories
    trajfolderName = 'ERTSNet' + '/'
-   DataResultName = 'traj_lor_dec_RNN'
+   DataResultName = 'traj_lor_dec_PS'
    target_sample = torch.reshape(test_target[0,:,:],[1,m,T_test])
    input_sample = torch.reshape(test_input[0,:,:],[1,n,T_test])
    torch.save({#'PF J=5':PF_out,
@@ -316,9 +323,11 @@ for rindex in range(0, len(r)):
                # 'EKF J=2':EKF_out_partial,
                # 'RTS J=5':ERTS_out,
                # 'RTS J=2':ERTS_out_partial,
+               'PS J=5':PS_out,
+               'PS J=2':PS_out_partial,
                # 'RTSNet': rtsnet_out,
                # 'RTSNet_2pass': rtsnet_out_2pass,
-               'RNN J=2': rnn_out,
+               # 'RNN J=2': rnn_out,
                }, trajfolderName+DataResultName)
 
 #    titles = ["True Trajectory","Observation","RTSNet",]#, "Observation", "EKF J=2","EKF J=2 with optimal q"]
