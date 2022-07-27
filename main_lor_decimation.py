@@ -208,9 +208,9 @@ for rindex in range(0, len(r)):
 
    ### Particle Smoother
    print("Start PS test J=5")
-   [MSE_PS_linear_arr, MSE_PS_linear_avg, MSE_PS_dB_avg, PS_out, t_PS] = PSTest(sys_model_true, test_input, test_target, init_cond=None)
+   [MSE_PS_linear_arr, MSE_PS_linear_avg, MSE_PS_dB_avg, PS_out, t_PS] = PSTest(sys_model_true, test_input, test_target,N_FWParticles=100, M_BWTrajs=10, init_cond=None)
    print("Start PS test J=2")
-   [MSE_PS_linear_arr_partial, MSE_PS_linear_avg_partial, MSE_PS_dB_avg_partial, PS_out_partial, t_PS] = PSTest(sys_model, test_input, test_target, init_cond=None)
+   [MSE_PS_linear_arr_partial, MSE_PS_linear_avg_partial, MSE_PS_dB_avg_partial, PS_out_partial, t_PS] = PSTest(sys_model, test_input, test_target,N_FWParticles=100, M_BWTrajs=10, init_cond=None)
 
    ### MB Extended RTS
    # print("Start RTS test J=5")
