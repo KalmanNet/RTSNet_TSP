@@ -3,6 +3,8 @@ torch.pi = torch.acos(torch.zeros(1)).item() * 2 # which is 3.1415927410125732
 import torch.nn as nn
 from EKF_test import EKFTest
 from Extended_RTS_Smoother_test import S_Test
+from ParticleSmoother_test import PSTest
+
 from Extended_sysmdl import SystemModel
 from Extended_data import DataGen,DataLoader,DataLoader_GPU, Decimate_and_perturbate_Data,Short_Traj_Split
 from Extended_data import N_E, N_CV, N_T
@@ -55,7 +57,7 @@ sequential_training = False
 path_results = 'ERTSNet/'
 DatafolderName = 'Simulations/Lorenz_Atractor/data/T100_Hrot1' + '/'
 
-r2 = torch.tensor([1])
+r2 = torch.tensor([10])
 # r2 = torch.tensor([100, 10, 1, 0.1, 0.01])
 r = torch.sqrt(r2)
 vdB = -20 # ratio v=q2/r2
@@ -74,7 +76,7 @@ print("1/r2 [dB]: ", 10 * torch.log10(1/r[0]**2))
 print("1/q2 [dB]: ", 10 * torch.log10(1/q[0]**2))
 
 # traj_resultName = ['traj_lor_KNetFull_rq1030_T2000_NT100.pt']#,'partial_lor_r4.pt','partial_lor_r5.pt','partial_lor_r6.pt']
-dataFileName = ['data_lor_v20_rq020_T100.pt']#,'data_lor_v20_r1e-2_T100.pt','data_lor_v20_r1e-3_T100.pt','data_lor_v20_r1e-4_T100.pt']
+dataFileName = ['data_lor_v20_rq-1010_T100.pt']#,'data_lor_v20_r1e-2_T100.pt','data_lor_v20_r1e-3_T100.pt','data_lor_v20_r1e-4_T100.pt']
 # KFRTSResultName = 'KFRTS_partialh_rq3050_T2000' 
 
 #########################################
@@ -83,8 +85,8 @@ dataFileName = ['data_lor_v20_rq020_T100.pt']#,'data_lor_v20_r1e-2_T100.pt','dat
 
 sys_model = SystemModel(f, q[0], hRotate, r[0], T, T_test, m, n)# parameters for GT
 sys_model.InitSequence(m1x_0, m2x_0)# x0 and P0
-print("Start Data Gen")
-DataGen(sys_model, DatafolderName + dataFileName[0], T, T_test,randomInit=False)
+# print("Start Data Gen")
+# DataGen(sys_model, DatafolderName + dataFileName[0], T, T_test,randomInit=False)
 print("Data Load")
 print(dataFileName[0])
 [train_input_long,train_target_long, cv_input, cv_target, test_input, test_target] =  torch.load(DatafolderName + dataFileName[0],map_location=dev)  
@@ -155,6 +157,11 @@ print("Evaluate RTS true")
 print("Evaluate RTS partial")
 [MSE_ERTS_linear_arr_partialoptr, MSE_ERTS_linear_avg_partialoptr, MSE_ERTS_dB_avg_partialoptr, ERTS_out_partialoptr] = S_Test(sys_model_partial, test_input, test_target)
 
+### Particle Smoother
+print("Evaluate PS true")
+[MSE_PS_linear_arr, MSE_PS_linear_avg, MSE_PS_dB_avg, PS_out, t_PS] = PSTest(sys_model, test_input, test_target,N_FWParticles=100, M_BWTrajs=10, init_cond=None)
+print("Evaluate PS partial")
+[MSE_PS_linear_arr_partial, MSE_PS_linear_avg_partial, MSE_PS_dB_avg_partial, PS_out_partial, t_PS] = PSTest(sys_model_partial, test_input, test_target,N_FWParticles=100, M_BWTrajs=10, init_cond=None)
 
 # Save results
 
@@ -192,22 +199,22 @@ print("Evaluate RTS partial")
 #######################
 ## RTSNet with full info
 ## Build Neural Network
-print("RTSNet with full model info")
-RTSNet_model = RTSNetNN()
-RTSNet_model.NNBuild(sys_model)
-# ## Train Neural Network
-RTSNet_Pipeline = Pipeline(strTime, "RTSNet", "RTSNet")
-RTSNet_Pipeline.setssModel(sys_model)
-RTSNet_Pipeline.setModel(RTSNet_model)
-print("Number of trainable parameters for RTSNet:",sum(p.numel() for p in RTSNet_model.parameters() if p.requires_grad))
-RTSNet_Pipeline.setTrainingParams(n_Epochs=1000, n_Batch=30, learningRate=1e-3, weightDecay=1e-6) 
-# RTSNet_Pipeline.model = torch.load('ERTSNet/best-model_DTfull_rq3050_T2000.pt',map_location=dev)
-if(chop):
-   [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results,randomInit=True,train_init=train_init)
-else:
-   [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results)
-## Test Neural Network
-[MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model, test_input, test_target, path_results)
+# print("RTSNet with full model info")
+# RTSNet_model = RTSNetNN()
+# RTSNet_model.NNBuild(sys_model)
+# # ## Train Neural Network
+# RTSNet_Pipeline = Pipeline(strTime, "RTSNet", "RTSNet")
+# RTSNet_Pipeline.setssModel(sys_model)
+# RTSNet_Pipeline.setModel(RTSNet_model)
+# print("Number of trainable parameters for RTSNet:",sum(p.numel() for p in RTSNet_model.parameters() if p.requires_grad))
+# RTSNet_Pipeline.setTrainingParams(n_Epochs=1000, n_Batch=30, learningRate=1e-3, weightDecay=1e-6) 
+# # RTSNet_Pipeline.model = torch.load('ERTSNet/best-model_DTfull_rq3050_T2000.pt',map_location=dev)
+# if(chop):
+#    [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results,randomInit=True,train_init=train_init)
+# else:
+#    [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results)
+# ## Test Neural Network
+# [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model, test_input, test_target, path_results)
 
 ####################################################################################
 
@@ -233,62 +240,62 @@ else:
 
 ## RTSNet with model mismatch
 ## Build Neural Network
-print("RTSNet with observation model mismatch")
-RTSNet_model = RTSNetNN()
-RTSNet_model.NNBuild(sys_model_partial)
-## Train Neural Network
-RTSNet_Pipeline = Pipeline(strTime, "RTSNet", "RTSNet")
-RTSNet_Pipeline.setssModel(sys_model_partial)
-RTSNet_Pipeline.setModel(RTSNet_model)
-RTSNet_Pipeline.setTrainingParams(n_Epochs=1000, n_Batch=20, learningRate=1e-4, weightDecay=1e-6)
-# RTSNet_Pipeline.model = torch.load('ERTSNet/best-model_DTfull_rq3050_T2000.pt',map_location=cuda0)
-if(chop):
-   [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model_partial, cv_input, cv_target, train_input, train_target, path_results,randomInit=True,train_init=train_init)
-else:
-   [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model_partial, cv_input, cv_target, train_input, train_target, path_results)
-## Test Neural Network
-[MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model_partial, test_input, test_target, path_results)
+# print("RTSNet with observation model mismatch")
+# RTSNet_model = RTSNetNN()
+# RTSNet_model.NNBuild(sys_model_partial)
+# ## Train Neural Network
+# RTSNet_Pipeline = Pipeline(strTime, "RTSNet", "RTSNet")
+# RTSNet_Pipeline.setssModel(sys_model_partial)
+# RTSNet_Pipeline.setModel(RTSNet_model)
+# RTSNet_Pipeline.setTrainingParams(n_Epochs=1000, n_Batch=20, learningRate=1e-4, weightDecay=1e-6)
+# # RTSNet_Pipeline.model = torch.load('ERTSNet/best-model_DTfull_rq3050_T2000.pt',map_location=cuda0)
+# if(chop):
+#    [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model_partial, cv_input, cv_target, train_input, train_target, path_results,randomInit=True,train_init=train_init)
+# else:
+#    [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model_partial, cv_input, cv_target, train_input, train_target, path_results)
+# ## Test Neural Network
+# [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model_partial, test_input, test_target, path_results)
 
 ###################################################################################
 
-print("RTSNet with estimated H")
-RTSNet_Pipeline = Pipeline(strTime, "RTSNet", "RTSNetEstH_"+ dataFileName[0])
-print("True Observation matrix H:", H_mod)
-### Least square estimation of H
-X = torch.squeeze(train_target[:,:,0]).to(dev,non_blocking = True)
-Y = torch.squeeze(train_input[:,:,0]).to(dev,non_blocking = True)
-for t in range(1,T):
-   X_t = torch.squeeze(train_target[:,:,t])
-   Y_t = torch.squeeze(train_input[:,:,t])
-   X = torch.cat((X,X_t),0)
-   Y = torch.cat((Y,Y_t),0)
-Y_1 = torch.unsqueeze(Y[:,0],1)
-Y_2 = torch.unsqueeze(Y[:,1],1)
-Y_3 = torch.unsqueeze(Y[:,2],1)
-H_row1 = torch.matmul(torch.matmul(torch.inverse(torch.matmul(X.T,X)),X.T),Y_1).to(dev,non_blocking = True)
-H_row2 = torch.matmul(torch.matmul(torch.inverse(torch.matmul(X.T,X)),X.T),Y_2).to(dev,non_blocking = True)
-H_row3 = torch.matmul(torch.matmul(torch.inverse(torch.matmul(X.T,X)),X.T),Y_3).to(dev,non_blocking = True)
-H_hat = torch.cat((H_row1.T,H_row2.T,H_row3.T),0)
-print("Estimated Observation matrix H:", H_hat)
+# print("RTSNet with estimated H")
+# RTSNet_Pipeline = Pipeline(strTime, "RTSNet", "RTSNetEstH_"+ dataFileName[0])
+# print("True Observation matrix H:", H_mod)
+# ### Least square estimation of H
+# X = torch.squeeze(train_target[:,:,0]).to(dev,non_blocking = True)
+# Y = torch.squeeze(train_input[:,:,0]).to(dev,non_blocking = True)
+# for t in range(1,T):
+#    X_t = torch.squeeze(train_target[:,:,t])
+#    Y_t = torch.squeeze(train_input[:,:,t])
+#    X = torch.cat((X,X_t),0)
+#    Y = torch.cat((Y,Y_t),0)
+# Y_1 = torch.unsqueeze(Y[:,0],1)
+# Y_2 = torch.unsqueeze(Y[:,1],1)
+# Y_3 = torch.unsqueeze(Y[:,2],1)
+# H_row1 = torch.matmul(torch.matmul(torch.inverse(torch.matmul(X.T,X)),X.T),Y_1).to(dev,non_blocking = True)
+# H_row2 = torch.matmul(torch.matmul(torch.inverse(torch.matmul(X.T,X)),X.T),Y_2).to(dev,non_blocking = True)
+# H_row3 = torch.matmul(torch.matmul(torch.inverse(torch.matmul(X.T,X)),X.T),Y_3).to(dev,non_blocking = True)
+# H_hat = torch.cat((H_row1.T,H_row2.T,H_row3.T),0)
+# print("Estimated Observation matrix H:", H_hat)
 
-def h_hat(x):
- return torch.matmul(H_hat,x)
+# def h_hat(x):
+#  return torch.matmul(H_hat,x)
 
-# Estimated model
-sys_model_esth = SystemModel(f, q[0], h_hat, r[0], T, T_test, m, n)
-sys_model_esth.InitSequence(m1x_0, m2x_0)
+# # Estimated model
+# sys_model_esth = SystemModel(f, q[0], h_hat, r[0], T, T_test, m, n)
+# sys_model_esth.InitSequence(m1x_0, m2x_0)
 
-RTSNet_Pipeline.setssModel(sys_model_esth)
-RTSNet_model = RTSNetNN()
-RTSNet_model.NNBuild(sys_model_esth)
-RTSNet_Pipeline.setModel(RTSNet_model)
+# RTSNet_Pipeline.setssModel(sys_model_esth)
+# RTSNet_model = RTSNetNN()
+# RTSNet_model.NNBuild(sys_model_esth)
+# RTSNet_Pipeline.setModel(RTSNet_model)
 
-RTSNet_Pipeline.setTrainingParams(n_Epochs=1000, n_Batch=30, learningRate=1E-4, weightDecay=1E-3)
-# RTSNet_Pipeline.model = torch.load('RTSNet/new_architecture/linear/best-model_hrot10_linear2x2rq-1010T100.pt',map_location=dev)
-[MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model_esth, cv_input, cv_target, train_input, train_target, path_results)
-## Test Neural Network
-[MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model_esth, test_input, test_target, path_results)
-RTSNet_Pipeline.save()
+# RTSNet_Pipeline.setTrainingParams(n_Epochs=1000, n_Batch=30, learningRate=1E-4, weightDecay=1E-3)
+# # RTSNet_Pipeline.model = torch.load('RTSNet/new_architecture/linear/best-model_hrot10_linear2x2rq-1010T100.pt',map_location=dev)
+# [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model_esth, cv_input, cv_target, train_input, train_target, path_results)
+# ## Test Neural Network
+# [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model_esth, test_input, test_target, path_results)
+# RTSNet_Pipeline.save()
 
 ############################
 ###  KNet for comparison ###
