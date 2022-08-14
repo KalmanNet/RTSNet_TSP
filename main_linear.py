@@ -41,7 +41,9 @@ path_results = 'RTSNet/'
 ####################
 ### Design Model ###
 ####################
-InitIsRandom = True
+InitIsRandom_train = False
+InitIsRandom_cv = True
+InitIsRandom_test = True
 LengthIsRandom = False
 r2 = torch.tensor([1])
 vdB = -20 # ratio v=q2/r2
@@ -66,11 +68,11 @@ print("Observation Matrix:",H)
 ### Data Loader (Generate Data) ###
 ###################################
 dataFolderName = 'Simulations/Linear_canonical/Scaling_to_large_models/RandomInitConditions' + '/'
-dataFileName = '5x5_rq020_T20Ttest200.pt'
+dataFileName = '5x5_rq020_T20fixedTtest200random.pt'
 print("Start Data Gen")
-DataGen(sys_model, dataFolderName + dataFileName, T, T_test,randomInit=InitIsRandom,randomLength=LengthIsRandom)
+DataGen(sys_model, dataFolderName + dataFileName, T, T_test,randomInit_train=InitIsRandom_train,randomInit_cv=InitIsRandom_cv,randomInit_test=InitIsRandom_test,randomLength=LengthIsRandom)
 print("Data Load")
-if(InitIsRandom):
+if(InitIsRandom_train or InitIsRandom_cv or InitIsRandom_test):
    [train_input, train_target, train_init, cv_input, cv_target, cv_init, test_input, test_target, test_init] = torch.load(dataFolderName + dataFileName,map_location=dev)
    print("trainset size:",train_target.size())
    print("cvset size:",cv_target.size())
@@ -113,7 +115,7 @@ print("Observation Noise Floor - STD:", obs_std_dB, "[dB]")
 ### Evaluate Kalman Filter ###
 ##############################
 print("Evaluate Kalman Filter True")
-if InitIsRandom:
+if InitIsRandom_test:
    [MSE_KF_linear_arr, MSE_KF_linear_avg, MSE_KF_dB_avg] = KFTest(sys_model, test_input, test_target, randomInit = True, test_init=test_init)
 else: 
    [MSE_KF_linear_arr, MSE_KF_linear_avg, MSE_KF_dB_avg] = KFTest(sys_model, test_input, test_target)
@@ -124,7 +126,7 @@ else:
 ### Evaluate RTS Smoother ###
 #############################
 print("Evaluate RTS Smoother True")
-if InitIsRandom:
+if InitIsRandom_test:
    [MSE_RTS_linear_arr, MSE_RTS_linear_avg, MSE_RTS_dB_avg, RTS_out] = S_Test(sys_model, test_input, test_target, randomInit = True,test_init=test_init)
 else:
    [MSE_RTS_linear_arr, MSE_RTS_linear_avg, MSE_RTS_dB_avg, RTS_out] = S_Test(sys_model, test_input, test_target)
@@ -179,14 +181,14 @@ print("Number of trainable parameters for RTSNet:",sum(p.numel() for p in RTSNet
 RTSNet_Pipeline = Pipeline(strTime, "RTSNet", "RTSNet")
 RTSNet_Pipeline.setssModel(sys_model)
 RTSNet_Pipeline.setModel(RTSNet_model)
-# RTSNet_Pipeline.setTrainingParams(n_Epochs=10000, n_Batch=50, learningRate=1E-5, weightDecay=1E-3)
+RTSNet_Pipeline.setTrainingParams(n_Epochs=10000, n_Batch=50, learningRate=1E-5, weightDecay=1E-3)
 # RTSNet_Pipeline.model = torch.load('RTSNet/new_architecture/linear_Journal/rq020_T100_randinit.pt',map_location=dev)
-if InitIsRandom:
-   # [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results, randomInit = True, cv_init=cv_init,train_init=train_init)
+if (InitIsRandom_train or InitIsRandom_cv or InitIsRandom_test):
+   [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results, randomInit = True, cv_init=cv_init,train_init=train_init)
    ## Test Neural Network
    [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model, test_input, test_target, path_results,randomInit=True,test_init=test_init)
 else:
-   # [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results)
+   [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results)
    ## Test Neural Network
    [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model, test_input, test_target, path_results)
 RTSNet_Pipeline.save()

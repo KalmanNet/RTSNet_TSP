@@ -92,39 +92,48 @@ def DataGen_True(SysModel_data, fileName, T):
     #             "Obs":[test_input]},fileName)
     torch.save([test_input, test_target], fileName)
 
-def DataGen(SysModel_data, fileName, T, T_test,randomInit=False,randomLength=False):
+def DataGen(SysModel_data, fileName, T, T_test,randomInit_train=False,randomInit_cv=False,randomInit_test=False,randomLength=False):
 
     ##################################
     ### Generate Training Sequence ###
     ##################################
-    SysModel_data.GenerateBatch(N_E, T, randomInit=randomInit,randomLength=randomLength)
+    SysModel_data.GenerateBatch(N_E, T, randomInit=randomInit_train,randomLength=randomLength)
     training_input = SysModel_data.Input
     training_target = SysModel_data.Target
-    if(randomInit):
+    if(randomInit_train):
         training_init = SysModel_data.m1x_0_rand
+    else:
+        x0 = torch.squeeze(SysModel_data.m1x_0)
+        training_init = x0.repeat(N_E,1) #size: N_E x m
 
     ####################################
     ### Generate Validation Sequence ###
     ####################################
-    SysModel_data.GenerateBatch(N_CV, T, randomInit=randomInit,randomLength=randomLength)
+    SysModel_data.GenerateBatch(N_CV, T, randomInit=randomInit_cv,randomLength=randomLength)
     cv_input = SysModel_data.Input
     cv_target = SysModel_data.Target
-    if(randomInit):
+    if(randomInit_cv):
         cv_init = SysModel_data.m1x_0_rand
+    else:
+        x0 = torch.squeeze(SysModel_data.m1x_0)
+        cv_init = x0.repeat(N_CV,1) #size: N_CV x m
 
     ##############################
     ### Generate Test Sequence ###
     ##############################
-    SysModel_data.GenerateBatch(N_T, T_test, randomInit=randomInit,randomLength=randomLength)
+    SysModel_data.GenerateBatch(N_T, T_test, randomInit=randomInit_test,randomLength=randomLength)
     test_input = SysModel_data.Input
     test_target = SysModel_data.Target
-    if(randomInit):
+    if(randomInit_test):
         test_init = SysModel_data.m1x_0_rand
+    else:
+        x0 = torch.squeeze(SysModel_data.m1x_0)
+        test_init = x0.repeat(N_T,1) #size: N_T x m
 
     #################
     ### Save Data ###
     #################
-    if(randomInit):
+    if(randomInit_train or randomInit_cv or randomInit_test):
         torch.save([training_input, training_target, training_init, cv_input, cv_target, cv_init, test_input, test_target, test_init], fileName)
     else:
         torch.save([training_input, training_target, cv_input, cv_target, test_input, test_target], fileName)
