@@ -1,0 +1,3 @@
+N_E = 1000, T=50, fixed init
+N_CV = 10, T=200, random init
+N_T = 200, T=200, random init
