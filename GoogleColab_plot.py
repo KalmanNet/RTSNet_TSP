@@ -102,6 +102,18 @@ print("Current Time =", strTime)
 # KNet_test = trajs['KNet']
 # T_test = 2000
 
+PSTrajResultName = 'traj_lor_dec_PS.pt'
+TrajfolderName = 'Graphs/Lor_decimation' + '/'
+PStrajs = torch.load(TrajfolderName+PSTrajResultName, map_location=device)
+PS_out = PStrajs['PS J=5']
+PS_out_partial = PStrajs['PS J=2']
+
+KNetTrajResultName = 'traj_lor_dec_KNet.pt'
+TrajfolderName = 'Graphs/Lor_decimation' + '/'
+KNettrajs = torch.load(TrajfolderName+KNetTrajResultName, map_location=device)
+KNet_out = KNettrajs['KNet']
+
+
 # Remove nan parts
 # EKF_out = EKF_out[~torch.isnan(MSE_EKF_linear_arr),:,:]
 
@@ -123,10 +135,11 @@ print("Current Time =", strTime)
 # EKF_mean = EKF_mean[:,:,1000:1999]
 # KNet_mean = KNet_mean[:,:,1000:1999]
 # print(EKF_diff-EKF_mean)
-# titles = ["RTSNet"]#,"True Trajectory","Observation","Extended RTS",]#, "Observation", "EKF J=2","EKF J=2 with optimal q"]
-# input = [rtsnet]#,target_sample,input_sample,mbrtsJ2, ]#,EKF_sample,EKF_partial_sample,EKF_partialoptq_sample]
-# Net_Plot = Plot(TrajfolderName,TrajResultName)
-# Net_Plot.plotTrajectories(input,3, titles,TrajfolderName+"RTSNet.png")
+titles = ["KNet"]#,"Particle Smoother"]#,"True Trajectory","Observation","Extended RTS",]#, "Observation", "EKF J=2","EKF J=2 with optimal q"]
+input = [KNet_out]#PS_out_partial,]#,target_sample,input_sample,mbrtsJ2, ]#,EKF_sample,EKF_partial_sample,EKF_partialoptq_sample]
+TrajResultName = 'KNet.png'
+Net_Plot = Plot(TrajfolderName,TrajResultName)
+Net_Plot.plotTrajectories(input,3, titles,TrajfolderName+TrajResultName)
 
 ################
 ### Outliers ###
@@ -206,21 +219,21 @@ print("Current Time =", strTime)
 #############################################
 ### RTSNet Generalization to Large System ###
 #############################################
-DatafolderName = 'RTSNet' + '/'
-DataResultName = 'pipeline_RTSNet.pt'
-RTSNet_Pipeline = Pipeline(strTime, "RTSNet", "RTSNet_10x10")
-RTSNet_Pipeline = torch.load(DatafolderName+DataResultName, map_location=device)
-RTSNet_Pipeline.modelName = "RTSNet kitti r20q0"
+# DatafolderName = 'RTSNet' + '/'
+# DataResultName = 'pipeline_RTSNet.pt'
+# RTSNet_Pipeline = Pipeline(strTime, "RTSNet", "RTSNet_10x10")
+# RTSNet_Pipeline = torch.load(DatafolderName+DataResultName, map_location=device)
+# RTSNet_Pipeline.modelName = "RTSNet kitti r20q0"
 
-DataResultName = 'kitti_r20q0' 
-KFandRTS = torch.load(DatafolderName+DataResultName, map_location=device)
-MSE_KF_linear_arr = KFandRTS['MSE_KF_linear_arr']
-MSE_KF_dB_avg = KFandRTS['MSE_KF_dB_avg']
-MSE_RTS_linear_arr = KFandRTS['MSE_RTS_linear_arr']
-MSE_RTS_dB_avg = KFandRTS['MSE_RTS_dB_avg']
+# DataResultName = 'kitti_r20q0' 
+# KFandRTS = torch.load(DatafolderName+DataResultName, map_location=device)
+# MSE_KF_linear_arr = KFandRTS['MSE_KF_linear_arr']
+# MSE_KF_dB_avg = KFandRTS['MSE_KF_dB_avg']
+# MSE_RTS_linear_arr = KFandRTS['MSE_RTS_linear_arr']
+# MSE_RTS_dB_avg = KFandRTS['MSE_RTS_dB_avg']
 
-print("Plot")
-RTSNet_Pipeline.PlotTrain_RTS(MSE_KF_linear_arr, MSE_KF_dB_avg, MSE_RTS_linear_arr, MSE_RTS_dB_avg)
+# print("Plot")
+# RTSNet_Pipeline.PlotTrain_RTS(MSE_KF_linear_arr, MSE_KF_dB_avg, MSE_RTS_linear_arr, MSE_RTS_dB_avg)
 
 
 

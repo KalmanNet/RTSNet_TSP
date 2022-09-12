@@ -22,6 +22,8 @@ from Plot import Plot_extended as Plot
 
 from datetime import datetime
 
+import wandb
+
 from filing_paths import path_model, path_session
 import sys
 sys.path.insert(1, path_model)
@@ -71,6 +73,9 @@ T = 3000
 T_test = 3000
 traj_resultName = ['traj_lor_dec_RTSNetJ2_r0_2pass.pt']#,'partial_lor_r4.pt','partial_lor_r5.pt','partial_lor_r6.pt']
 # EKFResultName = 'EKF_obsmis_rq1030_T2000_NT100' 
+
+wandb.init(project="RTSNet_Lorenz")
+
 
 for rindex in range(0, len(r)):
    print("1/r2 [dB]: ", 10 * torch.log10(1/r[rindex]**2))
@@ -207,10 +212,10 @@ for rindex in range(0, len(r)):
    # # [MSE_EKF_dB_avg, trace_dB_avg] = EKF_test.EKFTest_evol(sys_model, test_input, test_target)
 
    ### Particle Smoother
-   print("Start PS test J=5")
-   [MSE_PS_linear_arr, MSE_PS_linear_avg, MSE_PS_dB_avg, PS_out, t_PS] = PSTest(sys_model_true, test_input, test_target,N_FWParticles=100, M_BWTrajs=10, init_cond=None)
-   print("Start PS test J=2")
-   [MSE_PS_linear_arr_partial, MSE_PS_linear_avg_partial, MSE_PS_dB_avg_partial, PS_out_partial, t_PS] = PSTest(sys_model, test_input, test_target,N_FWParticles=100, M_BWTrajs=10, init_cond=None)
+   # print("Start PS test J=5")
+   # [MSE_PS_linear_arr, MSE_PS_linear_avg, MSE_PS_dB_avg, PS_out, t_PS] = PSTest(sys_model_true, test_input, test_target,N_FWParticles=100, M_BWTrajs=10, init_cond=None)
+   # print("Start PS test J=2")
+   # [MSE_PS_linear_arr_partial, MSE_PS_linear_avg_partial, MSE_PS_dB_avg_partial, PS_out_partial, t_PS] = PSTest(sys_model, test_input, test_target,N_FWParticles=100, M_BWTrajs=10, init_cond=None)
 
    ### MB Extended RTS
    # print("Start RTS test J=5")
@@ -220,16 +225,20 @@ for rindex in range(0, len(r)):
    
    # KNet with model mismatch
    # ## Build Neural Network
-   # KNet_model = KalmanNetNN()
-   # KNet_model.NNBuild(sys_model)
-   # ## Train Neural Network
-   # KNet_Pipeline = Pipeline_EKF(strTime, "KNet", "KalmanNet")
-   # KNet_Pipeline.setModel(KNet_model)
-   # KNet_Pipeline.setTrainingParams(n_Epochs=100, n_Batch=10, learningRate=1e-3, weightDecay=1e-6)
-   # [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = KNet_Pipeline.NNTrain(sys_model, cv_input_long, cv_target_long, train_input, train_target, path_results, sequential_training)
-   # # Test Neural Network
-   # KNet_Pipeline.model = torch.load('KNet/model_KNetNew_DT_procmis_r30q50_T2000.pt',map_location=cuda0)
-   # [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg, KNet_KG_array, knet_out,RunTime] = KNet_Pipeline.NNTest(sys_model, test_input, test_target, path_results)
+#    KNet_model = KalmanNetNN()
+#    KNet_model.NNBuild(sys_model)
+#    ## Train Neural Network
+#    KNet_Pipeline = Pipeline_EKF(strTime, "KNet", "KalmanNet")
+#    KNet_Pipeline.setModel(KNet_model)
+#    KNet_Pipeline.setssModel(sys_model)
+   
+#   #  KNet_Pipeline.setTrainingParams(n_Epochs=100, n_Batch=10, learningRate=1e-3, weightDecay=1e-6)
+#   #  [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = KNet_Pipeline.NNTrain(sys_model, cv_input_long, cv_target_long, train_input, train_target, path_results, sequential_training)
+#    # Test Neural Network
+#    KNet_Pipeline.model = torch.load('ERTSNet/model_KNetNew_Dec_r0_noTransfer.pt',map_location=dev)
+#    NumofParameter = sum(p.numel() for p in KNet_Pipeline.model.parameters() if p.requires_grad)
+#    print("Number of parameters for KNet: ",NumofParameter)
+#    [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg, knet_out] = KNet_Pipeline.NNTest(N_T, test_input, test_target)
    # # Print MSE Cross Validation
    # print("MSE Test:", MSE_test_dB_avg, "[dB]")
    # [MSE_knet_test_dB_avg,trace_knet_dB_avg] = KNet_Pipeline.NNTest_evol(sys_model, test_input, test_target, path_results)
@@ -270,22 +279,30 @@ for rindex in range(0, len(r)):
    ### RTSNet with model mismatch  ###
    ###################################
    # ## Build Neural Network
-   # print("RTSNet with model mismatch")
-   # RTSNet_model = RTSNetNN()
-   # RTSNet_model.NNBuild(sys_model)
-   # ## Train Neural Network
-   # RTSNet_Pipeline = Pipeline(strTime, "RTSNet", "RTSNet")
-   # RTSNet_Pipeline.setModel(RTSNet_model)
-   # RTSNet_Pipeline.setTrainingParams(n_Epochs=1000, n_Batch=1, learningRate=1e-3, weightDecay=1e-4)
-   # NumofParameter = RTSNet_Pipeline.count_parameters()
-   # print("Number of parameters for RTSNet: ",NumofParameter)
-   # if(chop):
-   #    [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input_long, cv_target_long, train_input, train_target, path_results,randomInit=True,train_init=train_init)
-   # else:
-   #    [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input_long, cv_target_long, train_input, train_target, path_results)
-   # ## Test Neural Network
-   # # RTSNet_Pipeline.model = torch.load('ERTSNet/new_arch_LA/decimation/model/best-model_r0_J2_NE1000_MSE-15.5.pt',map_location=dev)
-   # [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model, test_input, test_target, path_results)
+   print("RTSNet with model mismatch")
+   RTSNet_model = RTSNetNN()
+   RTSNet_model.NNBuild(sys_model)
+   ## Train Neural Network
+   RTSNet_Pipeline = Pipeline(strTime, "RTSNet", "RTSNet")
+   RTSNet_Pipeline.setModel(RTSNet_model)
+   RTSNet_Pipeline.setTrainingParams(n_Epochs=1000, n_Batch=1, learningRate=1e-3, weightDecay=1e-4)
+   NumofParameter = RTSNet_Pipeline.count_parameters()
+   print("Number of parameters for RTSNet: ",NumofParameter)
+
+   ### Optional: record parameters on wandb
+   wandb.log({
+  "learning_rate": RTSNet_Pipeline.learningRate,
+  "batch_size": RTSNet_Pipeline.N_B,
+  "weight_decay": RTSNet_Pipeline.weightDecay})
+   ###
+
+   if(chop):
+      [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input_long, cv_target_long, train_input, train_target, path_results,randomInit=True,train_init=train_init)
+   else:
+      [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input_long, cv_target_long, train_input, train_target, path_results)
+   ## Test Neural Network
+   # RTSNet_Pipeline.model = torch.load('ERTSNet/new_arch_LA/decimation/model/best-model_r0_J2_NE1000_MSE-15.5.pt',map_location=dev)
+   [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model, test_input, test_target, path_results)
    
 
    # ## Save histogram
@@ -309,31 +326,32 @@ for rindex in range(0, len(r)):
 #    [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out_2pass,RunTime] = RTSNet_Pipeline.NNTest(sys_model, test_input, test_target, path_results)
 
   # Save trajectories
-   trajfolderName = 'ERTSNet' + '/'
-   DataResultName = 'traj_lor_dec_PS'
-   target_sample = torch.reshape(test_target[0,:,:],[1,m,T_test])
-   input_sample = torch.reshape(test_input[0,:,:],[1,n,T_test])
-   torch.save({#'PF J=5':PF_out,
-               #'PF J=2':PF_out_partial,
-               # 'True':target_sample,
-               # 'Observation':input_sample,
-               # 'EKF J=5':EKF_out,
-               # 'EKF J=2':EKF_out_partial,
-               # 'RTS J=5':ERTS_out,
-               # 'RTS J=2':ERTS_out_partial,
-               'PS J=5':PS_out,
-               'PS J=2':PS_out_partial,
-               # 'RTSNet': rtsnet_out,
-               # 'RTSNet_2pass': rtsnet_out_2pass,
-               # 'RNN J=2': rnn_out,
-               }, trajfolderName+DataResultName)
+   # trajfolderName = 'ERTSNet' + '/'
+   # DataResultName = 'traj_lor_dec_PS'
+   # target_sample = torch.reshape(test_target[0,:,:],[1,m,T_test])
+   # input_sample = torch.reshape(test_input[0,:,:],[1,n,T_test])
+   # torch.save({#'PF J=5':PF_out,
+   #             #'PF J=2':PF_out_partial,
+   #             # 'True':target_sample,
+   #             # 'Observation':input_sample,
+   #             # 'EKF J=5':EKF_out,
+   #             # 'EKF J=2':EKF_out_partial,
+   #             # 'RTS J=5':ERTS_out,
+   #             # 'RTS J=2':ERTS_out_partial,
+   #             'PS J=5':PS_out,
+   #             'PS J=2':PS_out_partial,
+   #             # 'RTSNet': rtsnet_out,
+   #             # 'RTSNet_2pass': rtsnet_out_2pass,
+   #             # 'RNN J=2': rnn_out,
+   #             }, trajfolderName+DataResultName)
 
 #    titles = ["True Trajectory","Observation","RTSNet",]#, "Observation", "EKF J=2","EKF J=2 with optimal q"]
 #    input = [target_sample,input_sample,rtsnet_out]#,EKF_sample,EKF_partial_sample,EKF_partialoptq_sample]
 #    Net_Plot = Plot(trajfolderName,DataResultName)
 #    Net_Plot.plotTrajectories(input,3, titles,trajfolderName+"RTSNet_twopasses.png")
 
-   
+# Close wandb run 
+wandb.finish()  
 
 
 

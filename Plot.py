@@ -576,7 +576,7 @@ class Plot_extended(Plot_RTS):
 
     def plotTrajectories(self,inputs, dim, titles, file_name):
     
-        fig = plt.figure(figsize=(15,10))
+        fig = plt.figure(figsize=(15, 10))
         plt.Axes (fig, [0,0,1,1])
         # plt.subplots_adjust(wspace=-0.2, hspace=-0.2)
         matrix_size = int(np.ceil(np.sqrt(len(inputs))))
@@ -609,8 +609,14 @@ class Plot_extended(Plot_RTS):
                     y_al = 0.68
                 elif(title == "RTSNet"):
                     c = 'g'
-                else:
+                elif(title == "Particle Smoother"):
+                    c = 'c'
+                elif(title == "Vanilla RNN"):
                     c = 'm'
+                elif(title == "KNet"):
+                    c = 'y'               
+                else:
+                    c = 'purple'
                     y_al = 0.68
 
                 ax.set_axis_off()
