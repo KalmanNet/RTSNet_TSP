@@ -14,10 +14,12 @@ from RTS_Smoother_test import S_Test
 
 from Plot import Plot_RTS as Plot
 
+import wandb
+
 from filing_paths import path_model
 import sys
 sys.path.insert(1, path_model)
-from parameters import F, F_gen, H, H_onlyPos,Q,Q_gen,R,R_onlyPos,\
+from parameters import F, F_gen, H_identity, H_onlyPos,Q,Q_gen,R,R_onlyPos,\
 m1x_0, m2x_0, m, n,delta_t_gen,delta_t,T,T_test,T_gen,T_test_gen
 
 if torch.cuda.is_available():
@@ -96,6 +98,7 @@ print("Evaluate RTS Smoother")
 
 ### RTSNet with full info ##############################################################################################
 # Build Neural Network
+wandb.init(project="RTSNet_LinearCA")
 print("RTSNet pipeline start!")
 RTSNet_model = RTSNetNN()
 RTSNet_model.NNBuild(sys_model)
@@ -106,6 +109,12 @@ RTSNet_Pipeline.setssModel(sys_model)
 RTSNet_Pipeline.setModel(RTSNet_model)
 RTSNet_Pipeline.setTrainingParams(n_Epochs=10000, n_Batch=50, learningRate=1E-3, weightDecay=1E-4)
 # RTSNet_Pipeline.model = torch.load('RTSNet/new_architecture/linear_Journal/rq020_T100_randinit.pt',map_location=dev)
+### Optinal: record parameters to wandb
+wandb.log({
+"learning_rate": RTSNet_Pipeline.learningRate,
+"batch_size": RTSNet_Pipeline.N_B,
+"weight_decay": RTSNet_Pipeline.weightDecay})
+#######################################
 [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results)
 ## Test Neural Network
 [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model, test_input, test_target, path_results)
@@ -127,3 +136,5 @@ RTSNet_Pipeline.save()
 # [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RNN_Pipeline.NNTest(sys_model, test_input, test_target, path_results, rnn=True)
 # RNN_Pipeline.save()
 
+# Close wandb run 
+wandb.finish()  

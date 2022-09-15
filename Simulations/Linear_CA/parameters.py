@@ -24,8 +24,8 @@ ratio = delta_t_gen/delta_t
 # Length of Time Series Sequence
 T = 100
 T_test = 100
-T_gen = T/ratio
-T_test_gen = T_test/ratio
+T_gen = int(T/ratio)
+T_test_gen = int(T_test/ratio)
 
 #########################################################
 ### state evolution matrix F and observation matrix H ###
@@ -53,14 +53,11 @@ H_onlyPos = torch.tensor([[1, 0, 0],
 ###############################################
 # Noise Parameters
 r2 = torch.tensor([1])
-vdB = -20 # ratio v=q2/r2
-v = 10**(vdB/10)
-q2 = torch.mul(v,r2)
-r = torch.sqrt(r2) # observation noise
-q = torch.sqrt(q2) # process noise
+q2 = torch.tensor([1]) # can be tuned
 
 
-Q_gen = q2 * torch.tensor([[1/20*delta_t_gen**5, 1/8*delta_t_gen**4,1/6*delta_t_gen**3],
+
+Q_gen = 0 * torch.tensor([[1/20*delta_t_gen**5, 1/8*delta_t_gen**4,1/6*delta_t_gen**3],
                            [ 1/8*delta_t_gen**4, 1/6*delta_t_gen**3,1/2*delta_t_gen**2],
                            [ 1/6*delta_t_gen**3, 1/2*delta_t_gen**2,       delta_t_gen]]).float()
 

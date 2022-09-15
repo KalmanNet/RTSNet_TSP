@@ -95,30 +95,36 @@ class SystemModel:
 
             ########################
             #### State Evolution ###
-            ########################            
-            xt = self.F.matmul(self.x_prev)
-            mean = torch.zeros([self.m])              
-            distrib = MultivariateNormal(loc=mean, covariance_matrix=Q_gen)
-            eq = distrib.rsample()
-            # eq = torch.normal(mean, self.q)
-            eq = torch.reshape(eq[:],[self.m,1])
-            # Additive Process Noise
-            xt = torch.add(xt,eq)
+            ########################   
+            if Q_gen == (self.m,self.m):
+                xt = self.F.matmul(self.x_prev)
+            else:            
+                xt = self.F.matmul(self.x_prev)
+                mean = torch.zeros([self.m])              
+                distrib = MultivariateNormal(loc=mean, covariance_matrix=Q_gen)
+                eq = distrib.rsample()
+                # eq = torch.normal(mean, self.q)
+                eq = torch.reshape(eq[:],[self.m,1])
+                # Additive Process Noise
+                xt = torch.add(xt,eq)
 
             ################
             ### Emission ###
             ################
             # Observation Noise
-            yt = self.H.matmul(xt)
-            mean = torch.zeros([self.n])            
-            distrib = MultivariateNormal(loc=mean, covariance_matrix=R_gen)
-            er = distrib.rsample()
-            er = torch.reshape(er[:],[self.n,1])
-            # mean = torch.zeros([self.n,1])
-            # er = torch.normal(mean, self.r)
-            
-            # Additive Observation Noise
-            yt = torch.add(yt,er)
+            if R_gen == (self.n,self.n):
+                yt = self.H.matmul(xt)
+            else:  
+                yt = self.H.matmul(xt)
+                mean = torch.zeros([self.n])            
+                distrib = MultivariateNormal(loc=mean, covariance_matrix=R_gen)
+                er = distrib.rsample()
+                er = torch.reshape(er[:],[self.n,1])
+                # mean = torch.zeros([self.n,1])
+                # er = torch.normal(mean, self.r)
+                
+                # Additive Observation Noise
+                yt = torch.add(yt,er)
 
             ########################
             ### Squeeze to Array ###
