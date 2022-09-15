@@ -58,7 +58,7 @@ T_test = gt_data[0].size()[-1] - T
 m1_0 = gt_data[0][:,0]
 
 # True model 
-sys_model = SystemModel(F_kitti, q, Q, H_kitti, r, R, T, T_test,m,n)
+sys_model = SystemModel(F_kitti, Q, H_kitti, R, T, T_test)
 sys_model.InitSequence(m1_0, m2_0)
 
 ########################

@@ -3,9 +3,9 @@ path_model_NCLT = 'Simulations/NCLT/'
 path_model_Toy = 'Simulations/Toy_problems/'
 path_model_Pendulum = 'Simulations/Pendulum/'
 path_model_kitti = 'Simulations/KITTI/'
+path_model_linearCA = 'Simulations/Linear_CA/'
 
-path_model = path_model_Lor
-path_session = path_model + 'Experiment_GPS_RNN/'
+path_model = path_model_linearCA
 
 '''
 # Function for Outputting Path (used for cluster)

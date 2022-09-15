@@ -25,7 +25,7 @@ from Pipeline_ERTS_multipass import Pipeline_ERTS as Pipeline_multipass
 
 from Plot import Plot_extended as Plot
 
-from filing_paths import path_model, path_session
+from filing_paths import path_model
 import sys
 sys.path.insert(1, path_model)
 from parameters import T, T_test, m1x_0, m2x_0, m, n,H_mod

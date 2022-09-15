@@ -24,7 +24,7 @@ from datetime import datetime
 
 import wandb
 
-from filing_paths import path_model, path_session
+from filing_paths import path_model
 import sys
 sys.path.insert(1, path_model)
 from parameters import m1x_0, m2x_0, m, n,delta_t_gen,delta_t

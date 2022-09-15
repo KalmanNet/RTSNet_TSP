@@ -22,7 +22,7 @@ from RTSNet_nn_2passes import RTSNetNN_2passes
 
 from Plot import Plot_extended as Plot
 
-from filing_paths import path_model, path_session
+from filing_paths import path_model
 import sys
 sys.path.insert(1, path_model)
 from parameters import T, T_test, m1x_0, m2x_0, m, n,H_mod, H_mod_inv
@@ -86,7 +86,7 @@ dataFileName = ['data_lor_v20_rq-1010_T100.pt']#,'data_lor_v20_r1e-2_T100.pt','d
 sys_model = SystemModel(f, q[0], hRotate, r[0], T, T_test, m, n)# parameters for GT
 sys_model.InitSequence(m1x_0, m2x_0)# x0 and P0
 # print("Start Data Gen")
-# DataGen(sys_model, DatafolderName + dataFileName[0], T, T_test,randomInit=False)
+# DataGen(sys_model, DatafolderName + dataFileName[0], T, T_test)
 print("Data Load")
 print(dataFileName[0])
 [train_input_long,train_target_long, cv_input, cv_target, test_input, test_target] =  torch.load(DatafolderName + dataFileName[0],map_location=dev)  

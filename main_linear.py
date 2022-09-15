@@ -53,15 +53,15 @@ print("1/r2 [dB]: ", 10 * torch.log10(1/r2[0]))
 print("1/q2 [dB]: ", 10 * torch.log10(1/q2[0]))
 
 # True model
-r = torch.sqrt(r2)
-q = torch.sqrt(q2)
-sys_model = SystemModel(F, q, H, r, T, T_test)
+Q = q2 * torch.eye(m)
+R = r2 * torch.eye(n)
+sys_model = SystemModel(F, Q, H, R, T, T_test)
 sys_model.InitSequence(m1_0, m2_0)
 print("State Evolution Matrix:",F)
 print("Observation Matrix:",H)
 
 # Mismatched model
-# sys_model_partialh = SystemModel(F, q, H_rotated, r, T, T_test)
+# sys_model_partialh = SystemModel(F, Q, H_rotated, R, T, T_test)
 # sys_model_partialh.InitSequence(m1_0, m2_0)
 
 ###################################
@@ -145,11 +145,13 @@ else:
 # r2 = torch.tensor([2, 1, 0.5, 0.1])
 # r = torch.sqrt(r2)
 # q = r
-# MSE_KF_RTS_dB = torch.empty(size=[2,len(r)]).to(cuda0)
+# MSE_KF_RTS_dB = torch.empty(size=[2,len(r)]).to(dev)
 # dataFileName = ['data_2x2_r2q2_T20_Ttest20.pt','data_2x2_r1q1_T20_Ttest20.pt','data_2x2_r0.5q0.5_T20_Ttest20.pt','data_2x2_r0.1q0.1_T20_Ttest20.pt']
 # for rindex in range(0, len(r)):
 #     #Generate and load data
-#     SysModel_design = SystemModel(F, torch.squeeze(q[rindex]), H, torch.squeeze(r[rindex]), T, T_test)  
+#     Q = q[rindex] * q[rindex] * torch.eye(m)
+#     R = r[rindex] * r[rindex] * torch.eye(n)
+#     SysModel_design = SystemModel(F, Q, H, R, T, T_test)  
 #     SysModel_design.InitSequence(m1_0, m2_0)
 #     DataGen(SysModel_design, dataFolderName + dataFileName[rindex], T, T_test)
 #     [train_input, train_target, cv_input, cv_target, test_input, test_target] = DataLoader_GPU(dataFolderName + dataFileName[rindex])
@@ -160,7 +162,7 @@ else:
 #     MSE_KF_RTS_dB[1,rindex] = MSE_RTS_dB_avg
 
 # PlotfolderName = 'Graphs' + '/'
-#PlotResultName = 'Linear_KFandRTS'  
+# PlotResultName = 'Linear_KFandRTS'  
 # Plot = Plot(PlotfolderName, PlotResultName)
 # print("Plot")
 # Plot.KF_RTS_Plot(r, MSE_KF_RTS_dB)
@@ -259,20 +261,22 @@ RTSNet_Pipeline.save()
 
 # q2 = torch.mul(v,r2)
 # q = torch.sqrt(q2)
-# MSE_RTS_dB = torch.empty(size=[3,len(r)]).to(cuda0)
+# MSE_RTS_dB = torch.empty(size=[3,len(r)]).to(dev)
 # dataFileName = ['data_2x2_r1q1_T50.pt','data_2x2_r2q2_T50.pt','data_2x2_r3q3_T50.pt','data_2x2_r4q4_T50.pt','data_2x2_r5q5_T50.pt']
 # modelFolder = 'RTSNet' + '/'
 # modelName = ['F10_2x2_r1q1','F10_2x2_r2q2','F10_2x2_r3q3','F10_2x2_r4q4','F10_2x2_r5q5']
 # for rindex in range(0, len(r)):
 #    print("1/r2 [dB]: ", 10 * torch.log10(1/r[rindex]**2))
 #    print("1/q2 [dB]: ", 10 * torch.log10(1/q[rindex]**2))
-#    SysModel_design = SystemModel(F, torch.squeeze(q[rindex]), H, torch.squeeze(r[rindex]), T, T_test,'linear', outlier_p=0) 
+#    Q = q2[rindex] * torch.eye(m)
+#    R = r2[rindex] * torch.eye(n)
+#    SysModel_design = SystemModel(F, Q, H, R, T, T_test) 
 #    SysModel_design.InitSequence(m1_0, m2_0)
 #    #Generate data
 #    DataGen(SysModel_design, dataFolderName + dataFileName[rindex], T, T_test)
 #    #Rotate model
-#    # SysModel_rotate = SystemModel(F, torch.squeeze(q[rindex]), H_rotated, torch.squeeze(r[rindex]), T, T_test)
-#    # SysModel_rotate.InitSequence(m1_0, m2_0)
+#    SysModel_rotate = SystemModel(F, Q, H_rotated, R, T, T_test)
+#    SysModel_rotate.InitSequence(m1_0, m2_0)
 #    #Load data
 #    [train_input, train_target, cv_input, cv_target, test_input, test_target] = DataLoader_GPU(dataFolderName + dataFileName[rindex])
 #    #Evaluate KF with perfect SS knowledge

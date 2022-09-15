@@ -55,13 +55,15 @@ for index in range(0,len(r2)):
    print("1/q2 [dB]: ", 10 * torch.log10(1/q2[index]))
 
    # True model
-   r = torch.sqrt(r2[index])
-   q = torch.sqrt(q2[index])
-   sys_model = SystemModel(F, q, H_rotated, r, T, T_test)
+   # r = torch.sqrt(r2[index])
+   # q = torch.sqrt(q2[index])
+   Q = q2[index] * torch.eye(m)
+   R = r2[index] * torch.eye(n)
+   sys_model = SystemModel(F, Q, H_rotated, R, T, T_test)
    sys_model.InitSequence(m1_0, m2_0)
 
    # Mismatched model
-   sys_model_partialh = SystemModel(F, q, H, r, T, T_test)
+   sys_model_partialh = SystemModel(F, Q, H, R, T, T_test)
    sys_model_partialh.InitSequence(m1_0, m2_0)
 
    ###################################
@@ -230,7 +232,7 @@ for index in range(0,len(r2)):
    print("Estimated Observation matrix H:", H_hat)
 
    # Estimated model
-   sys_model_esth = SystemModel(F, q, H_hat, r, T, T_test)
+   sys_model_esth = SystemModel(F, Q, H_hat, R, T, T_test)
    sys_model_esth.InitSequence(m1_0, m2_0)
 
    RTSNet_Pipeline.setssModel(sys_model_esth)
