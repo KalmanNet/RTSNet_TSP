@@ -14,11 +14,11 @@ else:
 m = 3 # dim of state
 n = 3 # dim of observation
 variance = 0
-m1x_0 = torch.zeros(m, 1) # Initial State
+m1x_0 = torch.ones(m, 1) # Initial State
 m2x_0 = 0 * 0 * torch.eye(m) # Initial Covariance
 
-delta_t_gen =  1e-5
-delta_t = 1e-3
+delta_t_gen =  1e-3
+delta_t = 1e-1
 # Decimation ratio
 ratio = delta_t_gen/delta_t
 # Length of Time Series Sequence
@@ -57,8 +57,8 @@ q2 = torch.tensor([1]) # can be tuned
 
 
 
-Q_gen = 0 * torch.tensor([[1/20*delta_t_gen**5, 1/8*delta_t_gen**4,1/6*delta_t_gen**3],
-                           [ 1/8*delta_t_gen**4, 1/6*delta_t_gen**3,1/2*delta_t_gen**2],
+Q_gen = q2 * torch.tensor([[1/20*delta_t_gen**5, 1/8*delta_t_gen**4,1/6*delta_t_gen**3],
+                           [ 1/8*delta_t_gen**4, 1/3*delta_t_gen**3,1/2*delta_t_gen**2],
                            [ 1/6*delta_t_gen**3, 1/2*delta_t_gen**2,       delta_t_gen]]).float()
 
 Q =     q2 * torch.tensor([[1/20*delta_t**5, 1/8*delta_t**4,1/6*delta_t**3],

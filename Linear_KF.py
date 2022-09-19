@@ -48,6 +48,11 @@ class KalmanFilter:
     # Compute the Kalman Gain
     def KGain(self):
         self.KG = torch.matmul(self.m2x_prior, self.H_T)
+        try:
+          inverse = torch.inverse(self.m2y)
+        except:# if only observe position, m2y is singular
+          inverse = self.m2y
+          inverse[0,0] = 1/self.m2y[0,0]
         self.KG = torch.matmul(self.KG, torch.inverse(self.m2y))
 
     # Innovation

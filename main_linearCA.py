@@ -54,10 +54,10 @@ DatafolderName = 'Simulations/Linear_CA/data/'
 DatafileName = 'decimated_dt1e-3_T100_rq020.pt'
 data_gen = 'dt1e-5_T10000_rq020.pt'
 # Generation model
-sys_model_gen = SystemModel(F_gen, Q_gen, H_onlyPos, R_onlyPos, T_gen, T_test_gen)
+sys_model_gen = SystemModel(F_gen, Q_gen, H_onlyPos, R_onlyPos, T_gen, T_test_gen,onlyPos=True)
 sys_model_gen.InitSequence(m1x_0, m2x_0)# x0 and P0
 # Decimated model
-sys_model = SystemModel(F, Q, H_onlyPos, R_onlyPos, T, T_test)
+sys_model = SystemModel(F, Q, H_onlyPos, R_onlyPos, T, T_test,onlyPos=True)
 sys_model.InitSequence(m1x_0, m2x_0)
 
 print("Start Data Gen")

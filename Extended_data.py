@@ -165,7 +165,7 @@ def DecimateData(all_tensors, t_gen,t_mod, offset=0):
         if(i==0):
             all_tensors_out = torch.cat([tensor], dim=0).view(1,all_tensors.size()[1],-1)
         else:
-            all_tensors_out = torch.cat([all_tensors_out,tensor], dim=0)
+            all_tensors_out = torch.cat([all_tensors_out,tensor.view(1,all_tensors.size()[1],-1)], dim=0)
         i += 1
 
     return all_tensors_out

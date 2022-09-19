@@ -153,25 +153,33 @@ print("y size:",y.size())
 #       x_out[i,:,t] = torch.squeeze(torch.matmul(H_lmmse, y[i,:,t]))
 
 ### Invert h method
-x_out = torch.empty((num_of_seq,m,T))
-for i in range(num_of_seq):
-   for t in range(T):
-      x_out[i,:,t] = toCartesian(y[i,:,t])
+# x_out = torch.empty((num_of_seq,m,T))
+# for i in range(num_of_seq):
+#    for t in range(T):
+#       x_out[i,:,t] = toCartesian(y[i,:,t])
 
 ### Linear opt RTS
 
 
-MSE_linear_arr = torch.empty(num_of_seq)
-for j in range(num_of_seq):
-   MSE_linear_arr[j] = loss_fn(x_out[j,:,:], x[j,:,:]).item()
-MSE_linear_avg = torch.mean(MSE_linear_arr)
-MSE_dB_avg = 10 * torch.log10(MSE_linear_avg)
+# MSE_linear_arr = torch.empty(num_of_seq)
+# for j in range(num_of_seq):
+#    MSE_linear_arr[j] = loss_fn(x_out[j,:,:], x[j,:,:]).item()
+# MSE_linear_avg = torch.mean(MSE_linear_arr)
+# MSE_dB_avg = 10 * torch.log10(MSE_linear_avg)
 
- # Standard deviation
-MSE_linear_std = torch.std(MSE_linear_arr, unbiased=True)
+#  # Standard deviation
+# MSE_linear_std = torch.std(MSE_linear_arr, unbiased=True)
 
-# Confidence interval
-std_dB = 10 * torch.log10(MSE_linear_std + MSE_linear_avg) - MSE_dB_avg
+# # Confidence interval
+# std_dB = 10 * torch.log10(MSE_linear_std + MSE_linear_avg) - MSE_dB_avg
 
-print("MSE LOSS:", MSE_dB_avg, "[dB]")
-print("STD:", std_dB, "[dB]")
+# print("MSE LOSS:", MSE_dB_avg, "[dB]")
+# print("STD:", std_dB, "[dB]")
+
+#######################
+# torch.equal
+Q1 = torch.zeros(3,3)
+Q2 = torch.ones(3,3)
+panding1 = torch.equal(Q1,torch.zeros(3,3))
+panding2 = torch.equal(Q2,torch.zeros(3,3))
+print(panding1,panding2)
