@@ -51,8 +51,8 @@ path_results = 'RTSNet/'
 offset = 0
 chop = False
 DatafolderName = 'Simulations/Linear_CA/data/'
-DatafileName = 'decimated_dt1e-3_T100_rq020.pt'
-data_gen = 'dt1e-5_T10000_rq020.pt'
+DatafileName = 'decimated_dt1e-1_T100_r0.pt'
+data_gen = 'dt1e-3_T10000_rq00.pt'
 # Generation model
 sys_model_gen = SystemModel(F_gen, Q_gen, H_onlyPos, R_onlyPos, T_gen, T_test_gen,onlyPos=True)
 sys_model_gen.InitSequence(m1x_0, m2x_0)# x0 and P0
@@ -60,25 +60,29 @@ sys_model_gen.InitSequence(m1x_0, m2x_0)# x0 and P0
 sys_model = SystemModel(F, Q, H_onlyPos, R_onlyPos, T, T_test,onlyPos=True)
 sys_model.InitSequence(m1x_0, m2x_0)
 
-print("Start Data Gen")
-DataGen(sys_model_gen, DatafolderName+data_gen, T_gen, T_test_gen)
-print("Data Load")
-[train_input_gen, train_target_gen, cv_input_gen, cv_target_gen, test_input_gen, test_target_gen] = torch.load(DatafolderName+data_gen, map_location=dev)
-print("Original Data Shape")
-print("testset size:",test_target_gen.size())
-print("trainset size:",train_target_gen.size())
-print("cvset size:",cv_target_gen.size())
-print("Start Data Decimation")
-test_target = DecimateData(test_target_gen,delta_t_gen,delta_t, offset=offset) 
-train_target = DecimateData(train_target_gen,delta_t_gen,delta_t, offset=offset)
-cv_target = DecimateData(cv_target_gen,delta_t_gen,delta_t, offset=offset)
-test_input = DecimateData(test_input_gen,delta_t_gen,delta_t, offset=offset) 
-train_input = DecimateData(train_input_gen,delta_t_gen,delta_t, offset=offset)
-cv_input = DecimateData(cv_input_gen,delta_t_gen,delta_t, offset=offset)
-print("Decimated Data Shape")
-print("testset size:",test_target.size())
-print("trainset size:",train_target.size())
-print("cvset size:",cv_target.size())
+# print("Start Data Gen")
+# DataGen(sys_model_gen, DatafolderName+data_gen, T_gen, T_test_gen)
+# print("Load Original Data")
+# [train_input_gen, train_target_gen, cv_input_gen, cv_target_gen, test_input_gen, test_target_gen] = torch.load(DatafolderName+data_gen, map_location=dev)
+# print("Original Data Shape")
+# print("testset size:",test_target_gen.size())
+# print("trainset size:",train_target_gen.size())
+# print("cvset size:",cv_target_gen.size())
+# print("Start Data Decimation")
+# test_target = DecimateData(test_target_gen,delta_t_gen,delta_t, offset=offset) 
+# train_target = DecimateData(train_target_gen,delta_t_gen,delta_t, offset=offset)
+# cv_target = DecimateData(cv_target_gen,delta_t_gen,delta_t, offset=offset)
+# test_input = DecimateData(test_input_gen,delta_t_gen,delta_t, offset=offset) 
+# train_input = DecimateData(train_input_gen,delta_t_gen,delta_t, offset=offset)
+# cv_input = DecimateData(cv_input_gen,delta_t_gen,delta_t, offset=offset)
+# print("Decimated Data Shape")
+# print("testset size:",test_target.size())
+# print("trainset size:",train_target.size())
+# print("cvset size:",cv_target.size())
+
+print("Load Decimated Data")
+[train_input, train_target, cv_input, cv_target, test_input, test_target] = torch.load(DatafolderName+DatafileName, map_location=dev)
+
 
 ##############################
 ### Evaluate Kalman Filter ###
@@ -107,7 +111,7 @@ print("Number of trainable parameters for RTSNet:",sum(p.numel() for p in RTSNet
 RTSNet_Pipeline = Pipeline(strTime, "RTSNet", "RTSNet")
 RTSNet_Pipeline.setssModel(sys_model)
 RTSNet_Pipeline.setModel(RTSNet_model)
-RTSNet_Pipeline.setTrainingParams(n_Epochs=10000, n_Batch=50, learningRate=1E-3, weightDecay=1E-4)
+RTSNet_Pipeline.setTrainingParams(n_Epochs=10000, n_Batch=100, learningRate=1E-4, weightDecay=1E-5)
 # RTSNet_Pipeline.model = torch.load('RTSNet/new_architecture/linear_Journal/rq020_T100_randinit.pt',map_location=dev)
 ### Optinal: record parameters to wandb
 wandb.log({

@@ -53,15 +53,15 @@ H_onlyPos = torch.tensor([[1, 0, 0],
 ###############################################
 # Noise Parameters
 r2 = torch.tensor([1])
-q2 = torch.tensor([1]) # can be tuned
-
+q2 = torch.tensor([1]) 
+q2_tuned = torch.tensor([0.1]) # can be tuned
 
 
 Q_gen = q2 * torch.tensor([[1/20*delta_t_gen**5, 1/8*delta_t_gen**4,1/6*delta_t_gen**3],
                            [ 1/8*delta_t_gen**4, 1/3*delta_t_gen**3,1/2*delta_t_gen**2],
                            [ 1/6*delta_t_gen**3, 1/2*delta_t_gen**2,       delta_t_gen]]).float()
 
-Q =     q2 * torch.tensor([[1/20*delta_t**5, 1/8*delta_t**4,1/6*delta_t**3],
+Q =     q2_tuned * torch.tensor([[1/20*delta_t**5, 1/8*delta_t**4,1/6*delta_t**3],
                            [ 1/8*delta_t**4, 1/6*delta_t**3,1/2*delta_t**2],
                            [ 1/6*delta_t**3, 1/2*delta_t**2,       delta_t]]).float()
 

@@ -53,7 +53,7 @@ class KalmanFilter:
         except:# if only observe position, m2y is singular
           inverse = self.m2y
           inverse[0,0] = 1/self.m2y[0,0]
-        self.KG = torch.matmul(self.KG, torch.inverse(self.m2y))
+        self.KG = torch.matmul(self.KG, inverse)
 
     # Innovation
     def Innovation(self, y):
