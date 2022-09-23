@@ -50,51 +50,64 @@ path_results = 'RTSNet/'
 #############################
 offset = 0
 chop = False
+InitIsRandom_train = True
+InitIsRandom_cv = True
+InitIsRandom_test = True
 DatafolderName = 'Simulations/Linear_CA/data/'
-DatafileName = 'decimated_dt1e-1_T100_r0.pt'
-data_gen = 'dt1e-3_T10000_rq00.pt'
+DatafileName = 'decimated_dt1e-2_T100_r0_randnInit.pt'
+# data_gen = 'dt1e-3_T10000_rq00.pt'
 # Generation model
 sys_model_gen = SystemModel(F_gen, Q_gen, H_onlyPos, R_onlyPos, T_gen, T_test_gen,onlyPos=True)
 sys_model_gen.InitSequence(m1x_0, m2x_0)# x0 and P0
 # Decimated model
-sys_model = SystemModel(F, Q, H_onlyPos, R_onlyPos, T, T_test,onlyPos=True)
-sys_model.InitSequence(m1x_0, m2x_0)
+# sys_model = SystemModel(F, Q, H_onlyPos, R_onlyPos, T, T_test,onlyPos=True)
+# sys_model.InitSequence(m1x_0, m2x_0)
 
-# print("Start Data Gen")
-# DataGen(sys_model_gen, DatafolderName+data_gen, T_gen, T_test_gen)
-# print("Load Original Data")
-# [train_input_gen, train_target_gen, cv_input_gen, cv_target_gen, test_input_gen, test_target_gen] = torch.load(DatafolderName+data_gen, map_location=dev)
-# print("Original Data Shape")
-# print("testset size:",test_target_gen.size())
-# print("trainset size:",train_target_gen.size())
-# print("cvset size:",cv_target_gen.size())
+print("Start Data Gen")
+DataGen(sys_model_gen, DatafolderName+DatafileName, T_gen, T_test_gen,randomInit_train=InitIsRandom_train,randomInit_cv=InitIsRandom_cv,randomInit_test=InitIsRandom_test)
+print("Load Original Data")
+if(InitIsRandom_train or InitIsRandom_cv or InitIsRandom_test):
+   [train_input, train_target, train_init, cv_input, cv_target, cv_init, test_input, test_target, test_init] = torch.load(DatafolderName+DatafileName,map_location=dev)
+else:
+   [train_input, train_target, cv_input, cv_target, test_input, test_target] = torch.load(DatafolderName+DatafileName, map_location=dev)
+print("Data Shape")
+print("testset size:",test_target.size())
+print("trainset size:",train_target.size())
+print("cvset size:",cv_target.size())
+
+### Further Decimation
 # print("Start Data Decimation")
-# test_target = DecimateData(test_target_gen,delta_t_gen,delta_t, offset=offset) 
-# train_target = DecimateData(train_target_gen,delta_t_gen,delta_t, offset=offset)
-# cv_target = DecimateData(cv_target_gen,delta_t_gen,delta_t, offset=offset)
-# test_input = DecimateData(test_input_gen,delta_t_gen,delta_t, offset=offset) 
-# train_input = DecimateData(train_input_gen,delta_t_gen,delta_t, offset=offset)
-# cv_input = DecimateData(cv_input_gen,delta_t_gen,delta_t, offset=offset)
+# test_target = DecimateData(test_target,delta_t_gen,delta_t, offset=offset) 
+# train_target = DecimateData(train_target,delta_t_gen,delta_t, offset=offset)
+# cv_target = DecimateData(cv_target,delta_t_gen,delta_t, offset=offset)
+# test_input = DecimateData(test_input,delta_t_gen,delta_t, offset=offset) 
+# train_input = DecimateData(train_input,delta_t_gen,delta_t, offset=offset)
+# cv_input = DecimateData(cv_input,delta_t_gen,delta_t, offset=offset)
 # print("Decimated Data Shape")
 # print("testset size:",test_target.size())
 # print("trainset size:",train_target.size())
 # print("cvset size:",cv_target.size())
-
-print("Load Decimated Data")
-[train_input, train_target, cv_input, cv_target, test_input, test_target] = torch.load(DatafolderName+DatafileName, map_location=dev)
+# print("Load Decimated Data")
+# [train_input, train_target, cv_input, cv_target, test_input, test_target] = torch.load(DatafolderName+DatafileName, map_location=dev)
 
 
 ##############################
 ### Evaluate Kalman Filter ###
 ##############################
 print("Evaluate Kalman Filter")
-[MSE_KF_linear_arr, MSE_KF_linear_avg, MSE_KF_dB_avg] = KFTest(sys_model, test_input, test_target)
+if InitIsRandom_test:
+   [MSE_KF_linear_arr, MSE_KF_linear_avg, MSE_KF_dB_avg] = KFTest(sys_model_gen, test_input, test_target, randomInit = True, test_init=test_init)
+else: 
+   [MSE_KF_linear_arr, MSE_KF_linear_avg, MSE_KF_dB_avg] = KFTest(sys_model_gen, test_input, test_target)
 
 #############################
 ### Evaluate RTS Smoother ###
 #############################
 print("Evaluate RTS Smoother")
-[MSE_RTS_linear_arr, MSE_RTS_linear_avg, MSE_RTS_dB_avg, RTS_out] = S_Test(sys_model, test_input, test_target)
+if InitIsRandom_test:
+   [MSE_RTS_linear_arr, MSE_RTS_linear_avg, MSE_RTS_dB_avg, RTS_out] = S_Test(sys_model_gen, test_input, test_target, randomInit = True,test_init=test_init)
+else:
+   [MSE_RTS_linear_arr, MSE_RTS_linear_avg, MSE_RTS_dB_avg, RTS_out] = S_Test(sys_model_gen, test_input, test_target)
 
 #######################
 ### RTSNet Pipeline ###
@@ -105,11 +118,11 @@ print("Evaluate RTS Smoother")
 wandb.init(project="RTSNet_LinearCA")
 print("RTSNet pipeline start!")
 RTSNet_model = RTSNetNN()
-RTSNet_model.NNBuild(sys_model)
+RTSNet_model.NNBuild(sys_model_gen)
 print("Number of trainable parameters for RTSNet:",sum(p.numel() for p in RTSNet_model.parameters() if p.requires_grad))
 ## Train Neural Network
 RTSNet_Pipeline = Pipeline(strTime, "RTSNet", "RTSNet")
-RTSNet_Pipeline.setssModel(sys_model)
+RTSNet_Pipeline.setssModel(sys_model_gen)
 RTSNet_Pipeline.setModel(RTSNet_model)
 RTSNet_Pipeline.setTrainingParams(n_Epochs=10000, n_Batch=100, learningRate=1E-4, weightDecay=1E-5)
 # RTSNet_Pipeline.model = torch.load('RTSNet/new_architecture/linear_Journal/rq020_T100_randinit.pt',map_location=dev)
@@ -119,9 +132,9 @@ wandb.log({
 "batch_size": RTSNet_Pipeline.N_B,
 "weight_decay": RTSNet_Pipeline.weightDecay})
 #######################################
-[MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results)
+[MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model_gen, cv_input, cv_target, train_input, train_target, path_results)
 ## Test Neural Network
-[MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model, test_input, test_target, path_results)
+[MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model_gen, test_input, test_target, path_results)
 RTSNet_Pipeline.save()
 
 ### Vanilla RNN with full info ###################################################################################

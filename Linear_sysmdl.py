@@ -178,11 +178,21 @@ class SystemModel:
 
             # Randomize initial conditions to get a rich dataset
             if(randomInit):
+                """ 
+                ### Uncomment this if Uniform Distribution for random init 
                 variance = 100
                 initConditions = torch.rand_like(self.m1x_0) * variance
                 self.m1x_0_rand[i,:] = torch.squeeze(initConditions)
+                """
+
+                ### if Normal Distribution for random init
+                distrib = MultivariateNormal(loc=self.m1x_0, covariance_matrix=self.m2x_0)
+                initConditions = distrib.rsample()
+                initConditions = torch.reshape(initConditions[:],[self.m,1])
+                self.m1x_0_rand[i,:] = torch.squeeze(initConditions)
+                
             
-            self.InitSequence(initConditions, self.m2x_0)
+            self.InitSequence(initConditions, self.m2x_0)### for sequence generation
 
             if(randomLength):
                 self.GenerateSequence(self.Q, self.R, T_tensor[i].item())
