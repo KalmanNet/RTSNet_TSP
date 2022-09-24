@@ -122,7 +122,7 @@ class Pipeline_ERTS:
                 LOSS = 0
                 if (CompositionLoss):
                     if(MaskOnState):
-                        mask = torch.tensor([True,True,True,False,False,False])
+                        mask = torch.tensor([True,False,False])
                         y_hat = torch.empty([SysModel.n, SysModel.T]).to(dev, non_blocking=True) 
                         for t in range(SysModel.T):
                             y_hat[:,t] = SysModel.h(x_out_training[:,t])
@@ -135,7 +135,7 @@ class Pipeline_ERTS:
                 
                 else:
                     if(MaskOnState):
-                        mask = torch.tensor([True,True,True,False,False,False])
+                        mask = torch.tensor([True,False,False])
                         LOSS = self.loss_fn(x_out_training[mask], train_target[n_e][mask])
                     else:
                         LOSS = self.loss_fn(x_out_training, train_target[n_e])
@@ -214,7 +214,7 @@ class Pipeline_ERTS:
 
                     # Compute CV Loss
                     if(MaskOnState):
-                        mask = torch.tensor([True,True,True,False,False,False])
+                        mask = torch.tensor([True,False,False])
                         MSE_cv_linear_batch[j] = self.loss_fn(x_out_cv[mask], cv_target[j][mask]).item()
                     else:
                         MSE_cv_linear_batch[j] = self.loss_fn(x_out_cv, cv_target[j]).item()
@@ -307,7 +307,7 @@ class Pipeline_ERTS:
             #     x_out_test = x_out_test_2
 
             if(MaskOnState):
-                mask = torch.tensor([True,True,True,False,False,False])
+                mask = torch.tensor([True,False,False])
                 self.MSE_test_linear_arr[j] = loss_fn(x_out_test[mask], test_target[j][mask]).item()
             else:
                 self.MSE_test_linear_arr[j] = loss_fn(x_out_test, test_target[j]).item()

@@ -4,7 +4,7 @@ import time
 from Linear_KF import KalmanFilter
 from RTS_Smoother import rts_smoother
 
-def S_Test(SysModel, test_input, test_target, randomInit = False,test_init=None):
+def S_Test(SysModel, test_input, test_target, allStates=True, randomInit = False,test_init=None):
 
     # LOSS
     loss_rts = nn.MSELoss(reduction='mean')
@@ -27,11 +27,12 @@ def S_Test(SysModel, test_input, test_target, randomInit = False,test_init=None)
             
         KF.GenerateSequence(sequence_input, sequence_input.size()[-1])
         RTS.GenerateSequence(KF.x, KF.sigma, sequence_input.size()[-1])
-        # if(kitti):
-        #     MSE_RTS_linear_arr[j] = loss_rts(RTS.s_x[mask], sequence_target[mask]).item()     
-        # else:
-        #     MSE_RTS_linear_arr[j] = loss_rts(RTS.s_x, sequence_target).item()  
-        MSE_RTS_linear_arr[j] = loss_rts(RTS.s_x, sequence_target).item()
+        
+        if(allStates):
+            MSE_RTS_linear_arr[j] = loss_rts(RTS.s_x, sequence_target).item()
+        else:
+            loc = torch.tensor([True,False,False]) # for position only
+            MSE_RTS_linear_arr[j] = loss_rts(RTS.s_x[loc,:], sequence_target[loc,:]).item()
         RTS_out.append(RTS.s_x)      
         j=j+1
     end = time.time()

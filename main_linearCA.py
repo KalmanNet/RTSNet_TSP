@@ -49,10 +49,11 @@ path_results = 'RTSNet/'
 ###  Dataset Generation   ###
 #############################
 offset = 0
-chop = False
 InitIsRandom_train = True
 InitIsRandom_cv = True
 InitIsRandom_test = True
+Loss_On_AllState = False # if false: only calculate loss on position
+Train_Loss_On_AllState = True # if false: only calculate training loss on position
 DatafolderName = 'Simulations/Linear_CA/data/'
 DatafileName = 'decimated_dt1e-2_T100_r0_randnInit.pt'
 # data_gen = 'dt1e-3_T10000_rq00.pt'
@@ -63,8 +64,8 @@ sys_model_gen.InitSequence(m1x_0, m2x_0)# x0 and P0
 # sys_model = SystemModel(F, Q, H_onlyPos, R_onlyPos, T, T_test,onlyPos=True)
 # sys_model.InitSequence(m1x_0, m2x_0)
 
-print("Start Data Gen")
-DataGen(sys_model_gen, DatafolderName+DatafileName, T_gen, T_test_gen,randomInit_train=InitIsRandom_train,randomInit_cv=InitIsRandom_cv,randomInit_test=InitIsRandom_test)
+# print("Start Data Gen")
+# DataGen(sys_model_gen, DatafolderName+DatafileName, T_gen, T_test_gen,randomInit_train=InitIsRandom_train,randomInit_cv=InitIsRandom_cv,randomInit_test=InitIsRandom_test)
 print("Load Original Data")
 if(InitIsRandom_train or InitIsRandom_cv or InitIsRandom_test):
    [train_input, train_target, train_init, cv_input, cv_target, cv_init, test_input, test_target, test_init] = torch.load(DatafolderName+DatafileName,map_location=dev)
@@ -90,24 +91,24 @@ print("cvset size:",cv_target.size())
 # print("Load Decimated Data")
 # [train_input, train_target, cv_input, cv_target, test_input, test_target] = torch.load(DatafolderName+DatafileName, map_location=dev)
 
-
+print("Compute Loss on All States (if false, loss on position only):", Loss_On_AllState)
 ##############################
 ### Evaluate Kalman Filter ###
 ##############################
 print("Evaluate Kalman Filter")
 if InitIsRandom_test:
-   [MSE_KF_linear_arr, MSE_KF_linear_avg, MSE_KF_dB_avg] = KFTest(sys_model_gen, test_input, test_target, randomInit = True, test_init=test_init)
+   [MSE_KF_linear_arr, MSE_KF_linear_avg, MSE_KF_dB_avg] = KFTest(sys_model_gen, test_input, test_target, allStates=Loss_On_AllState, randomInit = True, test_init=test_init)
 else: 
-   [MSE_KF_linear_arr, MSE_KF_linear_avg, MSE_KF_dB_avg] = KFTest(sys_model_gen, test_input, test_target)
+   [MSE_KF_linear_arr, MSE_KF_linear_avg, MSE_KF_dB_avg] = KFTest(sys_model_gen, test_input, test_target, allStates=Loss_On_AllState)
 
 #############################
 ### Evaluate RTS Smoother ###
 #############################
 print("Evaluate RTS Smoother")
 if InitIsRandom_test:
-   [MSE_RTS_linear_arr, MSE_RTS_linear_avg, MSE_RTS_dB_avg, RTS_out] = S_Test(sys_model_gen, test_input, test_target, randomInit = True,test_init=test_init)
+   [MSE_RTS_linear_arr, MSE_RTS_linear_avg, MSE_RTS_dB_avg, RTS_out] = S_Test(sys_model_gen, test_input, test_target, allStates=Loss_On_AllState, randomInit = True,test_init=test_init)
 else:
-   [MSE_RTS_linear_arr, MSE_RTS_linear_avg, MSE_RTS_dB_avg, RTS_out] = S_Test(sys_model_gen, test_input, test_target)
+   [MSE_RTS_linear_arr, MSE_RTS_linear_avg, MSE_RTS_dB_avg, RTS_out] = S_Test(sys_model_gen, test_input, test_target, allStates=Loss_On_AllState)
 
 #######################
 ### RTSNet Pipeline ###
@@ -124,17 +125,24 @@ print("Number of trainable parameters for RTSNet:",sum(p.numel() for p in RTSNet
 RTSNet_Pipeline = Pipeline(strTime, "RTSNet", "RTSNet")
 RTSNet_Pipeline.setssModel(sys_model_gen)
 RTSNet_Pipeline.setModel(RTSNet_model)
-RTSNet_Pipeline.setTrainingParams(n_Epochs=10000, n_Batch=100, learningRate=1E-4, weightDecay=1E-5)
+RTSNet_Pipeline.setTrainingParams(n_Epochs=5000, n_Batch=10, learningRate=1E-4, weightDecay=1E-4)
 # RTSNet_Pipeline.model = torch.load('RTSNet/new_architecture/linear_Journal/rq020_T100_randinit.pt',map_location=dev)
 ### Optinal: record parameters to wandb
 wandb.log({
+"Train_Loss_On_AllState": Train_Loss_On_AllState,
+"Test_Loss_On_AllState": Loss_On_AllState,
 "learning_rate": RTSNet_Pipeline.learningRate,
 "batch_size": RTSNet_Pipeline.N_B,
 "weight_decay": RTSNet_Pipeline.weightDecay})
 #######################################
-[MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model_gen, cv_input, cv_target, train_input, train_target, path_results)
-## Test Neural Network
-[MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model_gen, test_input, test_target, path_results)
+if (InitIsRandom_train or InitIsRandom_cv or InitIsRandom_test):
+   [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model_gen, cv_input, cv_target, train_input, train_target, path_results, MaskOnState=~Train_Loss_On_AllState, randomInit = True, cv_init=cv_init,train_init=train_init)
+   ## Test Neural Network
+   [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model_gen, test_input, test_target, path_results,MaskOnState=~Loss_On_AllState,randomInit=True,test_init=test_init)
+else:
+   [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model_gen, cv_input, cv_target, train_input, train_target, path_results, MaskOnState=~Train_Loss_On_AllState)
+   ## Test Neural Network
+   [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model_gen, test_input, test_target, path_results,MaskOnState=~Loss_On_AllState)
 RTSNet_Pipeline.save()
 
 ### Vanilla RNN with full info ###################################################################################

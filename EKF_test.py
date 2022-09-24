@@ -33,8 +33,8 @@ def EKFTest(SysModel, test_input, test_target, allStates=True, randomInit = Fals
         if(allStates):
             MSE_EKF_linear_arr[j] = loss_fn(EKF.x, sequence_target).item()
         else:
-            loc = torch.tensor([True,False,True,False])
-            MSE_EKF_linear_arr[j] = loss_fn(EKF.x[loc,:], sequence_target).item()
+            loc = torch.tensor([True,False,False]) # for position only
+            MSE_EKF_linear_arr[j] = loss_fn(EKF.x[loc,:], sequence_target[loc,:]).item()
         KG_array = torch.add(EKF.KG_array, KG_array) 
         EKF_out.append(EKF.x)
         j = j+1
