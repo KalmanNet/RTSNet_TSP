@@ -136,13 +136,17 @@ wandb.log({
 "weight_decay": RTSNet_Pipeline.weightDecay})
 #######################################
 if (InitIsRandom_train or InitIsRandom_cv or InitIsRandom_test):
-   [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model_gen, cv_input, cv_target, train_input, train_target, path_results, MaskOnState=~Train_Loss_On_AllState, randomInit = True, cv_init=cv_init,train_init=train_init)
+   print("Train Loss on All States (if false, loss on position only):", Train_Loss_On_AllState)
+   [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model_gen, cv_input, cv_target, train_input, train_target, path_results, MaskOnState=not Train_Loss_On_AllState, randomInit = True, cv_init=cv_init,train_init=train_init)
    ## Test Neural Network
-   [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model_gen, test_input, test_target, path_results,MaskOnState=~Loss_On_AllState,randomInit=True,test_init=test_init)
+   print("Compute Loss on All States (if false, loss on position only):", Loss_On_AllState)
+   [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model_gen, test_input, test_target, path_results,MaskOnState=not Loss_On_AllState,randomInit=True,test_init=test_init)
 else:
-   [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model_gen, cv_input, cv_target, train_input, train_target, path_results, MaskOnState=~Train_Loss_On_AllState)
+   print("Train Loss on All States (if false, loss on position only):", Train_Loss_On_AllState)
+   [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model_gen, cv_input, cv_target, train_input, train_target, path_results, MaskOnState=not Train_Loss_On_AllState)
    ## Test Neural Network
-   [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model_gen, test_input, test_target, path_results,MaskOnState=~Loss_On_AllState)
+   print("Compute Loss on All States (if false, loss on position only):", Loss_On_AllState)
+   [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model_gen, test_input, test_target, path_results,MaskOnState=not Loss_On_AllState)
 RTSNet_Pipeline.save()
 
 ### Vanilla RNN with full info ###################################################################################

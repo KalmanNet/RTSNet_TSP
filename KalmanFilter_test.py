@@ -4,7 +4,7 @@ import time
 from Linear_KF import KalmanFilter
 from Extended_data import N_T
 
-def KFTest(SysModel, test_input, test_target, randomInit = False, test_init=None):
+def KFTest(SysModel, test_input, test_target, allStates=True, randomInit = False, test_init=None):
 
     # LOSS
     loss_fn = nn.MSELoss(reduction='mean')
@@ -23,7 +23,12 @@ def KFTest(SysModel, test_input, test_target, randomInit = False, test_init=None
             
         KF.GenerateSequence(sequence_input, sequence_input.size()[-1])
 
-        MSE_KF_linear_arr[j] = loss_fn(KF.x, sequence_target).item()
+        
+        if(allStates):
+            MSE_KF_linear_arr[j] = loss_fn(KF.x, sequence_target).item()
+        else:
+            loc = torch.tensor([True,False,False]) # for position only
+            MSE_KF_linear_arr[j] = loss_fn(KF.x[loc,:], sequence_target[loc,:]).item()
         #MSE_KF_linear_arr[j] = loss_fn(test_input[j, :, :], test_target[j, :, :]).item()
         j=j+1
     end = time.time()
