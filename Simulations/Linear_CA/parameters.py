@@ -30,6 +30,10 @@ F_gen = torch.tensor([[1, delta_t_gen,0.5*delta_t_gen**2],
                   [0,       1,       delta_t_gen],
                   [0,       0,         1]]).float()
 
+F_CV = torch.tensor([[1, delta_t_gen,0],
+                     [0,       1,    0],
+                     [0,       0,    0]]).float()                 
+
 # Full observation
 H_identity = torch.eye(3)
 # Observe only the postion
@@ -47,6 +51,10 @@ q2 = torch.tensor([1])
 Q_gen = q2 * torch.tensor([[1/20*delta_t_gen**5, 1/8*delta_t_gen**4,1/6*delta_t_gen**3],
                            [ 1/8*delta_t_gen**4, 1/3*delta_t_gen**3,1/2*delta_t_gen**2],
                            [ 1/6*delta_t_gen**3, 1/2*delta_t_gen**2,       delta_t_gen]]).float()
+
+Q_CV = q2 * torch.tensor([[1/3*delta_t_gen**3, 1/2*delta_t_gen**2,0],
+                          [1/2*delta_t_gen**2, delta_t_gen,       0],
+                           [ 0,                  0,               0]]).float()   
 
 R = r2 * torch.eye(n)
 

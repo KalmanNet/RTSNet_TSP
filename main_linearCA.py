@@ -19,7 +19,7 @@ import wandb
 from filing_paths import path_model
 import sys
 sys.path.insert(1, path_model)
-from parameters import F, F_gen, H_identity, H_onlyPos,Q,Q_gen,R,R_onlyPos,\
+from parameters import F, F_gen, F_CV, H_identity, H_onlyPos,Q,Q_gen,Q_CV, R,R_onlyPos,\
 m1x_0, m2x_0, m, n,delta_t_gen,delta_t,T,T_test,T_gen,T_test_gen
 
 if torch.cuda.is_available():
@@ -53,11 +53,13 @@ InitIsRandom_train = True
 InitIsRandom_cv = True
 InitIsRandom_test = True
 Loss_On_AllState = False # if false: only calculate loss on position
-Train_Loss_On_AllState = True # if false: only calculate training loss on position
+Train_Loss_On_AllState = False # if false: only calculate training loss on position
+CV_model = True # if true: use CV model, else: use CA model
+
 DatafolderName = 'Simulations/Linear_CA/data/'
 DatafileName = 'decimated_dt1e-2_T100_r0_randnInit.pt'
 # data_gen = 'dt1e-3_T10000_rq00.pt'
-# Generation model
+# Generation model (CA)
 sys_model_gen = SystemModel(F_gen, Q_gen, H_onlyPos, R_onlyPos, T_gen, T_test_gen,onlyPos=True)
 sys_model_gen.InitSequence(m1x_0, m2x_0)# x0 and P0
 # Decimated model
@@ -92,6 +94,10 @@ print("cvset size:",cv_target.size())
 # [train_input, train_target, cv_input, cv_target, test_input, test_target] = torch.load(DatafolderName+DatafileName, map_location=dev)
 
 print("Compute Loss on All States (if false, loss on position only):", Loss_On_AllState)
+# CV model
+if CV_model:
+   sys_model_gen = SystemModel(F_CV, Q_CV, H_onlyPos, R_onlyPos, T_gen, T_test_gen,onlyPos=True)
+   sys_model_gen.InitSequence(m1x_0, m2x_0)# x0 and P0
 ##############################
 ### Evaluate Kalman Filter ###
 ##############################
