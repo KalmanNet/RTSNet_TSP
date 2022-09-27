@@ -28,7 +28,12 @@ class rts_smoother:
         self.SG = torch.matmul(filter_sigma, self.F_T)
         filter_sigma_prior = torch.matmul(self.F, filter_sigma)
         filter_sigma_prior = torch.matmul(filter_sigma_prior, self.F_T) + self.Q
-        self.SG = torch.matmul(self.SG, torch.inverse(filter_sigma_prior))
+        try:
+          inverse = torch.inverse(filter_sigma_prior)
+        except:# if CV model, filter_sigma_prior is singular
+          inverse = torch.zeros_like(filter_sigma_prior)
+          inverse[0:1,0:1] = torch.inverse(filter_sigma_prior[0:1,0:1])
+        self.SG = torch.matmul(self.SG, inverse)
     
     # Innovation for Smoother
     def S_Innovation(self, filter_x, filter_sigma):
