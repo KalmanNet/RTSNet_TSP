@@ -11,8 +11,9 @@ else:
 ####################################
 ### Generative Parameters For CA ###
 ####################################
-m = 3 # dim of state
-n = 3 # dim of observation
+m = 3 # dim of state for CA model
+m_cv = 2 # dim of state for CV model
+n = 1 # dim of observation
 std = 1
 m1x_0 = torch.zeros(m, 1) # Initial State
 m2x_0 = std * std * torch.eye(m) # Initial Covariance
@@ -30,16 +31,13 @@ F_gen = torch.tensor([[1, delta_t_gen,0.5*delta_t_gen**2],
                   [0,       1,       delta_t_gen],
                   [0,       0,         1]]).float()
 
-F_CV = torch.tensor([[1, delta_t_gen,0],
-                     [0,       1,    0],
-                     [0,       0,    0]]).float()                 
+F_CV = torch.tensor([[1, delta_t_gen],
+                     [0,           1]]).float()              
 
 # Full observation
 H_identity = torch.eye(3)
 # Observe only the postion
-H_onlyPos = torch.tensor([[1, 0, 0],
-                          [0, 0, 0],
-                          [0, 0, 0]]).float()
+H_onlyPos = torch.tensor([1, 0, 0]).float()
 
 ###############################################
 ### process noise Q and observation noise R ###
@@ -52,13 +50,12 @@ Q_gen = q2 * torch.tensor([[1/20*delta_t_gen**5, 1/8*delta_t_gen**4,1/6*delta_t_
                            [ 1/8*delta_t_gen**4, 1/3*delta_t_gen**3,1/2*delta_t_gen**2],
                            [ 1/6*delta_t_gen**3, 1/2*delta_t_gen**2,       delta_t_gen]]).float()
 
-Q_CV = q2 * torch.tensor([[1/3*delta_t_gen**3, 1/2*delta_t_gen**2,0],
-                          [1/2*delta_t_gen**2, delta_t_gen,       0],
-                           [ 0,                  0,               0]]).float()   
+Q_CV = q2 * torch.tensor([[1/3*delta_t_gen**3, 1/2*delta_t_gen**2],
+                          [1/2*delta_t_gen**2,        delta_t_gen]]).float()  
 
 R = r2 * torch.eye(n)
 
-R_onlyPos = r2 * H_onlyPos 
+R_onlyPos = r2
 
 ##########################
 ### Further Decimation ###

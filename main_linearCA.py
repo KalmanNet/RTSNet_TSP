@@ -20,7 +20,7 @@ from filing_paths import path_model
 import sys
 sys.path.insert(1, path_model)
 from parameters import F, F_gen, F_CV, H_identity, H_onlyPos,Q,Q_gen,Q_CV, R,R_onlyPos,\
-m1x_0, m2x_0, m, n,delta_t_gen,delta_t,T,T_test,T_gen,T_test_gen
+m1x_0, m2x_0, m, m_cv,n,delta_t_gen,delta_t,T,T_test,T_gen,T_test_gen
 
 if torch.cuda.is_available():
    dev = torch.device("cuda:0")  # you can continue going on here, like cuda:1 cuda:2....etc.
@@ -52,27 +52,46 @@ offset = 0
 InitIsRandom_train = True
 InitIsRandom_cv = True
 InitIsRandom_test = True
-Loss_On_AllState = False # if false: only calculate loss on position
+Loss_On_AllState = True # if false: only calculate loss on position
 Train_Loss_On_AllState = False # if false: only calculate training loss on position
-CV_model = True # if true: use CV model, else: use CA model
+CV_model = False # if true: use CV model, else: use CA model
 
 DatafolderName = 'Simulations/Linear_CA/data/'
-DatafileName = 'decimated_dt1e-2_T100_r0_randnInit.pt'
+DatafileName = 'New_decimated_dt1e-2_T100_r0_randnInit.pt'
 # data_gen = 'dt1e-3_T10000_rq00.pt'
 # Generation model (CA)
-sys_model_gen = SystemModel(F_gen, Q_gen, H_onlyPos, R_onlyPos, T_gen, T_test_gen,onlyPos=True)
+sys_model_gen = SystemModel(F_gen, Q_gen, H_onlyPos, R_onlyPos, T_gen, T_test_gen)
 sys_model_gen.InitSequence(m1x_0, m2x_0)# x0 and P0
 # Decimated model
-# sys_model = SystemModel(F, Q, H_onlyPos, R_onlyPos, T, T_test,onlyPos=True)
+# sys_model = SystemModel(F, Q, H_onlyPos, R_onlyPos, T, T_test)
 # sys_model.InitSequence(m1x_0, m2x_0)
 
-# print("Start Data Gen")
-# DataGen(sys_model_gen, DatafolderName+DatafileName, T_gen, T_test_gen,randomInit_train=InitIsRandom_train,randomInit_cv=InitIsRandom_cv,randomInit_test=InitIsRandom_test)
+print("Start Data Gen")
+DataGen(sys_model_gen, DatafolderName+DatafileName, T_gen, T_test_gen,randomInit_train=InitIsRandom_train,randomInit_cv=InitIsRandom_cv,randomInit_test=InitIsRandom_test)
 print("Load Original Data")
 if(InitIsRandom_train or InitIsRandom_cv or InitIsRandom_test):
    [train_input, train_target, train_init, cv_input, cv_target, cv_init, test_input, test_target, test_init] = torch.load(DatafolderName+DatafileName,map_location=dev)
+   if CV_model:# set state as (p,v) instead of (p,v,a)
+      train_target = train_target[:,0:m_cv,:]
+      train_init = train_init[:,0:m_cv,:]
+      cv_target = cv_target[:,0:m_cv,:]
+      cv_init = cv_init[:,0:m_cv,:]
+      test_target = test_target[:,0:m_cv,:]
+      test_init = test_init[:,0:m_cv,:]
+
 else:
    [train_input, train_target, cv_input, cv_target, test_input, test_target] = torch.load(DatafolderName+DatafileName, map_location=dev)
+   if CV_model:# set state as (p,v) instead of (p,v,a)
+      train_target = train_target[:,0:m_cv,:]
+      cv_target = cv_target[:,0:m_cv,:]
+      test_target = test_target[:,0:m_cv,:]
+
+# CV model
+if CV_model:
+   sys_model_gen = SystemModel(F_CV, Q_CV, H_onlyPos, R_onlyPos, T_gen, T_test_gen)
+   sys_model_gen.InitSequence(m1x_0, m2x_0)# x0 and P0
+
+
 print("Data Shape")
 print("testset size:",test_target.size())
 print("trainset size:",train_target.size())
@@ -94,10 +113,6 @@ print("cvset size:",cv_target.size())
 # [train_input, train_target, cv_input, cv_target, test_input, test_target] = torch.load(DatafolderName+DatafileName, map_location=dev)
 
 print("Compute Loss on All States (if false, loss on position only):", Loss_On_AllState)
-# CV model
-if CV_model:
-   sys_model_gen = SystemModel(F_CV, Q_CV, H_onlyPos, R_onlyPos, T_gen, T_test_gen,onlyPos=True)
-   sys_model_gen.InitSequence(m1x_0, m2x_0)# x0 and P0
 ##############################
 ### Evaluate Kalman Filter ###
 ##############################
@@ -131,7 +146,7 @@ print("Number of trainable parameters for RTSNet:",sum(p.numel() for p in RTSNet
 RTSNet_Pipeline = Pipeline(strTime, "RTSNet", "RTSNet")
 RTSNet_Pipeline.setssModel(sys_model_gen)
 RTSNet_Pipeline.setModel(RTSNet_model)
-RTSNet_Pipeline.setTrainingParams(n_Epochs=5000, n_Batch=10, learningRate=1E-4, weightDecay=1E-4)
+RTSNet_Pipeline.setTrainingParams(n_Epochs=4000, n_Batch=10, learningRate=1E-4, weightDecay=1E-4)
 # RTSNet_Pipeline.model = torch.load('RTSNet/new_architecture/linear_Journal/rq020_T100_randinit.pt',map_location=dev)
 ### Optinal: record parameters to wandb
 wandb.log({

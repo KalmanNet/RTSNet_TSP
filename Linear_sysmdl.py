@@ -10,7 +10,7 @@ else:
 
 class SystemModel:
 
-    def __init__(self, F, Q, H, R, T, T_test, prior_Q=None, prior_Sigma=None, prior_S=None,onlyPos=False):
+    def __init__(self, F, Q, H, R, T, T_test, prior_Q=None, prior_Sigma=None, prior_S=None):
 
         ####################
         ### Motion Model ###
@@ -51,7 +51,6 @@ class SystemModel:
         else:
             self.prior_S = prior_S
         
-        self.onlyPos = onlyPos
 
     def f(self, x):
         return torch.matmul(self.F, x)
@@ -116,11 +115,6 @@ class SystemModel:
             # Observation Noise
             if torch.equal(R_gen,torch.zeros(self.n,self.n)):# No noise
                 yt = self.H.matmul(xt)
-            elif self.onlyPos:# only observe positions
-                yt = self.H.matmul(xt)
-                er = torch.normal(0, R_gen[0,0])                    
-                # Additive Observation Noise
-                yt[0] = torch.add(yt[0],er)
             else:  
                 yt = self.H.matmul(xt)
                 mean = torch.zeros([self.n])            
