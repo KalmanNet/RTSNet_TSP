@@ -99,6 +99,11 @@ class SystemModel:
             ########################   
             if torch.equal(Q_gen,torch.zeros(self.m,self.m)):# No noise
                 xt = self.F.matmul(self.x_prev)
+            elif self.m == 1: # 1 dim noise
+                xt = self.F.matmul(self.x_prev)
+                eq = torch.normal(mean=0, std=Q_gen)
+                # Additive Process Noise
+                xt = torch.add(xt,eq)
             else:            
                 xt = self.F.matmul(self.x_prev)
                 mean = torch.zeros([self.m])              
@@ -115,6 +120,11 @@ class SystemModel:
             # Observation Noise
             if torch.equal(R_gen,torch.zeros(self.n,self.n)):# No noise
                 yt = self.H.matmul(xt)
+            elif self.n == 1: # 1 dim noise
+                yt = self.H.matmul(xt)
+                er = torch.normal(mean=0, std=R_gen)
+                # Additive Observation Noise
+                yt = torch.add(yt,er)
             else:  
                 yt = self.H.matmul(xt)
                 mean = torch.zeros([self.n])            
@@ -180,7 +190,7 @@ class SystemModel:
                 """
 
                 ### if Normal Distribution for random init
-                distrib = MultivariateNormal(loc=self.m1x_0, covariance_matrix=self.m2x_0)
+                distrib = MultivariateNormal(loc=torch.squeeze(self.m1x_0), covariance_matrix=self.m2x_0)
                 initConditions = distrib.rsample()
                 initConditions = torch.reshape(initConditions[:],[self.m,1])
                 self.m1x_0_rand[i,:] = torch.squeeze(initConditions)

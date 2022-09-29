@@ -15,7 +15,7 @@ m = 3 # dim of state for CA model
 m_cv = 2 # dim of state for CV model
 n = 1 # dim of observation
 std = 1
-m1x_0 = torch.zeros(m, 1) # Initial State
+m1x_0 = torch.zeros(m) # Initial State
 m2x_0 = std * std * torch.eye(m) # Initial Covariance
 
 delta_t_gen =  1e-2
@@ -37,14 +37,14 @@ F_CV = torch.tensor([[1, delta_t_gen],
 # Full observation
 H_identity = torch.eye(3)
 # Observe only the postion
-H_onlyPos = torch.tensor([1, 0, 0]).float()
+H_onlyPos = torch.tensor([[1, 0, 0]]).float()
 
 ###############################################
 ### process noise Q and observation noise R ###
 ###############################################
 # Noise Parameters
-r2 = torch.tensor([1])
-q2 = torch.tensor([1]) 
+r2 = torch.tensor([1]).float()
+q2 = torch.tensor([1]).float()
 
 Q_gen = q2 * torch.tensor([[1/20*delta_t_gen**5, 1/8*delta_t_gen**4,1/6*delta_t_gen**3],
                            [ 1/8*delta_t_gen**4, 1/3*delta_t_gen**3,1/2*delta_t_gen**2],
