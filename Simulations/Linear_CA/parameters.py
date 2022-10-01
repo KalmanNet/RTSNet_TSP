@@ -16,7 +16,9 @@ m_cv = 2 # dim of state for CV model
 n = 1 # dim of observation
 std = 1
 m1x_0 = torch.zeros(m) # Initial State
+m1x_0_cv = torch.zeros(m_cv) # Initial State for CV
 m2x_0 = std * std * torch.eye(m) # Initial Covariance
+m2x_0_cv = std * std * torch.eye(m_cv) # Initial Covariance for CV
 
 delta_t_gen =  1e-2
 # Length of Time Series Sequence

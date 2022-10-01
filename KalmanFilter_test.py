@@ -15,6 +15,11 @@ def KFTest(SysModel, test_input, test_target, allStates=True, randomInit = False
     KF = KalmanFilter(SysModel)
     j=0
 
+    if not allStates:
+        loc = torch.tensor([True,False,False]) # for position only
+        if SysModel.m == 2: 
+            loc = torch.tensor([True,False]) # for position only
+
     for sequence_target,sequence_input in zip(test_target,test_input):
         if(randomInit):
             KF.InitSequence(torch.unsqueeze(test_init[j,:],1), SysModel.m2x_0)        
@@ -27,7 +32,6 @@ def KFTest(SysModel, test_input, test_target, allStates=True, randomInit = False
         if(allStates):
             MSE_KF_linear_arr[j] = loss_fn(KF.x, sequence_target).item()
         else:
-            loc = torch.tensor([True,False,False]) # for position only
             MSE_KF_linear_arr[j] = loss_fn(KF.x[loc,:], sequence_target[loc,:]).item()
         #MSE_KF_linear_arr[j] = loss_fn(test_input[j, :, :], test_target[j, :, :]).item()
         j=j+1

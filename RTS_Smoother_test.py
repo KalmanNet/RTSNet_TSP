@@ -16,6 +16,12 @@ def S_Test(SysModel, test_input, test_target, allStates=True, randomInit = False
     KF = KalmanFilter(SysModel)
     RTS = rts_smoother(SysModel)
     RTS_out = [] # allocate for saving output
+
+    if not allStates:
+        loc = torch.tensor([True,False,False]) # for position only
+        if SysModel.m == 2: 
+            loc = torch.tensor([True,False]) # for position only
+
     j=0
     # mask = torch.tensor([True,True,True,False,False,False])# for kitti
 
@@ -30,8 +36,7 @@ def S_Test(SysModel, test_input, test_target, allStates=True, randomInit = False
         
         if(allStates):
             MSE_RTS_linear_arr[j] = loss_rts(RTS.s_x, sequence_target).item()
-        else:
-            loc = torch.tensor([True,False,False]) # for position only
+        else:           
             MSE_RTS_linear_arr[j] = loss_rts(RTS.s_x[loc,:], sequence_target[loc,:]).item()
         RTS_out.append(RTS.s_x)      
         j=j+1

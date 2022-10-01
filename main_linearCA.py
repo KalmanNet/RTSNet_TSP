@@ -20,7 +20,7 @@ from filing_paths import path_model
 import sys
 sys.path.insert(1, path_model)
 from parameters import F, F_gen, F_CV, H_identity, H_onlyPos,Q,Q_gen,Q_CV, R,R_onlyPos,\
-m1x_0, m2x_0, m, m_cv,n,delta_t_gen,delta_t,T,T_test,T_gen,T_test_gen
+m1x_0, m2x_0,m1x_0_cv, m2x_0_cv, m, m_cv,n,delta_t_gen,delta_t,T,T_test,T_gen,T_test_gen
 
 if torch.cuda.is_available():
    dev = torch.device("cuda:0")  # you can continue going on here, like cuda:1 cuda:2....etc.
@@ -56,6 +56,11 @@ Loss_On_AllState = True # if false: only calculate loss on position
 Train_Loss_On_AllState = False # if false: only calculate training loss on position
 CV_model = False # if true: use CV model, else: use CA model
 
+if CV_model:
+   m1x_0 = m1x_0_cv
+   m2x_0 = m2x_0_cv
+   H_onlyPos = torch.tensor([[1, 0]]).float()
+
 DatafolderName = 'Simulations/Linear_CA/data/'
 DatafileName = 'New_decimated_dt1e-2_T100_r0_randnInit.pt'
 # data_gen = 'dt1e-3_T10000_rq00.pt'
@@ -73,11 +78,11 @@ if(InitIsRandom_train or InitIsRandom_cv or InitIsRandom_test):
    [train_input, train_target, train_init, cv_input, cv_target, cv_init, test_input, test_target, test_init] = torch.load(DatafolderName+DatafileName,map_location=dev)
    if CV_model:# set state as (p,v) instead of (p,v,a)
       train_target = train_target[:,0:m_cv,:]
-      train_init = train_init[:,0:m_cv,:]
+      train_init = train_init[:,0:m_cv]
       cv_target = cv_target[:,0:m_cv,:]
-      cv_init = cv_init[:,0:m_cv,:]
+      cv_init = cv_init[:,0:m_cv]
       test_target = test_target[:,0:m_cv,:]
-      test_init = test_init[:,0:m_cv,:]
+      test_init = test_init[:,0:m_cv]
 
 else:
    [train_input, train_target, cv_input, cv_target, test_input, test_target] = torch.load(DatafolderName+DatafileName, map_location=dev)
@@ -93,9 +98,12 @@ if CV_model:
 
 
 print("Data Shape")
-print("testset size:",test_target.size())
-print("trainset size:",train_target.size())
-print("cvset size:",cv_target.size())
+print("testset state x size:",test_target.size())
+print("testset observation y size:",test_input.size())
+print("trainset state x size:",train_target.size())
+print("trainset observation y size:",train_input.size())
+print("cvset state x size:",cv_target.size())
+print("cvset observation y size:",cv_input.size())
 
 ### Further Decimation
 # print("Start Data Decimation")
