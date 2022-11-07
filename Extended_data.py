@@ -23,7 +23,7 @@ N_E = 1000
 # Number of Cross Validation Examples
 N_CV = 100
 
-N_T = 200
+N_T = 5000
 
 # Sequence Length for Linear Case
 T = 20

@@ -1,8 +1,10 @@
 import math
 import torch
+
+from Simulations.Linear_CA.parameters import H_onlyPos
 torch.pi = torch.acos(torch.zeros(1)).item() * 2 # which is 3.1415927410125732
 from torch import autograd
-from parameters import m, n, delta_t, delta_t_gen, H_design, delta_t_mod,H_mod
+from parameters import g, L, m, n, delta_t, delta_t_gen, H_id, H_onlyPos
 
 if torch.cuda.is_available():
     cuda0 = torch.device("cuda:0")  # you can continue going on here, like cuda:1 cuda:2....etc.
@@ -11,71 +13,41 @@ else:
    cuda0 = torch.device("cpu")
    print("Running on the CPU")
 
-def f_gen(x):
-    g = 9.81 # Gravitational Acceleration
-    L = 1 # Radius of pendulum
-    result = [x[0]+x[1]*delta_t_gen, x[1]-(g/L * torch.sin(x[0]))*delta_t_gen]
+def f_gen(x):    
+    result = [x[0]+x[1]*delta_t_gen-(g/L * torch.sin(x[0])*0.5*(delta_t_gen**2)), x[1]-(g/L * torch.sin(x[0]))*delta_t_gen]
     result = torch.squeeze(torch.tensor(result))
     # print(result.size())
     return result
 
 def f(x):
-    g = 9.81 # Gravitational Acceleration
-    L = 1 # Radius of pendulum
-    result = [x[0]+x[1]*delta_t, x[1]-(g/L * torch.sin(x[0]))*delta_t]
+    result = [x[0]+x[1]*delta_t-(g/L * torch.sin(x[0])*0.5*(delta_t**2)), x[1]-(g/L * torch.sin(x[0]))*delta_t]
     result = torch.squeeze(torch.tensor(result))
     # print(result.size())
     return result
 
 def h(x):
-    return torch.matmul(H_design,x).to(cuda0)
+    return torch.matmul(H_id,x).to(cuda0)
     #return toSpherical(x)
 
-def fInacc(x):
-    g = 9.81 # Gravitational Acceleration
-    L = 1.1 # Radius of pendulum
-    result = [x[0]+x[1]*delta_t, x[1]-(g/L * torch.sin(x[0]))*delta_t]
-    result = torch.squeeze(torch.tensor(result))
-    # print(result.size())
-    return result
 
-def hInacc(x):
-    return torch.matmul(H_mod,x)
+def h_onlyPos(x):
+    return torch.matmul(H_onlyPos,x)
     #return toSpherical(x)
 
-def getJacobian(x, a):
+def h_NL(x):
+    return L*torch.sin(x[0])
+
+def getJacobian(x, g):
     
     # if(x.size()[1] == 1):
     #     y = torch.reshape((x.T),[x.size()[0]])
-    try:
-        if(x.size()[1] == 1):
-            y = torch.reshape((x.T),[x.size()[0]])
-    except:
-        y = torch.reshape((x.T),[x.size()[0]])
-        
-    if(a == 'ObsAcc'):
-        g = h
-    elif(a == 'ModAcc'):
-        g = f
-    elif(a == 'ObsInacc'):
-        g = hInacc
-    elif(a == 'ModInacc'):
-        g = fInacc
+    
+    y = torch.reshape((x.permute(*torch.arange(x.ndim - 1, -1, -1))),[x.size()[0]])
 
     Jac = autograd.functional.jacobian(g, y)
     Jac = Jac.view(-1,m)
     return Jac
 
-
-
-# def hInv(y):
-#     return torch.matmul(H_design_inv,y)
-#     #return toCartesian(y)
-
-
-# def hInaccInv(y):
-#     return torch.matmul(H_mod_inv,y)
-#     #return toCartesian(y)
 
 '''
 x = torch.tensor([[1],[1],[1]]).float() 

@@ -5,7 +5,7 @@ path_model_Pendulum = 'Simulations/Pendulum/'
 path_model_kitti = 'Simulations/KITTI/'
 path_model_linearCA = 'Simulations/Linear_CA/'
 
-path_model = path_model_linearCA
+path_model = path_model_LinearCA
 
 '''
 # Function for Outputting Path (used for cluster)
