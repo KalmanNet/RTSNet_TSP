@@ -51,8 +51,12 @@ path_results = 'RTSNet/'
 #############################
 offset = 0
 InitIsRandom_train = True
+KnownRandInit_train = False
 InitIsRandom_cv = True
+KnownRandInit_cv = False
 InitIsRandom_test = True
+KnownRandInit_test = False
+
 Loss_On_AllState = True # if false: only calculate loss on position
 Train_Loss_On_AllState = True # if false: only calculate training loss on position
 CV_model = False # if true: use CV model, else: use CA model
@@ -126,7 +130,7 @@ print("Compute Loss on All States (if false, loss on position only):", Loss_On_A
 ### Evaluate Kalman Filter ###
 ##############################
 print("Evaluate Kalman Filter")
-if InitIsRandom_test:
+if InitIsRandom_test and KnownRandInit_test:
    [MSE_KF_linear_arr, MSE_KF_linear_avg, MSE_KF_dB_avg] = KFTest(sys_model_gen, test_input, test_target, allStates=Loss_On_AllState, randomInit = True, test_init=test_init)
 else: 
    [MSE_KF_linear_arr, MSE_KF_linear_avg, MSE_KF_dB_avg] = KFTest(sys_model_gen, test_input, test_target, allStates=Loss_On_AllState)
@@ -135,7 +139,7 @@ else:
 ### Evaluate RTS Smoother ###
 #############################
 print("Evaluate RTS Smoother")
-if InitIsRandom_test:
+if InitIsRandom_test and KnownRandInit_test:
    [MSE_RTS_linear_arr, MSE_RTS_linear_avg, MSE_RTS_dB_avg, RTS_out] = S_Test(sys_model_gen, test_input, test_target, allStates=Loss_On_AllState, randomInit = True,test_init=test_init)
 else:
    [MSE_RTS_linear_arr, MSE_RTS_linear_avg, MSE_RTS_dB_avg, RTS_out] = S_Test(sys_model_gen, test_input, test_target, allStates=Loss_On_AllState)
@@ -155,7 +159,7 @@ RTSNet_Pipeline = Pipeline(strTime, "RTSNet", "RTSNet")
 RTSNet_Pipeline.setssModel(sys_model_gen)
 RTSNet_Pipeline.setModel(RTSNet_model)
 RTSNet_Pipeline.setTrainingParams(n_Epochs=4000, n_Batch=10, learningRate=1E-4, weightDecay=1E-4)
-RTSNet_Pipeline.model = torch.load('RTSNet/new_architecture/linear_Journal/linearCA/CA_TrainP.pt',map_location=dev)
+# RTSNet_Pipeline.model = torch.load('RTSNet/new_architecture/linear_Journal/linearCA/CA_TrainP.pt',map_location=dev)
 ### Optinal: record parameters to wandb
 if wandb_switch:
    wandb.init(project="RTSNet_LinearCA")
@@ -166,18 +170,26 @@ if wandb_switch:
    "batch_size": RTSNet_Pipeline.N_B,
    "weight_decay": RTSNet_Pipeline.weightDecay})
 #######################################
-if (InitIsRandom_train or InitIsRandom_cv or InitIsRandom_test):
-   # print("Train Loss on All States (if false, loss on position only):", Train_Loss_On_AllState)
-   # [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model_gen, cv_input, cv_target, train_input, train_target, path_results, MaskOnState=not Train_Loss_On_AllState, randomInit = True, cv_init=cv_init,train_init=train_init)
+if (KnownRandInit_train):
+   print("Train RTSNet with Known Random Initial State")
+   print("Train Loss on All States (if false, loss on position only):", Train_Loss_On_AllState)
+   [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model_gen, cv_input, cv_target, train_input, train_target, path_results, MaskOnState=not Train_Loss_On_AllState, randomInit = True, cv_init=cv_init,train_init=train_init)
+else:
+   print("Train RTSNet with Unknown Initial State")
+   print("Train Loss on All States (if false, loss on position only):", Train_Loss_On_AllState)
+   [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model_gen, cv_input, cv_target, train_input, train_target, path_results, MaskOnState=not Train_Loss_On_AllState)
+   
+if (KnownRandInit_test): 
+   print("Test RTSNet with Known Random Initial State")
    ## Test Neural Network
    print("Compute Loss on All States (if false, loss on position only):", Loss_On_AllState)
    [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model_gen, test_input, test_target, path_results,MaskOnState=not Loss_On_AllState,randomInit=True,test_init=test_init)
-else:
-   # print("Train Loss on All States (if false, loss on position only):", Train_Loss_On_AllState)
-   # [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model_gen, cv_input, cv_target, train_input, train_target, path_results, MaskOnState=not Train_Loss_On_AllState)
+else: 
+   print("Test RTSNet with Unknown Initial State")
    ## Test Neural Network
    print("Compute Loss on All States (if false, loss on position only):", Loss_On_AllState)
    [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model_gen, test_input, test_target, path_results,MaskOnState=not Loss_On_AllState)
+
 RTSNet_Pipeline.save()
 
 ### Vanilla RNN with full info ###################################################################################
@@ -201,7 +213,7 @@ if wandb_switch:
    wandb.finish()  
 
 # Plot results
-PlotfolderName = "Linear_CA/"
+PlotfolderName = "Graphs/Linear_CA/"
 PlotfileName0 = "TrainPVA_position.png"
 PlotfileName1 = "TrainPVA_velocity.png"
 PlotfileName2 = "TrainPVA_acceleration.png"

@@ -351,7 +351,7 @@ class Plot_RTS(Plot):
     def plotTraj_CA(self,test_target, RTS_out, rtsnet_out, dim, file_name):
         legend = ["RTSNet", "Ground Truth", "MB RTS"]
         font_size = 14
-        T_test = rtsnet_out[0].size[1]
+        T_test = rtsnet_out[0].size()[1]
         x_plt = range(0, T_test)
         if dim==0:#position
             plt.plot(x_plt, rtsnet_out[0][0,:].detach().numpy(), label=legend[0])
@@ -361,6 +361,7 @@ class Plot_RTS(Plot):
             plt.xlabel('t', fontsize=font_size)
             plt.ylabel('position', fontsize=font_size)
             plt.savefig(file_name) 
+            plt.clf()
         elif dim==1:#velocity
             plt.plot(x_plt, rtsnet_out[0][1,:].detach().numpy(), label=legend[0])
             plt.plot(x_plt, test_target[0][1,:].detach().numpy(), label=legend[1])
@@ -369,6 +370,7 @@ class Plot_RTS(Plot):
             plt.xlabel('t', fontsize=font_size)
             plt.ylabel('velocity', fontsize=font_size)
             plt.savefig(file_name)
+            plt.clf()
         elif dim==2:#acceleration
             plt.plot(x_plt, rtsnet_out[0][2,:].detach().numpy(), label=legend[0])
             plt.plot(x_plt, test_target[0][2,:].detach().numpy(), label=legend[1])
@@ -377,6 +379,7 @@ class Plot_RTS(Plot):
             plt.xlabel('t', fontsize=font_size)
             plt.ylabel('acceleration', fontsize=font_size)
             plt.savefig(file_name)
+            plt.clf()
         else:
             print("invalid dimension")
 
