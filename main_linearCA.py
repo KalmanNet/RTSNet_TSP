@@ -2,7 +2,7 @@ import torch
 torch.pi = torch.acos(torch.zeros(1)).item() * 2 # which is 3.1415927410125732
 import torch.nn as nn
 from Linear_sysmdl import SystemModel
-from Extended_data import DataGen,DataLoader,DataLoader_GPU, DecimateData
+from Extended_data import DataGen,DataLoader,DataLoader_GPU, DecimateData,wandb_switch
 from Pipeline_ERTS import Pipeline_ERTS as Pipeline
 
 from datetime import datetime
@@ -14,7 +14,8 @@ from RTS_Smoother_test import S_Test
 
 from Plot import Plot_RTS as Plot
 
-import wandb
+if wandb_switch:
+    import wandb
 
 from filing_paths import path_model
 import sys
@@ -145,7 +146,6 @@ else:
 
 ### RTSNet with full info ##############################################################################################
 # Build Neural Network
-wandb.init(project="RTSNet_LinearCA")
 print("RTSNet pipeline start!")
 RTSNet_model = RTSNetNN()
 RTSNet_model.NNBuild(sys_model_gen)
@@ -157,12 +157,14 @@ RTSNet_Pipeline.setModel(RTSNet_model)
 RTSNet_Pipeline.setTrainingParams(n_Epochs=4000, n_Batch=10, learningRate=1E-4, weightDecay=1E-4)
 RTSNet_Pipeline.model = torch.load('RTSNet/new_architecture/linear_Journal/linearCA/CA_TrainP.pt',map_location=dev)
 ### Optinal: record parameters to wandb
-wandb.log({
-"Train_Loss_On_AllState": Train_Loss_On_AllState,
-"Test_Loss_On_AllState": Loss_On_AllState,
-"learning_rate": RTSNet_Pipeline.learningRate,
-"batch_size": RTSNet_Pipeline.N_B,
-"weight_decay": RTSNet_Pipeline.weightDecay})
+if wandb_switch:
+   wandb.init(project="RTSNet_LinearCA")
+   wandb.log({
+   "Train_Loss_On_AllState": Train_Loss_On_AllState,
+   "Test_Loss_On_AllState": Loss_On_AllState,
+   "learning_rate": RTSNet_Pipeline.learningRate,
+   "batch_size": RTSNet_Pipeline.N_B,
+   "weight_decay": RTSNet_Pipeline.weightDecay})
 #######################################
 if (InitIsRandom_train or InitIsRandom_cv or InitIsRandom_test):
    # print("Train Loss on All States (if false, loss on position only):", Train_Loss_On_AllState)
@@ -194,5 +196,6 @@ RTSNet_Pipeline.save()
 # [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RNN_Pipeline.NNTest(sys_model, test_input, test_target, path_results, rnn=True)
 # RNN_Pipeline.save()
 
-# Close wandb run 
-wandb.finish()  
+# Close wandb run
+if wandb_switch: 
+   wandb.finish()  
