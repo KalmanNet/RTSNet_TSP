@@ -13,7 +13,7 @@ else:
    dev = torch.device("cpu")
    print("Running on the CPU")
 
-wandb_switch = True # True if you want to use wandb
+wandb_switch = False # True if you want to use wandb
 
 ########################
 ### Basic Parameters ###
@@ -25,7 +25,7 @@ N_E = 1000
 # Number of Cross Validation Examples
 N_CV = 100
 
-N_T = 5000
+N_T = 200
 
 # Sequence Length for Linear Case
 T = 20

@@ -188,31 +188,6 @@ class Plot:
         print('End')
 
 
-        # KF_design_MSE_mean_dB = 10 * torch.log10(torch.mean(MSE_KF_design_linear_arr))
-        # KF_design_MSE_median_dB = 10 * torch.log10(torch.median(MSE_KF_design_linear_arr))
-        # KF_design_MSE_std_dB = 10 * torch.log10(torch.std(MSE_KF_design_linear_arr))
-        # print("kalman Filter - Design:",
-        #       "MSE - mean", KF_design_MSE_mean_dB, "[dB]",
-        #       "MSE - median", KF_design_MSE_median_dB, "[dB]",
-        #       "MSE - std", KF_design_MSE_std_dB, "[dB]")
-        
-        # KF_data_MSE_mean_dB = 10 * torch.log10(torch.mean(MSE_KF_data_linear_arr))
-        # KF_data_MSE_median_dB = 10 * torch.log10(torch.median(MSE_KF_data_linear_arr))
-        # KF_data_MSE_std_dB = 10 * torch.log10(torch.std(MSE_KF_data_linear_arr))
-        # print("kalman Filter - Data:",
-        #       "MSE - mean", KF_data_MSE_mean_dB, "[dB]",
-        #       "MSE - median", KF_data_MSE_median_dB, "[dB]",
-        #       "MSE - std", KF_data_MSE_std_dB, "[dB]")
-        
-        # KN_MSE_mean_dB = 10 * torch.log10(torch.mean(MSE_KN_linear_arr))
-        # KN_MSE_median_dB = 10 * torch.log10(torch.median(MSE_KN_linear_arr))
-        # KN_MSE_std_dB = 10 * torch.log10(torch.std(MSE_KN_linear_arr))
-        
-        # print("kalman Net:",
-        #       "MSE - mean", KN_MSE_mean_dB, "[dB]",
-        #       "MSE - median", KN_MSE_median_dB, "[dB]",
-        #       "MSE - std", KN_MSE_std_dB, "[dB]")
-
 
 class Plot_RTS(Plot):
 
@@ -372,6 +347,38 @@ class Plot_RTS(Plot):
         plt.title('MSE vs inverse noise variance with inaccurate SS knowledge', fontsize=32)
         plt.grid(True)
         plt.savefig(fileName)  
+
+    def plotTraj_CA(self,test_target, RTS_out, rtsnet_out, dim, file_name):
+        legend = ["RTSNet", "Ground Truth", "MB RTS"]
+        font_size = 14
+        T_test = rtsnet_out[0].size[1]
+        x_plt = range(0, T_test)
+        if dim==0:#position
+            plt.plot(x_plt, rtsnet_out[0][0,:].detach().numpy(), label=legend[0])
+            plt.plot(x_plt, test_target[0][0,:].detach().numpy(), label=legend[1])
+            plt.plot(x_plt, RTS_out[0][0,:], label=legend[2])
+            plt.legend(fontsize=font_size)
+            plt.xlabel('t', fontsize=font_size)
+            plt.ylabel('position', fontsize=font_size)
+            plt.savefig(file_name) 
+        elif dim==1:#velocity
+            plt.plot(x_plt, rtsnet_out[0][1,:].detach().numpy(), label=legend[0])
+            plt.plot(x_plt, test_target[0][1,:].detach().numpy(), label=legend[1])
+            plt.plot(x_plt, RTS_out[0][1,:], label=legend[2])
+            plt.legend(fontsize=font_size)
+            plt.xlabel('t', fontsize=font_size)
+            plt.ylabel('velocity', fontsize=font_size)
+            plt.savefig(file_name)
+        elif dim==2:#acceleration
+            plt.plot(x_plt, rtsnet_out[0][2,:].detach().numpy(), label=legend[0])
+            plt.plot(x_plt, test_target[0][2,:].detach().numpy(), label=legend[1])
+            plt.plot(x_plt, RTS_out[0][2,:], label=legend[2])
+            plt.legend(fontsize=font_size)
+            plt.xlabel('t', fontsize=font_size)
+            plt.ylabel('acceleration', fontsize=font_size)
+            plt.savefig(file_name)
+        else:
+            print("invalid dimension")
 
 class Plot_extended(Plot_RTS):
     def EKFPlot_Hist(self, MSE_EKF_linear_arr):   

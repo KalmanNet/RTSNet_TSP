@@ -53,8 +53,8 @@ offset = 0
 InitIsRandom_train = True
 InitIsRandom_cv = True
 InitIsRandom_test = True
-Loss_On_AllState = False # if false: only calculate loss on position
-Train_Loss_On_AllState = False # if false: only calculate training loss on position
+Loss_On_AllState = True # if false: only calculate loss on position
+Train_Loss_On_AllState = True # if false: only calculate training loss on position
 CV_model = False # if true: use CV model, else: use CA model
 
 if CV_model:
@@ -72,8 +72,8 @@ sys_model_gen.InitSequence(m1x_0, m2x_0)# x0 and P0
 # sys_model = SystemModel(F, Q, H_onlyPos, R_onlyPos, T, T_test)
 # sys_model.InitSequence(m1x_0, m2x_0)
 
-print("Start Data Gen")
-DataGen(sys_model_gen, DatafolderName+DatafileName, T_gen, T_test_gen,randomInit_train=InitIsRandom_train,randomInit_cv=InitIsRandom_cv,randomInit_test=InitIsRandom_test)
+# print("Start Data Gen")
+# DataGen(sys_model_gen, DatafolderName+DatafileName, T_gen, T_test_gen,randomInit_train=InitIsRandom_train,randomInit_cv=InitIsRandom_cv,randomInit_test=InitIsRandom_test)
 print("Load Original Data")
 if(InitIsRandom_train or InitIsRandom_cv or InitIsRandom_test):
    [train_input, train_target, train_init, cv_input, cv_target, cv_init, test_input, test_target, test_init] = torch.load(DatafolderName+DatafileName,map_location=dev)
@@ -199,3 +199,15 @@ RTSNet_Pipeline.save()
 # Close wandb run
 if wandb_switch: 
    wandb.finish()  
+
+# Plot results
+PlotfolderName = "Linear_CA/"
+PlotfileName0 = "TrainPVA_position.png"
+PlotfileName1 = "TrainPVA_velocity.png"
+PlotfileName2 = "TrainPVA_acceleration.png"
+
+Plot = Plot(PlotfolderName, PlotfileName0)
+print("Plot")
+Plot.plotTraj_CA(test_target, RTS_out, rtsnet_out, dim=0, file_name=PlotfolderName+PlotfileName0)
+Plot.plotTraj_CA(test_target, RTS_out, rtsnet_out, dim=1, file_name=PlotfolderName+PlotfileName1)
+Plot.plotTraj_CA(test_target, RTS_out, rtsnet_out, dim=2, file_name=PlotfolderName+PlotfileName2)
