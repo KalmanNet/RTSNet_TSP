@@ -4,6 +4,7 @@ import torch.nn as nn
 from Linear_sysmdl import SystemModel
 from Extended_data import DataGen,DataLoader,DataLoader_GPU, DecimateData,wandb_switch
 from Pipeline_ERTS import Pipeline_ERTS as Pipeline
+from Pipeline_concat_models import Pipeline_twoRTSNets
 
 from datetime import datetime
 from RTSNet_nn import RTSNetNN
@@ -15,7 +16,8 @@ from RTS_Smoother_test import S_Test
 from Plot import Plot_RTS as Plot
 
 if wandb_switch:
-    import wandb
+   import wandb
+   wandb.init(project="RTSNet_LinearCA")
 
 from filing_paths import path_model
 import sys
@@ -49,29 +51,48 @@ path_results = 'RTSNet/'
 #############################
 ###  Dataset Generation   ###
 #############################
+# Init condition of dataset
 offset = 0
 InitIsRandom_train = True
-KnownRandInit_train = False
+KnownRandInit_train = True
 InitIsRandom_cv = True
-KnownRandInit_cv = False
+KnownRandInit_cv = True
 InitIsRandom_test = True
-KnownRandInit_test = False
+KnownRandInit_test = True
 
+# PVA or P
 Loss_On_AllState = True # if false: only calculate loss on position
 Train_Loss_On_AllState = True # if false: only calculate training loss on position
 CV_model = False # if true: use CV model, else: use CA model
 
-if CV_model:
-   m1x_0 = m1x_0_cv
-   m2x_0 = m2x_0_cv
-   H_onlyPos = torch.tensor([[1, 0]]).float()
+# 1pass or 2pass
+two_pass = True # if true: use two pass method, else: use one pass method
+load_trained_pass1 = True # if True: load trained RTSNet pass1, else train pass1
+# if true, specify the path to the trained pass1 model
+RTSNetPass1_path = "RTSNet/new_architecture/linear_Journal/linearCA/knownInit/CA_trainPVA.pt"
 
 DatafolderName = 'Simulations/Linear_CA/data/'
 DatafileName = 'New_decimated_dt1e-2_T100_r0_randnInit.pt'
 # data_gen = 'dt1e-3_T10000_rq00.pt'
+
 # Generation model (CA)
 sys_model_gen = SystemModel(F_gen, Q_gen, H_onlyPos, R_onlyPos, T_gen, T_test_gen)
 sys_model_gen.InitSequence(m1x_0, m2x_0)# x0 and P0
+
+# Feed model (to KF, RTS and RTSNet) 
+if(KnownRandInit_train or KnownRandInit_cv or KnownRandInit_test):
+   std = 0
+   m2x_0 = std * std * torch.eye(m) # Initial Covariance
+   m2x_0_cv = std * std * torch.eye(m_cv) # Initial Covariance for CV
+sys_model = SystemModel(F_gen, Q_gen, H_onlyPos, R_onlyPos, T_gen, T_test_gen)
+sys_model.InitSequence(m1x_0, m2x_0)# x0 and P0
+if CV_model:
+   m1x_0 = m1x_0_cv
+   m2x_0 = m2x_0_cv
+   H_onlyPos = torch.tensor([[1, 0]]).float()
+   sys_model = SystemModel(F_CV, Q_CV, H_onlyPos, R_onlyPos, T_gen, T_test_gen)
+   sys_model.InitSequence(m1x_0, m2x_0)# x0 and P0
+
 # Decimated model
 # sys_model = SystemModel(F, Q, H_onlyPos, R_onlyPos, T, T_test)
 # sys_model.InitSequence(m1x_0, m2x_0)
@@ -95,12 +116,6 @@ else:
       train_target = train_target[:,0:m_cv,:]
       cv_target = cv_target[:,0:m_cv,:]
       test_target = test_target[:,0:m_cv,:]
-
-# CV model
-if CV_model:
-   sys_model_gen = SystemModel(F_CV, Q_CV, H_onlyPos, R_onlyPos, T_gen, T_test_gen)
-   sys_model_gen.InitSequence(m1x_0, m2x_0)# x0 and P0
-
 
 print("Data Shape")
 print("testset state x size:",test_target.size())
@@ -131,67 +146,150 @@ print("Compute Loss on All States (if false, loss on position only):", Loss_On_A
 ##############################
 print("Evaluate Kalman Filter")
 if InitIsRandom_test and KnownRandInit_test:
-   [MSE_KF_linear_arr, MSE_KF_linear_avg, MSE_KF_dB_avg] = KFTest(sys_model_gen, test_input, test_target, allStates=Loss_On_AllState, randomInit = True, test_init=test_init)
+   [MSE_KF_linear_arr, MSE_KF_linear_avg, MSE_KF_dB_avg] = KFTest(sys_model, test_input, test_target, allStates=Loss_On_AllState, randomInit = True, test_init=test_init)
 else: 
-   [MSE_KF_linear_arr, MSE_KF_linear_avg, MSE_KF_dB_avg] = KFTest(sys_model_gen, test_input, test_target, allStates=Loss_On_AllState)
+   [MSE_KF_linear_arr, MSE_KF_linear_avg, MSE_KF_dB_avg] = KFTest(sys_model, test_input, test_target, allStates=Loss_On_AllState)
 
 #############################
 ### Evaluate RTS Smoother ###
 #############################
 print("Evaluate RTS Smoother")
 if InitIsRandom_test and KnownRandInit_test:
-   [MSE_RTS_linear_arr, MSE_RTS_linear_avg, MSE_RTS_dB_avg, RTS_out] = S_Test(sys_model_gen, test_input, test_target, allStates=Loss_On_AllState, randomInit = True,test_init=test_init)
+   [MSE_RTS_linear_arr, MSE_RTS_linear_avg, MSE_RTS_dB_avg, RTS_out] = S_Test(sys_model, test_input, test_target, allStates=Loss_On_AllState, randomInit = True,test_init=test_init)
 else:
-   [MSE_RTS_linear_arr, MSE_RTS_linear_avg, MSE_RTS_dB_avg, RTS_out] = S_Test(sys_model_gen, test_input, test_target, allStates=Loss_On_AllState)
+   [MSE_RTS_linear_arr, MSE_RTS_linear_avg, MSE_RTS_dB_avg, RTS_out] = S_Test(sys_model, test_input, test_target, allStates=Loss_On_AllState)
 
 #######################
 ### RTSNet Pipeline ###
 #######################
-
 ### RTSNet with full info ##############################################################################################
-# Build Neural Network
-print("RTSNet pipeline start!")
-RTSNet_model = RTSNetNN()
-RTSNet_model.NNBuild(sys_model_gen)
-print("Number of trainable parameters for RTSNet:",sum(p.numel() for p in RTSNet_model.parameters() if p.requires_grad))
-## Train Neural Network
-RTSNet_Pipeline = Pipeline(strTime, "RTSNet", "RTSNet")
-RTSNet_Pipeline.setssModel(sys_model_gen)
-RTSNet_Pipeline.setModel(RTSNet_model)
-RTSNet_Pipeline.setTrainingParams(n_Epochs=4000, n_Batch=10, learningRate=1E-4, weightDecay=1E-4)
-# RTSNet_Pipeline.model = torch.load('RTSNet/new_architecture/linear_Journal/linearCA/CA_TrainP.pt',map_location=dev)
-### Optinal: record parameters to wandb
-if wandb_switch:
-   wandb.init(project="RTSNet_LinearCA")
-   wandb.log({
-   "Train_Loss_On_AllState": Train_Loss_On_AllState,
-   "Test_Loss_On_AllState": Loss_On_AllState,
-   "learning_rate": RTSNet_Pipeline.learningRate,
-   "batch_size": RTSNet_Pipeline.N_B,
-   "weight_decay": RTSNet_Pipeline.weightDecay})
-#######################################
-if (KnownRandInit_train):
-   print("Train RTSNet with Known Random Initial State")
-   print("Train Loss on All States (if false, loss on position only):", Train_Loss_On_AllState)
-   [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model_gen, cv_input, cv_target, train_input, train_target, path_results, MaskOnState=not Train_Loss_On_AllState, randomInit = True, cv_init=cv_init,train_init=train_init)
+if load_trained_pass1:
+   print("Load RTSNet pass 1")
 else:
-   print("Train RTSNet with Unknown Initial State")
-   print("Train Loss on All States (if false, loss on position only):", Train_Loss_On_AllState)
-   [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model_gen, cv_input, cv_target, train_input, train_target, path_results, MaskOnState=not Train_Loss_On_AllState)
-   
-if (KnownRandInit_test): 
-   print("Test RTSNet with Known Random Initial State")
-   ## Test Neural Network
-   print("Compute Loss on All States (if false, loss on position only):", Loss_On_AllState)
-   [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model_gen, test_input, test_target, path_results,MaskOnState=not Loss_On_AllState,randomInit=True,test_init=test_init)
-else: 
-   print("Test RTSNet with Unknown Initial State")
-   ## Test Neural Network
-   print("Compute Loss on All States (if false, loss on position only):", Loss_On_AllState)
-   [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model_gen, test_input, test_target, path_results,MaskOnState=not Loss_On_AllState)
+   # Build Neural Network
+   print("RTSNet pass 1 pipeline start!")
+   RTSNet_model = RTSNetNN()
+   RTSNet_model.NNBuild(sys_model)
+   print("Number of trainable parameters for RTSNet pass 1:",sum(p.numel() for p in RTSNet_model.parameters() if p.requires_grad))
+   ## Train Neural Network
+   RTSNet_Pipeline = Pipeline(strTime, "RTSNet", "RTSNet")
+   RTSNet_Pipeline.setssModel(sys_model)
+   RTSNet_Pipeline.setModel(RTSNet_model)
+   RTSNet_Pipeline.setTrainingParams(n_Epochs=4000, n_Batch=10, learningRate=1E-4, weightDecay=1E-4)
+   # RTSNet_Pipeline.model = torch.load('RTSNet/new_architecture/linear_Journal/linearCA/CA_TrainP.pt',map_location=dev)
+   ### Optinal: record parameters to wandb
+   if wandb_switch:
+      wandb.log({
+      "Train_Loss_On_AllState": Train_Loss_On_AllState,
+      "Test_Loss_On_AllState": Loss_On_AllState,
+      "learning_rate": RTSNet_Pipeline.learningRate,
+      "batch_size": RTSNet_Pipeline.N_B,
+      "weight_decay": RTSNet_Pipeline.weightDecay})
+   #######################################
+   if (KnownRandInit_train):
+      print("Train RTSNet with Known Random Initial State")
+      print("Train Loss on All States (if false, loss on position only):", Train_Loss_On_AllState)
+      [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results, MaskOnState=not Train_Loss_On_AllState, randomInit = True, cv_init=cv_init,train_init=train_init)
+   else:
+      print("Train RTSNet with Unknown Initial State")
+      print("Train Loss on All States (if false, loss on position only):", Train_Loss_On_AllState)
+      [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results, MaskOnState=not Train_Loss_On_AllState)
+      
+   if (KnownRandInit_test): 
+      print("Test RTSNet pass 1 with Known Random Initial State")
+      ## Test Neural Network
+      print("Compute Loss on All States (if false, loss on position only):", Loss_On_AllState)
+      [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model, test_input, test_target, path_results,MaskOnState=not Loss_On_AllState,randomInit=True,test_init=test_init)
+   else: 
+      print("Test RTSNet pass 1 with Unknown Initial State")
+      ## Test Neural Network
+      print("Compute Loss on All States (if false, loss on position only):", Loss_On_AllState)
+      [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model, test_input, test_target, path_results,MaskOnState=not Loss_On_AllState)
 
-RTSNet_Pipeline.save()
+   RTSNet_Pipeline.save()
+   print("RTSNet pass 1 pipeline end!")
 
+if two_pass:
+   #########################
+   ## Concat two RTSNets ###
+   #########################
+   ### load result of RTSNet1 as dataset for RTSNet2 ###############################################################
+   RTSNet_model_pass1 = RTSNetNN()
+   RTSNet_model_pass1.NNBuild(sys_model)
+   RTSNet_Pipeline_pass1 = Pipeline(strTime, "RTSNet", "RTSNet")
+   RTSNet_Pipeline_pass1.setssModel(sys_model)
+   RTSNet_Pipeline_pass1.setModel(RTSNet_model_pass1)
+   if (KnownRandInit_train):
+      print("Test RTSNet pass 1 on training set")
+      [_, _, _,rtsnet_out_train,_] = RTSNet_Pipeline_pass1.NNTest(sys_model, train_input, train_target, path_results,MaskOnState=False,randomInit=True,test_init=train_init,load_model=True,load_path=RTSNetPass1_path)
+      print("Test RTSNet pass 1 on cv set")
+      [_, _, _,rtsnet_out_cv,_] = RTSNet_Pipeline_pass1.NNTest(sys_model, cv_input, cv_target, path_results,MaskOnState=False,randomInit=True,test_init=cv_init,load_model=True,load_path=RTSNetPass1_path)
+   else:
+      print("Test RTSNet pass 1 on training set")
+      [_, _, _,rtsnet_out_train,_] = RTSNet_Pipeline_pass1.NNTest(sys_model, train_input, train_target, path_results,MaskOnState=False,load_model=True,load_path=RTSNetPass1_path)
+      print("Test RTSNet pass 1 on cv set")
+      [_, _, _,rtsnet_out_cv,_] = RTSNet_Pipeline_pass1.NNTest(sys_model, cv_input, cv_target, path_results,MaskOnState=False,load_model=True,load_path=RTSNetPass1_path)
+
+
+   train_input_pass2 = rtsnet_out_train
+   train_target_pass2 = train_target
+   cv_input_pass2 = rtsnet_out_cv
+   cv_target_pass2 = cv_target
+
+   # Build Neural Network
+   print("RTSNet pass 2 pipeline start!")
+   RTSNet_model = RTSNetNN()
+   RTSNet_model.NNBuild(sys_model)
+   print("Number of trainable parameters for RTSNet pass 2:",sum(p.numel() for p in RTSNet_model.parameters() if p.requires_grad))
+   ## Train Neural Network
+   RTSNet_Pipeline = Pipeline(strTime, "RTSNet_pass2", "RTSNet_pass2")
+   RTSNet_Pipeline.setssModel(sys_model)
+   RTSNet_Pipeline.setModel(RTSNet_model)
+   RTSNet_Pipeline.setTrainingParams(n_Epochs=4000, n_Batch=10, learningRate=1E-4, weightDecay=1E-4)
+   ### Optinal: record parameters to wandb
+   if wandb_switch:
+      wandb.log({
+      "Train_Loss_On_AllState_pass2": Train_Loss_On_AllState,
+      "Test_Loss_On_AllState_pass2": Loss_On_AllState,
+      "learning_rate_pass2": RTSNet_Pipeline.learningRate,
+      "batch_size_pass2": RTSNet_Pipeline.N_B,
+      "weight_decay_pass2": RTSNet_Pipeline.weightDecay})
+   #######################################
+   if (KnownRandInit_train):
+      print("Train RTSNet pass 2 with Known Random Initial State")
+      print("Train Loss on All States (if false, loss on position only):", Train_Loss_On_AllState)
+      [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input_pass2, cv_target_pass2, train_input_pass2, train_target_pass2, path_results, MaskOnState=not Train_Loss_On_AllState, randomInit = True, cv_init=cv_init,train_init=train_init)
+   else:
+      print("Train RTSNet pass 2 with Unknown Initial State")
+      print("Train Loss on All States (if false, loss on position only):", Train_Loss_On_AllState)
+      [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input_pass2, cv_target_pass2, train_input_pass2, train_target_pass2, path_results, MaskOnState=not Train_Loss_On_AllState)
+   RTSNet_Pipeline.save()
+   print("RTSNet pass 2 pipeline end!")
+
+
+   # load trained Neural Network
+   print("Concat two RTSNets")
+   RTSNet_model1 = torch.load(RTSNetPass1_path,map_location=dev)
+   RTSNet_model2 = torch.load('RTSNet/best-model.pt',map_location=dev)
+   ## Set up Neural Network
+   RTSNet_Pipeline_2passes = Pipeline_twoRTSNets(strTime, "RTSNet", "RTSNet")
+   RTSNet_Pipeline_2passes.setModel(RTSNet_model1, RTSNet_model2)
+   NumofParameter = RTSNet_Pipeline_2passes.count_parameters()
+   print("Number of parameters for RTSNet with 2 passes: ",NumofParameter)
+   ## Test Neural Network
+   if (KnownRandInit_test): 
+      print("Test RTSNet(2passes)with Known Random Initial State")
+      print("Compute Loss on All States (if false, loss on position only):", Loss_On_AllState)
+      [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline_2passes.NNTest(sys_model, test_input, test_target, path_results,MaskOnState=not Loss_On_AllState,randomInit=True,test_init=test_init)
+   else: 
+      print("Test RTSNet(2passes) with Unknown Initial State")
+      print("Compute Loss on All States (if false, loss on position only):", Loss_On_AllState)
+      [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline_2passes.NNTest(sys_model, test_input, test_target, path_results,MaskOnState=not Loss_On_AllState)
+
+
+##################
+## Vanilla RNN ###
+##################
 ### Vanilla RNN with full info ###################################################################################
 ## Build RNN
 # print("Vanilla RNN with full model info")
@@ -212,14 +310,16 @@ RTSNet_Pipeline.save()
 if wandb_switch: 
    wandb.finish()  
 
-# Plot results
-PlotfolderName = "Graphs/Linear_CA/"
-PlotfileName0 = "TrainPVA_position.png"
-PlotfileName1 = "TrainPVA_velocity.png"
-PlotfileName2 = "TrainPVA_acceleration.png"
+####################
+### Plot results ###
+####################
+# PlotfolderName = "Graphs/Linear_CA/"
+# PlotfileName0 = "TrainPVA_position.png"
+# PlotfileName1 = "TrainPVA_velocity.png"
+# PlotfileName2 = "TrainPVA_acceleration.png"
 
-Plot = Plot(PlotfolderName, PlotfileName0)
-print("Plot")
-Plot.plotTraj_CA(test_target, RTS_out, rtsnet_out, dim=0, file_name=PlotfolderName+PlotfileName0)
-Plot.plotTraj_CA(test_target, RTS_out, rtsnet_out, dim=1, file_name=PlotfolderName+PlotfileName1)
-Plot.plotTraj_CA(test_target, RTS_out, rtsnet_out, dim=2, file_name=PlotfolderName+PlotfileName2)
+# Plot = Plot(PlotfolderName, PlotfileName0)
+# print("Plot")
+# Plot.plotTraj_CA(test_target, RTS_out, rtsnet_out, dim=0, file_name=PlotfolderName+PlotfileName0)
+# Plot.plotTraj_CA(test_target, RTS_out, rtsnet_out, dim=1, file_name=PlotfolderName+PlotfileName1)
+# Plot.plotTraj_CA(test_target, RTS_out, rtsnet_out, dim=2, file_name=PlotfolderName+PlotfileName2)

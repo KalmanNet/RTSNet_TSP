@@ -256,7 +256,7 @@ class Pipeline_ERTS:
 
         return [self.MSE_cv_linear_epoch, self.MSE_cv_dB_epoch, self.MSE_train_linear_epoch, self.MSE_train_dB_epoch]
 
-    def NNTest(self, SysModel, test_input, test_target, path_results, MaskOnState=False, rnn=False,multipass=False,randomInit=False,test_init=None):
+    def NNTest(self, SysModel, test_input, test_target, path_results, MaskOnState=False, rnn=False,multipass=False,randomInit=False,test_init=None,load_model=False,load_model_path=None):
 
         self.N_T = len(test_input)
 
@@ -270,10 +270,14 @@ class Pipeline_ERTS:
         # MSE LOSS Function
         loss_fn = nn.MSELoss(reduction='mean')
 
-        if (rnn):
-            self.model = torch.load(path_results+'rnn_best-model.pt', map_location=dev)
+        # Load model
+        if load_model:
+            self.model = torch.load(load_model_path, map_location=dev) 
         else:
-            self.model = torch.load(path_results+'best-model.pt', map_location=dev)
+            if (rnn):
+                self.model = torch.load(path_results+'rnn_best-model.pt', map_location=dev)
+            else:
+                self.model = torch.load(path_results+'best-model.pt', map_location=dev)
 
         self.model.eval()
 

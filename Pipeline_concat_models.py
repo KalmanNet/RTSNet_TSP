@@ -33,11 +33,16 @@ class Pipeline_twoRTSNets:
         self.model2 = model2
 
     
-    def NNTest(self, SysModel, test_input, test_target, path_results, nclt=False, rnn=False, randomInit=False,test_init=None):
+    def NNTest(self, SysModel, test_input, test_target, path_results, MaskOnState=False, randomInit=False,test_init=None):
 
         self.N_T = test_input.size()[0]
 
         self.MSE_test_linear_arr = torch.empty([self.N_T])
+
+        if MaskOnState:
+            mask = torch.tensor([True,False,False])
+            if SysModel.m == 2: 
+                mask = torch.tensor([True,False])
 
         # MSE LOSS Function
         loss_fn = nn.MSELoss(reduction='mean')
@@ -88,14 +93,10 @@ class Pipeline_twoRTSNets:
                 x_out_test_2[:, t] = self.model2(None, x_out_test_forward_2[:, t], x_out_test_forward_2[:, t+1],x_out_test_2[:, t+2])          
             x_out_test = x_out_test_2
 
-            if(nclt):
-                if x_out_test.size()[0] == 6:
-                    mask = torch.tensor([True,False,False,True,False,False])
-                else:
-                    mask = torch.tensor([True,False,True,False])
-                self.MSE_test_linear_arr[j] = loss_fn(x_out_test[mask], test_target[j, :, :]).item()
+            if(MaskOnState):
+                self.MSE_test_linear_arr[j] = loss_fn(x_out_test[mask], test_target[j][mask]).item()
             else:
-                self.MSE_test_linear_arr[j] = loss_fn(x_out_test, test_target[j, :, :]).item()
+                self.MSE_test_linear_arr[j] = loss_fn(x_out_test, test_target[j]).item()              
             x_out_array[j,:,:] = x_out_test
         
         end = time.time()
