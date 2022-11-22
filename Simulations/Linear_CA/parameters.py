@@ -55,7 +55,8 @@ Q_gen = q2 * torch.tensor([[1/20*delta_t_gen**5, 1/8*delta_t_gen**4,1/6*delta_t_
 Q_CV = q2 * torch.tensor([[1/3*delta_t_gen**3, 1/2*delta_t_gen**2],
                           [1/2*delta_t_gen**2,        delta_t_gen]]).float()  
 
-R = r2 * torch.eye(n)
+R_3 = r2 * torch.eye(3)
+R_2 = r2 * torch.eye(2)
 
 R_onlyPos = r2
 
