@@ -73,7 +73,7 @@ RTSNetPass1_path = "RTSNet/new_architecture/linear_Journal/linearCA/knownInit/CA
 # Save the dataset generated from testing RTSNet1 on train and CV data
 load_dataset_for_pass2 = True # if True: load dataset generated from testing RTSNet1 on train and CV data
 # if true, specify the path to the dataset
-DatasetPass1_path = "Simulations/Linear_CA/data/ResultofPass1_PVA.pt" 
+DatasetPass1_path = "Simulations/Linear_CA/data/two_pass/ResultofPass1_PVA.pt" 
 
 DatafolderName = 'Simulations/Linear_CA/data/'
 DatafileName = 'New_decimated_dt1e-2_T100_r0_randnInit.pt'
