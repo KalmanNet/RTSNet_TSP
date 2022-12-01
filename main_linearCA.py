@@ -256,7 +256,7 @@ if two_pass:
       print("cvset state x size:",cv_target_pass2.size())
       print("cvset observation y size:",len(cv_input_pass2),cv_input_pass2[0].size())
    else:
-      ### load result of RTSNet1 as dataset for RTSNet2 ###############################################################
+      ### save result of RTSNet1 as dataset for RTSNet2 ###############################################################
       RTSNet_model_pass1 = RTSNetNN()
       RTSNet_model_pass1.NNBuild(sys_model)
       RTSNet_Pipeline_pass1 = Pipeline(strTime, "RTSNet", "RTSNet")
