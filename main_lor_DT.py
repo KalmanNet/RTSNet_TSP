@@ -226,12 +226,17 @@ else:
    RTSNet_model = RTSNetNN()
    RTSNet_model.NNBuild(sys_model)
    # ## Train Neural Network
-   RTSNet_Pipeline = Pipeline(strTime, "RTSNet", "RTSNet")
+   RTSNet_Pipeline = Pipeline(strTime, "ERTSNet", "ERTSNet")
    RTSNet_Pipeline.setssModel(sys_model)
    RTSNet_Pipeline.setModel(RTSNet_model)
    print("Number of trainable parameters for RTSNet:",sum(p.numel() for p in RTSNet_model.parameters() if p.requires_grad))
    RTSNet_Pipeline.setTrainingParams(n_Epochs=1000, n_Batch=30, learningRate=1e-3, weightDecay=1e-6) 
-   # RTSNet_Pipeline.model = torch.load('ERTSNet/best-model_DTfull_rq3050_T2000.pt',map_location=dev)
+   ### Optinal: record parameters to wandb
+   if wandb_switch:
+      wandb.log({
+      "learning_rate": RTSNet_Pipeline.learningRate,
+      "batch_size": RTSNet_Pipeline.N_B,
+      "weight_decay": RTSNet_Pipeline.weightDecay})
    if(chop):
       [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results,randomInit=True,train_init=train_init)
    else:
@@ -260,7 +265,7 @@ if two_pass:
       ### save result of RTSNet1 as dataset for RTSNet2 
       RTSNet_model_pass1 = RTSNetNN()
       RTSNet_model_pass1.NNBuild(sys_model)
-      RTSNet_Pipeline_pass1 = Pipeline(strTime, "RTSNet", "RTSNet")
+      RTSNet_Pipeline_pass1 = Pipeline(strTime, "ERTSNet", "ERTSNet")
       RTSNet_Pipeline_pass1.setssModel(sys_model)
       RTSNet_Pipeline_pass1.setModel(RTSNet_model_pass1)
       ### Optional to test it on test-set, just for checking
@@ -287,10 +292,10 @@ if two_pass:
    RTSNet_model.NNBuild(sys_model_pass2)
    print("Number of trainable parameters for RTSNet pass 2:",sum(p.numel() for p in RTSNet_model.parameters() if p.requires_grad))
    ## Train Neural Network
-   RTSNet_Pipeline = Pipeline(strTime, "RTSNet", "RTSNet_pass2")
+   RTSNet_Pipeline = Pipeline(strTime, "ERTSNet", "ERTSNet_pass2")
    RTSNet_Pipeline.setssModel(sys_model_pass2)
    RTSNet_Pipeline.setModel(RTSNet_model)
-   RTSNet_Pipeline.setTrainingParams(n_Epochs=1000, n_Batch=1, learningRate=1E-4, weightDecay=1E-3)
+   RTSNet_Pipeline.setTrainingParams(n_Epochs=1000, n_Batch=10, learningRate=1E-3, weightDecay=1E-9)
    ### Optinal: record parameters to wandb
    if wandb_switch:
       wandb.log({
@@ -305,9 +310,9 @@ if two_pass:
    # load trained Neural Network
    print("Concat two RTSNets")
    RTSNet_model1 = torch.load(RTSNetPass1_path,map_location=dev)
-   RTSNet_model2 = torch.load('RTSNet/best-model.pt',map_location=dev)
+   RTSNet_model2 = torch.load('ERTSNet/best-model.pt',map_location=dev)
    ## Set up Neural Network
-   RTSNet_Pipeline_2passes = Pipeline_twoRTSNets(strTime, "RTSNet", "RTSNet")
+   RTSNet_Pipeline_2passes = Pipeline_twoRTSNets(strTime, "ERTSNet", "ERTSNet")
    RTSNet_Pipeline_2passes.setModel(RTSNet_model1, RTSNet_model2)
    NumofParameter = RTSNet_Pipeline_2passes.count_parameters()
    print("Number of parameters for RTSNet with 2 passes: ",NumofParameter)
