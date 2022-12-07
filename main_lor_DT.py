@@ -341,7 +341,7 @@ elif switch == 'partial':
       RTSNet_Pipeline = Pipeline(strTime, "RTSNet", "RTSNet")
       RTSNet_Pipeline.setssModel(sys_model_partial)
       RTSNet_Pipeline.setModel(RTSNet_model)
-      RTSNet_Pipeline.setTrainingParams(n_Epochs=1000, n_Batch=20, learningRate=1e-4, weightDecay=1e-6)
+      RTSNet_Pipeline.setTrainingParams(n_Epochs=2000, n_Batch=20, learningRate=1e-3, weightDecay=1e-3)
       if(chop):
          [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model_partial, cv_input, cv_target, train_input, train_target, path_results,randomInit=True,train_init=train_init)
       else:
@@ -399,7 +399,7 @@ elif switch == 'partial':
       RTSNet_Pipeline = Pipeline(strTime, "ERTSNet", "ERTSNet_pass2")
       RTSNet_Pipeline.setssModel(sys_model_pass2)
       RTSNet_Pipeline.setModel(RTSNet_model)
-      RTSNet_Pipeline.setTrainingParams(n_Epochs=2000, n_Batch=10, learningRate=1E-3, weightDecay=1E-3)
+      RTSNet_Pipeline.setTrainingParams(n_Epochs=2000, n_Batch=10, learningRate=1E-4, weightDecay=1E-3)
       ### Optinal: record parameters to wandb
       if wandb_switch:
          wandb.log({
@@ -425,11 +425,6 @@ elif switch == 'partial':
 
 ###################################################################################
 elif switch == 'estH':
-   ######################
-   ## RTSNet - 1 estH ###
-   ######################
-   print("RTSNet with estimated H")
-   RTSNet_Pipeline = Pipeline(strTime, "RTSNet", "RTSNetEstH_"+ dataFileName[0])
    print("True Observation matrix H:", H_mod)
    ### Least square estimation of H
    X = torch.squeeze(train_target[:,:,0]).to(dev,non_blocking = True)
@@ -455,16 +450,24 @@ elif switch == 'estH':
    sys_model_esth = SystemModel(f, q[0], h_hat, r[0], T, T_test, m, n)
    sys_model_esth.InitSequence(m1x_0, m2x_0)
 
-   RTSNet_Pipeline.setssModel(sys_model_esth)
-   RTSNet_model = RTSNetNN()
-   RTSNet_model.NNBuild(sys_model_esth)
-   RTSNet_Pipeline.setModel(RTSNet_model)
+   if load_trained_pass1:
+      print("Load RTSNet pass 1")
+   else:
+      ######################
+      ## RTSNet - 1 estH ###
+      ######################
+      print("RTSNet with estimated H")
+      RTSNet_Pipeline = Pipeline(strTime, "RTSNet", "RTSNetEstH_"+ dataFileName[0])
+      RTSNet_Pipeline.setssModel(sys_model_esth)
+      RTSNet_model = RTSNetNN()
+      RTSNet_model.NNBuild(sys_model_esth)
+      RTSNet_Pipeline.setModel(RTSNet_model)
 
-   RTSNet_Pipeline.setTrainingParams(n_Epochs=1000, n_Batch=30, learningRate=1E-4, weightDecay=1E-3)
-   [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model_esth, cv_input, cv_target, train_input, train_target, path_results)
-   ## Test Neural Network
-   [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model_esth, test_input, test_target, path_results)
-   RTSNet_Pipeline.save()
+      RTSNet_Pipeline.setTrainingParams(n_Epochs=2000, n_Batch=10, learningRate=1E-3, weightDecay=1E-3)
+      [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model_esth, cv_input, cv_target, train_input, train_target, path_results)
+      ## Test Neural Network
+      [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model_esth, test_input, test_target, path_results)
+      RTSNet_Pipeline.save()
    ###################################################################################
    if two_pass:
    ######################
@@ -515,7 +518,7 @@ elif switch == 'estH':
       RTSNet_Pipeline = Pipeline(strTime, "ERTSNet", "ERTSNet_pass2")
       RTSNet_Pipeline.setssModel(sys_model_pass2)
       RTSNet_Pipeline.setModel(RTSNet_model)
-      RTSNet_Pipeline.setTrainingParams(n_Epochs=2000, n_Batch=10, learningRate=1E-3, weightDecay=1E-3)
+      RTSNet_Pipeline.setTrainingParams(n_Epochs=2000, n_Batch=10, learningRate=1E-4, weightDecay=1E-3)
       ### Optinal: record parameters to wandb
       if wandb_switch:
          wandb.log({
