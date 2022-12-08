@@ -300,7 +300,7 @@ if switch == 'full':
       RTSNet_Pipeline = Pipeline(strTime, "ERTSNet", "ERTSNet_pass2")
       RTSNet_Pipeline.setssModel(sys_model_pass2)
       RTSNet_Pipeline.setModel(RTSNet_model)
-      RTSNet_Pipeline.setTrainingParams(n_Epochs=1000, n_Batch=10, learningRate=1E-3, weightDecay=1E-9)
+      RTSNet_Pipeline.setTrainingParams(n_Epochs=2000, n_Batch=10, learningRate=1E-3, weightDecay=1E-9)
       ### Optinal: record parameters to wandb
       if wandb_switch:
          wandb.log({
@@ -342,6 +342,12 @@ elif switch == 'partial':
       RTSNet_Pipeline.setssModel(sys_model_partial)
       RTSNet_Pipeline.setModel(RTSNet_model)
       RTSNet_Pipeline.setTrainingParams(n_Epochs=2000, n_Batch=20, learningRate=1e-3, weightDecay=1e-3)
+      ### Optinal: record parameters to wandb
+      if wandb_switch:
+         wandb.log({
+         "learning_rate": RTSNet_Pipeline.learningRate,
+         "batch_size": RTSNet_Pipeline.N_B,
+         "weight_decay": RTSNet_Pipeline.weightDecay})
       if(chop):
          [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model_partial, cv_input, cv_target, train_input, train_target, path_results,randomInit=True,train_init=train_init)
       else:
@@ -399,7 +405,7 @@ elif switch == 'partial':
       RTSNet_Pipeline = Pipeline(strTime, "ERTSNet", "ERTSNet_pass2")
       RTSNet_Pipeline.setssModel(sys_model_pass2)
       RTSNet_Pipeline.setModel(RTSNet_model)
-      RTSNet_Pipeline.setTrainingParams(n_Epochs=2000, n_Batch=10, learningRate=1E-4, weightDecay=1E-3)
+      RTSNet_Pipeline.setTrainingParams(n_Epochs=2000, n_Batch=10, learningRate=1E-4, weightDecay=1E-9)
       ### Optinal: record parameters to wandb
       if wandb_switch:
          wandb.log({
@@ -462,8 +468,13 @@ elif switch == 'estH':
       RTSNet_model = RTSNetNN()
       RTSNet_model.NNBuild(sys_model_esth)
       RTSNet_Pipeline.setModel(RTSNet_model)
-
       RTSNet_Pipeline.setTrainingParams(n_Epochs=2000, n_Batch=10, learningRate=1E-3, weightDecay=1E-3)
+      ### Optinal: record parameters to wandb
+      if wandb_switch:
+         wandb.log({
+         "learning_rate": RTSNet_Pipeline.learningRate,
+         "batch_size": RTSNet_Pipeline.N_B,
+         "weight_decay": RTSNet_Pipeline.weightDecay})
       [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model_esth, cv_input, cv_target, train_input, train_target, path_results)
       ## Test Neural Network
       [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model_esth, test_input, test_target, path_results)
@@ -508,9 +519,9 @@ elif switch == 'estH':
 
          torch.save([train_input_pass2, train_target_pass2, cv_input_pass2, cv_target_pass2, test_input, test_target], DatasetPass1_path)
       #######################################
-      ## RTSNet_2passes with partial info (model mismatch) 
+      ## RTSNet_2passes with estimated H ###
       # Build Neural Network
-      print("RTSNet partial pass 2 pipeline start!")
+      print("RTSNet estH pass 2 pipeline start!")
       RTSNet_model = RTSNetNN()
       RTSNet_model.NNBuild(sys_model_pass2)
       print("Number of trainable parameters for RTSNet pass 2:",sum(p.numel() for p in RTSNet_model.parameters() if p.requires_grad))
@@ -518,7 +529,7 @@ elif switch == 'estH':
       RTSNet_Pipeline = Pipeline(strTime, "ERTSNet", "ERTSNet_pass2")
       RTSNet_Pipeline.setssModel(sys_model_pass2)
       RTSNet_Pipeline.setModel(RTSNet_model)
-      RTSNet_Pipeline.setTrainingParams(n_Epochs=2000, n_Batch=10, learningRate=1E-4, weightDecay=1E-3)
+      RTSNet_Pipeline.setTrainingParams(n_Epochs=3000, n_Batch=10, learningRate=1E-4, weightDecay=1E-9)
       ### Optinal: record parameters to wandb
       if wandb_switch:
          wandb.log({
