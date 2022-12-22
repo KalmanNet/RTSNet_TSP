@@ -339,9 +339,9 @@ if two_pass:
 ##################
 ## Vanilla RNN ###
 ##################
-### Vanilla RNN with full info ###################################################################################
+### Vanilla RNN ###################################################################################
 ## Build RNN
-# print("Vanilla RNN with full model info")
+# print("Vanilla RNN")
 # RNN_model = Vanilla_RNN()
 # RNN_model.Build(sys_model,fully_agnostic = False)
 # print("Number of trainable parameters for RNN:",sum(p.numel() for p in RNN_model.parameters() if p.requires_grad))

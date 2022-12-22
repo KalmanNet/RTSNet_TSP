@@ -32,14 +32,14 @@ class KalmanFilter:
 
     def Predict(self):
         # Predict the 1-st moment of x
-        self.m1x_prior = torch.matmul(self.F, self.m1x_posterior)
+        self.m1x_prior = torch.squeeze(torch.matmul(self.F, self.m1x_posterior))
 
         # Predict the 2-nd moment of x
         self.m2x_prior = torch.matmul(self.F, self.m2x_posterior)
         self.m2x_prior = torch.matmul(self.m2x_prior, self.F_T) + self.Q
 
         # Predict the 1-st moment of y
-        self.m1y = torch.matmul(self.H, self.m1x_prior)
+        self.m1y = torch.squeeze(torch.matmul(self.H, self.m1x_prior))
 
         # Predict the 2-nd moment of y
         self.m2y = torch.matmul(self.H, self.m2x_prior)
@@ -58,7 +58,7 @@ class KalmanFilter:
     # Compute Posterior
     def Correct(self):
         # Compute the 1-st posterior moment
-        self.m1x_posterior = self.m1x_prior + torch.matmul(self.KG, self.dy);
+        self.m1x_posterior = self.m1x_prior + torch.matmul(self.KG, self.dy)
 
         # Compute the 2-nd posterior moment
         self.m2x_posterior = torch.matmul(self.m2y, torch.transpose(self.KG, 0, 1))

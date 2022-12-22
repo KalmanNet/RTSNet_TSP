@@ -250,9 +250,9 @@ for index in range(0,len(r2)):
    ###################
    ### Vanilla RNN ###
    ###################
-   ### Vanilla RNN with full info 
+   ### Vanilla RNN
    # Build RNN
-   print("Vanilla RNN with full model info")
+   print("Vanilla RNN")
    RNN_model = Vanilla_RNN()
    RNN_model.Build(sys_model,fully_agnostic = False)
    print("Number of trainable parameters for RNN:",sum(p.numel() for p in RNN_model.parameters() if p.requires_grad))
@@ -267,21 +267,5 @@ for index in range(0,len(r2)):
    RNN_Pipeline.save()
 
    ##########################################################################################################################################
-   ### RNN with mismatched model
-   # Build RNN
-   print("Vanilla RNN with observation model mismatch")
-   RNN_model = Vanilla_RNN()
-   RNN_model.Build(sys_model_partialh,fully_agnostic = False)
-   ## Train Neural Network
-   print("Number of trainable parameters for RNN:",sum(p.numel() for p in RNN_model.parameters() if p.requires_grad))
-   RNN_Pipeline = Pipeline(strTime, "RTSNet", "VanillaRNN")
-   RNN_Pipeline.setssModel(sys_model_partialh)
-   RNN_Pipeline.setModel(RNN_model)
-   RNN_Pipeline.setTrainingParams(n_Epochs=1000, n_Batch=50, learningRate=1e-3, weightDecay=1e-5)
-
-   RNN_Pipeline.NNTrain(sys_model_partialh, cv_input, cv_target, train_input, train_target, path_results, rnn=True)
-   ## Test Neural Network
-   [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RNN_Pipeline.NNTest(sys_model_partialh, test_input, test_target, path_results, rnn=True)
-   RNN_Pipeline.save()
 
 

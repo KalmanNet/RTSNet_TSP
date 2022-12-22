@@ -258,7 +258,7 @@ for rindex in range(0, len(r)):
    ### Vanilla RNN ######
    ######################
    # Build RNN
-   # print("Vanilla RNN with model mismatch")
+   # print("Vanilla RNN with mismatched f")
    # RNN_model = Vanilla_RNN()
    # RNN_model.Build(sys_model)
    # print("Number of trainable parameters for RNN:",sum(p.numel() for p in RNN_model.parameters() if p.requires_grad))

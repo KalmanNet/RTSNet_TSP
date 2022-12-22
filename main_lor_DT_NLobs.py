@@ -60,7 +60,7 @@ sequential_training = False
 path_results = 'ERTSNet/'
 DatafolderName = 'Simulations/Lorenz_Atractor/data/T20_hNL' + '/'
 
-r2 = torch.tensor([10])
+r2 = torch.tensor([1e-3])
 # r2 = torch.tensor([100, 10, 1, 0.1, 0.01])
 r = torch.sqrt(r2)
 vdB = 0 # ratio v=q2/r2
@@ -79,7 +79,7 @@ print("1/r2 [dB]: ", 10 * torch.log10(1/r[0]**2))
 print("1/q2 [dB]: ", 10 * torch.log10(1/q[0]**2))
 
 # traj_resultName = ['traj_lor_KNetFull_rq1030_T2000_NT100.pt']#,'partial_lor_r4.pt','partial_lor_r5.pt','partial_lor_r6.pt']
-dataFileName = ['data_lor_v0_rq-10-10_T20.pt']#,'data_lor_v20_r1e-2_T100.pt','data_lor_v20_r1e-3_T100.pt','data_lor_v20_r1e-4_T100.pt']
+dataFileName = ['data_lor_v0_rq3030_T20.pt']#,'data_lor_v20_r1e-2_T100.pt','data_lor_v20_r1e-3_T100.pt','data_lor_v20_r1e-4_T100.pt']
 # KFRTSResultName = 'KFRTS_partialh_rq3050_T2000' 
 
 #########################################
@@ -139,8 +139,8 @@ print("testset size:",test_target.size())
 # [MSE_ERTS_linear_arr, MSE_ERTS_linear_avg, MSE_ERTS_dB_avg, ERTS_out] = S_Test(sys_model, test_input, test_target)
 
 ### Evaluate Particle Smoother
-print("Evaluate Particle Smoother full")
-[MSE_PS_linear_arr, MSE_PS_linear_avg, MSE_PS_dB_avg, PS_out, t_PS] = PSTest(sys_model, test_input, test_target,N_FWParticles=100, M_BWTrajs=10, init_cond=None)
+# print("Evaluate Particle Smoother full")
+# [MSE_PS_linear_arr, MSE_PS_linear_avg, MSE_PS_dB_avg, PS_out, t_PS] = PSTest(sys_model, test_input, test_target,N_FWParticles=100, M_BWTrajs=10, init_cond=None)
 
 
 # Save results
@@ -173,8 +173,8 @@ print("Evaluate Particle Smoother full")
 ### Test reversed input and H=I ###
 ###################################
 ## Model with H=I          
-# sys_model_H = SystemModel(f, q[0], h, r[0], T, T_test, m, n)
-# sys_model_H.InitSequence(m1x_0, m2x_0)
+sys_model_H = SystemModel(f, q[0], h, r[0], T, T_test, m, n)
+sys_model_H.InitSequence(m1x_0, m2x_0)
 
 ## reverse input h^-1(x)
 # N_T = len(test_input)
@@ -271,43 +271,43 @@ print("Evaluate Particle Smoother full")
 ### Concat two RTSNets with model mismatch  ###
 ###############################################
 ### Train pass2 on the output of pass1
-# print("test pass1 on Train Set")
-# fileName = "Simulations/Lorenz_Atractor/data/T20_hNL/Pass1_rq-10-10_T20.pt"
+print("test pass1 on Train Set")
+fileName = "Simulations/Lorenz_Atractor/data/T20_hNL/Pass1_rq3030_T20.pt"
 # [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out_train,RunTime] = RTSNet_Pipeline.NNTest(sys_model, train_input, train_target, path_results)
 # cv_input_pass2 = rtsnet_out_train[0:N_CV]
 # cv_target_pass2 = train_target[0:N_CV]
 # train_input_pass2 = rtsnet_out_train[N_CV:-1]
 # train_target_pass2 = train_target[N_CV:-1]
 # torch.save([train_input_pass2, train_target_pass2, cv_input_pass2, cv_target_pass2], fileName)
-# [train_input_pass2, train_target_pass2, cv_input_pass2, cv_target_pass2] = torch.load(fileName, map_location=dev)
+[train_input_pass2, train_target_pass2, cv_input_pass2, cv_target_pass2] = torch.load(fileName, map_location=dev)
 
-# print("Train RTSNet pass2")
-# RTSNet_model = RTSNetNN()
-# RTSNet_model.NNBuild(sys_model_H, KNet_in_mult = 5, KNet_out_mult = 40, RTSNet_in_mult = 5, RTSNet_out_mult = 40)
-# ## Train Neural Network
-# RTSNet_Pipeline = Pipeline(strTime, "RTSNet", "RTSNet")
-# RTSNet_Pipeline.setssModel(sys_model_H)
-# RTSNet_Pipeline.setModel(RTSNet_model)
-# print("Number of trainable parameters for RTSNet:",sum(p.numel() for p in RTSNet_model.parameters() if p.requires_grad))
-# RTSNet_Pipeline.setTrainingParams(n_Epochs=2000, n_Batch=100, learningRate=1e-4, weightDecay=1e-4) 
-# # RTSNet_Pipeline.model = torch.load('ERTSNet/best-model_DTfull_rq3050_T2000.pt',map_location=dev)
-# if(chop):
-#    [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model_H, cv_input_pass2, cv_target_pass2, train_input_pass2, train_target_pass2, path_results,randomInit=True,train_init=train_init)
-# else:
-#    [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model_H, cv_input_pass2, cv_target_pass2, train_input_pass2, train_target_pass2, path_results)
+print("Train RTSNet pass2")
+RTSNet_model = RTSNetNN()
+RTSNet_model.NNBuild(sys_model_H, KNet_in_mult = 5, KNet_out_mult = 40, RTSNet_in_mult = 5, RTSNet_out_mult = 40)
+## Train Neural Network
+RTSNet_Pipeline = Pipeline(strTime, "RTSNet", "RTSNet")
+RTSNet_Pipeline.setssModel(sys_model_H)
+RTSNet_Pipeline.setModel(RTSNet_model)
+print("Number of trainable parameters for RTSNet:",sum(p.numel() for p in RTSNet_model.parameters() if p.requires_grad))
+RTSNet_Pipeline.setTrainingParams(n_Epochs=2000, n_Batch=100, learningRate=1e-4, weightDecay=1e-4) 
+# RTSNet_Pipeline.model = torch.load('ERTSNet/best-model_DTfull_rq3050_T2000.pt',map_location=dev)
+if(chop):
+   [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model_H, cv_input_pass2, cv_target_pass2, train_input_pass2, train_target_pass2, path_results,randomInit=True,train_init=train_init)
+else:
+   [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model_H, cv_input_pass2, cv_target_pass2, train_input_pass2, train_target_pass2, path_results)
 
 
-# ## load trained Neural Network
-# print("RTSNet with model mismatch")
-# RTSNet_model1 = torch.load('ERTSNet/new_arch_LA/DT/HNL/rq-10-10_T20.pt',map_location=dev)
-# RTSNet_model2 = torch.load('ERTSNet/best-model.pt',map_location=dev)
-# ## Setup Pipeline
-# RTSNet_Pipeline = Pipeline_twoRTSNets(strTime, "RTSNet", "RTSNet")
-# RTSNet_Pipeline.setModel(RTSNet_model1, RTSNet_model2)
-# NumofParameter = RTSNet_Pipeline.count_parameters()
-# print("Number of parameters for RTSNet: ",NumofParameter)
-# ## Test Neural Network
-# [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out_2pass,RunTime] = RTSNet_Pipeline.NNTest(sys_model, test_input, test_target, path_results)
+## load trained Neural Network
+print("RTSNet with model mismatch")
+RTSNet_model1 = torch.load('ERTSNet/new_arch_LA/DT/HNL/rq3030_T20.pt',map_location=dev)
+RTSNet_model2 = torch.load('ERTSNet/best-model.pt',map_location=dev)
+## Setup Pipeline
+RTSNet_Pipeline = Pipeline_twoRTSNets(strTime, "RTSNet", "RTSNet")
+RTSNet_Pipeline.setModel(RTSNet_model1, RTSNet_model2)
+NumofParameter = RTSNet_Pipeline.count_parameters()
+print("Number of parameters for RTSNet: ",NumofParameter)
+## Test Neural Network
+[MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out_2pass,RunTime] = RTSNet_Pipeline.NNTest(sys_model, test_input, test_target, path_results)
 
 
 ########################
