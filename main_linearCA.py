@@ -1,17 +1,17 @@
 import torch
-torch.pi = torch.acos(torch.zeros(1)).item() * 2 # which is 3.1415927410125732
-import torch.nn as nn
+from datetime import datetime
+
 from Linear_sysmdl import SystemModel
 from Extended_data import DataGen,DataLoader,DataLoader_GPU, DecimateData,wandb_switch
-from Pipeline_ERTS import Pipeline_ERTS as Pipeline
-from Pipeline_concat_models import Pipeline_twoRTSNets
 
-from datetime import datetime
-from RTSNet_nn import RTSNetNN
-from RNN_FWandBW import Vanilla_RNN
+from Smoothers.KalmanFilter_test import KFTest
+from Smoothers.RTS_Smoother_test import S_Test
 
-from KalmanFilter_test import KFTest
-from RTS_Smoother_test import S_Test
+from RTSNet.RTSNet_nn import RTSNetNN
+from RNN.RNN_FWandBW import Vanilla_RNN
+
+from Pipelines.Pipeline_ERTS import Pipeline_ERTS as Pipeline
+from Pipelines.Pipeline_concat_models import Pipeline_twoRTSNets
 
 from Plot import Plot_RTS as Plot
 
@@ -32,8 +32,6 @@ if torch.cuda.is_available():
 else:
    dev = torch.device("cpu")
    print("Running on the CPU")
-
-   
 
 print("Pipeline Start")
 

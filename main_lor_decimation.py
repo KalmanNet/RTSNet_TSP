@@ -1,28 +1,30 @@
 import numpy as np
 import torch
-torch.pi = torch.acos(torch.zeros(1)).item() * 2 # which is 3.1415927410125732
 import pickle
 import torch.nn as nn
-import EKF_test
-from Extended_RTS_Smoother_test import S_Test
+from datetime import datetime
+
+import Smoothers.EKF_test as EKF_test
+from Smoothers.Extended_RTS_Smoother_test import S_Test
+from Smoothers.PF_test import PFTest
+from Smoothers.ParticleSmoother_test import PSTest
+
 from Extended_sysmdl import SystemModel
-from Extended_data import DataGen,DataLoader,DataLoader_GPU, Decimate_and_perturbate_Data,Short_Traj_Split
-from Pipeline_EKF import Pipeline_EKF
-from Pipeline_ERTS import Pipeline_ERTS as Pipeline
-from Pipeline_concat_models import Pipeline_twoRTSNets
+from Extended_data import DataGen,DataLoader,DataLoader_GPU, Decimate_and_perturbate_Data,Short_Traj_Split,wandb_switch
 
-from KalmanNet_nn import KalmanNetNN
-from RTSNet_nn import RTSNetNN
-from RNN_FWandBW import Vanilla_RNN
+from Pipelines.Pipeline_EKF import Pipeline_EKF
+from Pipelines.Pipeline_ERTS import Pipeline_ERTS as Pipeline
+from Pipelines.Pipeline_concat_models import Pipeline_twoRTSNets
 
-from PF_test import PFTest
-from ParticleSmoother_test import PSTest
+from RTSNet.KalmanNet_nn import KalmanNetNN
+from RTSNet.RTSNet_nn import RTSNetNN
+from RNN.RNN_FWandBW import Vanilla_RNN
 
 from Plot import Plot_extended as Plot
 
-from datetime import datetime
-
-import wandb
+if wandb_switch:
+   import wandb
+   wandb.init(project="RTSNet_Decimation")
 
 from filing_paths import path_model
 import sys
@@ -58,7 +60,7 @@ offset = 0
 chop = False
 sequential_training = False
 secondpass = False
-path_results = 'ERTSNet/'
+path_results = 'RTSNet/'
 DatafolderName = 'Simulations/Lorenz_Atractor/data/decimation/'
 DatagenfolderName = 'Simulations/Lorenz_Atractor/data/'
 DatafileName = 'decimated_r0_Ttest3000.pt'
@@ -136,7 +138,7 @@ for rindex in range(0, len(r)):
    ################################
    ### Load data from Welling's ###
    ################################
-   # compact_path = "ERTSNet/new_arch_LA/decimation/Welling_Compare/lorenz_trainset300k.pickle"
+   # compact_path = "Simulations/Lorenz_Atractor/data/lorenz_trainset300k.pickle"
    # with open(compact_path, 'rb') as f:
    #    data = pickle.load(f)
    # testdata = [data[0][0:T_test], data[1][0:T_test]]
@@ -235,7 +237,6 @@ for rindex in range(0, len(r)):
 #   #  KNet_Pipeline.setTrainingParams(n_Epochs=100, n_Batch=10, learningRate=1e-3, weightDecay=1e-6)
 #   #  [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = KNet_Pipeline.NNTrain(sys_model, cv_input_long, cv_target_long, train_input, train_target, path_results, sequential_training)
 #    # Test Neural Network
-#    KNet_Pipeline.model = torch.load('ERTSNet/model_KNetNew_Dec_r0_noTransfer.pt',map_location=dev)
 #    NumofParameter = sum(p.numel() for p in KNet_Pipeline.model.parameters() if p.requires_grad)
 #    print("Number of parameters for KNet: ",NumofParameter)
 #    [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg, knet_out] = KNet_Pipeline.NNTest(N_T, test_input, test_target)
@@ -301,7 +302,7 @@ for rindex in range(0, len(r)):
    else:
       [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input_long, cv_target_long, train_input, train_target, path_results)
    ## Test Neural Network
-   # RTSNet_Pipeline.model = torch.load('ERTSNet/new_arch_LA/decimation/model/best-model_r0_J2_NE1000_MSE-15.5.pt',map_location=dev)
+   # RTSNet_Pipeline.model = torch.load('RTSNet/checkpoints/LorenzAttracotor/decimation/model/best-model_r0_J2_NE1000_MSE-15.5.pt',map_location=dev)
    [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model, test_input, test_target, path_results)
    
 
@@ -315,8 +316,8 @@ for rindex in range(0, len(r)):
    ###############################################
    ## load trained Neural Network
 #    print("RTSNet with model mismatch")
-#    RTSNet_model1 = torch.load('ERTSNet/new_arch_LA/decimation/model/best-model_r0_J2_NE1000_MSE-15.5.pt',map_location=dev)
-#    RTSNet_model2 = torch.load('ERTSNet/new_arch_LA/decimation/model/second-pass-of-15.5.pt',map_location=dev)
+#    RTSNet_model1 = torch.load('RTSNet/checkpoints/LorenzAttracotor/decimation/model/best-model_r0_J2_NE1000_MSE-15.5.pt',map_location=dev)
+#    RTSNet_model2 = torch.load('RTSNet/checkpoints/LorenzAttracotor/decimation/model/second-pass-of-15.5.pt',map_location=dev)
 #    ## Train Neural Network
 #    RTSNet_Pipeline = Pipeline_twoRTSNets(strTime, "RTSNet", "RTSNet")
 #    RTSNet_Pipeline.setModel(RTSNet_model1, RTSNet_model2)
@@ -326,7 +327,7 @@ for rindex in range(0, len(r)):
 #    [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out_2pass,RunTime] = RTSNet_Pipeline.NNTest(sys_model, test_input, test_target, path_results)
 
   # Save trajectories
-   # trajfolderName = 'ERTSNet' + '/'
+   # trajfolderName = 'RTSNet/checkpoints/LorenzAttracotor/decimation/traj' + '/'
    # DataResultName = 'traj_lor_dec_PS'
    # target_sample = torch.reshape(test_target[0,:,:],[1,m,T_test])
    # input_sample = torch.reshape(test_input[0,:,:],[1,n,T_test])

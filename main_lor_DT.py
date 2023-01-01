@@ -1,25 +1,25 @@
 import torch
 torch.pi = torch.acos(torch.zeros(1)).item() * 2 # which is 3.1415927410125732
 import torch.nn as nn
-from EKF_test import EKFTest
-from Extended_RTS_Smoother_test import S_Test
-from ParticleSmoother_test import PSTest
+from Smoothers.EKF_test import EKFTest
+from Smoothers.Extended_RTS_Smoother_test import S_Test
+from Smoothers.ParticleSmoother_test import PSTest
+from Smoothers.PF_test import PFTest
 
 from Extended_sysmdl import SystemModel
 from Extended_data import DataGen,DataLoader,DataLoader_GPU, Decimate_and_perturbate_Data,Short_Traj_Split,wandb_switch
 from Extended_data import N_E, N_CV, N_T
-from Pipeline_ERTS import Pipeline_ERTS as Pipeline
-from Pipeline_EKF import Pipeline_EKF
-from Pipeline_concat_models import Pipeline_twoRTSNets
-# from PF_test import PFTest
+
+from Pipelines.Pipeline_ERTS import Pipeline_ERTS as Pipeline
+from Pipelines.Pipeline_EKF import Pipeline_EKF
+from Pipelines.Pipeline_concat_models import Pipeline_twoRTSNets
+from Pipelines.Pipeline_ERTS_2passes import Pipeline_ERTS as Pipeline_2passes
 
 from datetime import datetime
 
-from KalmanNet_nn import KalmanNetNN
-from RTSNet_nn import RTSNetNN
-
-from Pipeline_ERTS_2passes import Pipeline_ERTS as Pipeline_2passes
-from RTSNet_nn_2passes import RTSNetNN_2passes
+from RTSNet.KalmanNet_nn import KalmanNetNN
+from RTSNet.RTSNet_nn import RTSNetNN
+from RTSNet.RTSNet_nn_2passes import RTSNetNN_2passes
 
 from Plot import Plot_extended as Plot
 
@@ -59,7 +59,7 @@ print("Current Time =", strTime)
 offset = 0
 chop = False
 sequential_training = False
-path_results = 'ERTSNet/'
+path_results = 'RTSNet/'
 DatafolderName = 'Simulations/Lorenz_Atractor/data/T100_Hrot1' + '/'
 switch = 'partial' # 'full' or 'partial' or 'estH'
 
@@ -67,7 +67,7 @@ switch = 'partial' # 'full' or 'partial' or 'estH'
 two_pass = True # if true: use two pass method, else: use one pass method
 load_trained_pass1 = True # if True: load trained RTSNet pass1, else train pass1
 # if true, specify the path to the trained pass1 model
-RTSNetPass1_path = "ERTSNet/new_arch_LA/DT/T100_Hrot1/rq-1010_partial.pt"
+RTSNetPass1_path = "RTSNet/checkpoints/LorenzAttracotor/DT/T100_Hrot1/rq-1010_partial.pt"
 # Save the dataset generated from testing RTSNet1 on train and CV data
 load_dataset_for_pass2 = False # if True: load dataset generated from testing RTSNet1 on train and CV data
 # if true, specify the path to the dataset
@@ -186,7 +186,7 @@ print("Observation Noise Floor(test dataset) - STD:", obs_std_dB, "[dB]")
 # [MSE_PS_linear_arr_partial, MSE_PS_linear_avg_partial, MSE_PS_dB_avg_partial, PS_out_partial, t_PS] = PSTest(sys_model_partial, test_input, test_target,N_FWParticles=100, M_BWTrajs=10, init_cond=None)
 
 ### Save results
-# KFRTSfolderName = 'ERTSNet' + '/'
+# KFRTSfolderName = 'Smoothers' + '/'
 # torch.save({'MSE_EKF_linear_arr': MSE_EKF_linear_arr,
 #             'MSE_EKF_dB_avg': MSE_EKF_dB_avg,
 #             'MSE_EKF_linear_arr_partialoptr': MSE_EKF_linear_arr_partialoptr,
@@ -231,7 +231,7 @@ if switch == 'full':
       RTSNet_model = RTSNetNN()
       RTSNet_model.NNBuild(sys_model)
       # ## Train Neural Network
-      RTSNet_Pipeline = Pipeline(strTime, "ERTSNet", "ERTSNet")
+      RTSNet_Pipeline = Pipeline(strTime, "RTSNet", "RTSNet")
       RTSNet_Pipeline.setssModel(sys_model)
       RTSNet_Pipeline.setModel(RTSNet_model)
       print("Number of trainable parameters for RTSNet:",sum(p.numel() for p in RTSNet_model.parameters() if p.requires_grad))
@@ -270,7 +270,7 @@ if switch == 'full':
          ### save result of RTSNet1 as dataset for RTSNet2 
          RTSNet_model_pass1 = RTSNetNN()
          RTSNet_model_pass1.NNBuild(sys_model)
-         RTSNet_Pipeline_pass1 = Pipeline(strTime, "ERTSNet", "ERTSNet")
+         RTSNet_Pipeline_pass1 = Pipeline(strTime, "RTSNet", "RTSNet")
          RTSNet_Pipeline_pass1.setssModel(sys_model)
          RTSNet_Pipeline_pass1.setModel(RTSNet_model_pass1)
          ### Optional to test it on test-set, just for checking
@@ -297,7 +297,7 @@ if switch == 'full':
       RTSNet_model.NNBuild(sys_model_pass2)
       print("Number of trainable parameters for RTSNet pass 2:",sum(p.numel() for p in RTSNet_model.parameters() if p.requires_grad))
       ## Train Neural Network
-      RTSNet_Pipeline = Pipeline(strTime, "ERTSNet", "ERTSNet_pass2")
+      RTSNet_Pipeline = Pipeline(strTime, "RTSNet", "RTSNet_pass2")
       RTSNet_Pipeline.setssModel(sys_model_pass2)
       RTSNet_Pipeline.setModel(RTSNet_model)
       RTSNet_Pipeline.setTrainingParams(n_Epochs=2000, n_Batch=10, learningRate=1E-3, weightDecay=1E-9)
@@ -315,9 +315,9 @@ if switch == 'full':
       # load trained Neural Network
       print("Concat two RTSNets and test")
       RTSNet_model1 = torch.load(RTSNetPass1_path,map_location=dev)
-      RTSNet_model2 = torch.load('ERTSNet/best-model.pt',map_location=dev)
+      RTSNet_model2 = torch.load('RTSNet/best-model.pt',map_location=dev)
       ## Set up Neural Network
-      RTSNet_Pipeline_2passes = Pipeline_twoRTSNets(strTime, "ERTSNet", "ERTSNet")
+      RTSNet_Pipeline_2passes = Pipeline_twoRTSNets(strTime, "RTSNet", "RTSNet")
       RTSNet_Pipeline_2passes.setModel(RTSNet_model1, RTSNet_model2)
       NumofParameter = RTSNet_Pipeline_2passes.count_parameters()
       print("Number of parameters for RTSNet with 2 passes: ",NumofParameter)
@@ -375,7 +375,7 @@ elif switch == 'partial':
          ### save result of RTSNet1 as dataset for RTSNet2 
          RTSNet_model_pass1 = RTSNetNN()
          RTSNet_model_pass1.NNBuild(sys_model_partial)
-         RTSNet_Pipeline_pass1 = Pipeline(strTime, "ERTSNet", "ERTSNet")
+         RTSNet_Pipeline_pass1 = Pipeline(strTime, "RTSNet", "RTSNet")
          RTSNet_Pipeline_pass1.setssModel(sys_model_partial)
          RTSNet_Pipeline_pass1.setModel(RTSNet_model_pass1)
          ### Optional to test it on test-set, just for checking
@@ -402,7 +402,7 @@ elif switch == 'partial':
       RTSNet_model.NNBuild(sys_model_pass2)
       print("Number of trainable parameters for RTSNet pass 2:",sum(p.numel() for p in RTSNet_model.parameters() if p.requires_grad))
       ## Train Neural Network
-      RTSNet_Pipeline = Pipeline(strTime, "ERTSNet", "ERTSNet_pass2")
+      RTSNet_Pipeline = Pipeline(strTime, "RTSNet", "RTSNet_pass2")
       RTSNet_Pipeline.setssModel(sys_model_pass2)
       RTSNet_Pipeline.setModel(RTSNet_model)
       RTSNet_Pipeline.setTrainingParams(n_Epochs=2000, n_Batch=10, learningRate=1E-4, weightDecay=1E-9)
@@ -420,9 +420,9 @@ elif switch == 'partial':
       # load trained Neural Network
       print("Concat two RTSNets and test")
       RTSNet_model1 = torch.load(RTSNetPass1_path,map_location=dev)
-      RTSNet_model2 = torch.load('ERTSNet/best-model.pt',map_location=dev)
+      RTSNet_model2 = torch.load('RTSNet/best-model.pt',map_location=dev)
       ## Set up Neural Network
-      RTSNet_Pipeline_2passes = Pipeline_twoRTSNets(strTime, "ERTSNet", "ERTSNet")
+      RTSNet_Pipeline_2passes = Pipeline_twoRTSNets(strTime, "RTSNet", "RTSNet")
       RTSNet_Pipeline_2passes.setModel(RTSNet_model1, RTSNet_model2)
       NumofParameter = RTSNet_Pipeline_2passes.count_parameters()
       print("Number of parameters for RTSNet with 2 passes: ",NumofParameter)
@@ -499,7 +499,7 @@ elif switch == 'estH':
          ### save result of RTSNet1 as dataset for RTSNet2 
          RTSNet_model_pass1 = RTSNetNN()
          RTSNet_model_pass1.NNBuild(sys_model_esth)
-         RTSNet_Pipeline_pass1 = Pipeline(strTime, "ERTSNet", "ERTSNet")
+         RTSNet_Pipeline_pass1 = Pipeline(strTime, "RTSNet", "RTSNet")
          RTSNet_Pipeline_pass1.setssModel(sys_model_esth)
          RTSNet_Pipeline_pass1.setModel(RTSNet_model_pass1)
          ### Optional to test it on test-set, just for checking
@@ -526,7 +526,7 @@ elif switch == 'estH':
       RTSNet_model.NNBuild(sys_model_pass2)
       print("Number of trainable parameters for RTSNet pass 2:",sum(p.numel() for p in RTSNet_model.parameters() if p.requires_grad))
       ## Train Neural Network
-      RTSNet_Pipeline = Pipeline(strTime, "ERTSNet", "ERTSNet_pass2")
+      RTSNet_Pipeline = Pipeline(strTime, "RTSNet", "RTSNet_pass2")
       RTSNet_Pipeline.setssModel(sys_model_pass2)
       RTSNet_Pipeline.setModel(RTSNet_model)
       RTSNet_Pipeline.setTrainingParams(n_Epochs=3000, n_Batch=10, learningRate=1E-4, weightDecay=1E-9)
@@ -544,9 +544,9 @@ elif switch == 'estH':
       # load trained Neural Network
       print("Concat two RTSNets")
       RTSNet_model1 = torch.load(RTSNetPass1_path,map_location=dev)
-      RTSNet_model2 = torch.load('ERTSNet/best-model.pt',map_location=dev)
+      RTSNet_model2 = torch.load('RTSNet/best-model.pt',map_location=dev)
       ## Set up Neural Network
-      RTSNet_Pipeline_2passes = Pipeline_twoRTSNets(strTime, "ERTSNet", "ERTSNet")
+      RTSNet_Pipeline_2passes = Pipeline_twoRTSNets(strTime, "RTSNet", "RTSNet")
       RTSNet_Pipeline_2passes.setModel(RTSNet_model1, RTSNet_model2)
       NumofParameter = RTSNet_Pipeline_2passes.count_parameters()
       print("Number of parameters for RTSNet with 2 passes: ",NumofParameter)

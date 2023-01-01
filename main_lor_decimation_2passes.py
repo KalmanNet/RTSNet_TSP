@@ -1,20 +1,20 @@
 import numpy as np
 import torch
-torch.pi = torch.acos(torch.zeros(1)).item() * 2 # which is 3.1415927410125732
 import pickle
 import torch.nn as nn
-from EKF_test import EKFTest
-from Extended_RTS_Smoother_test import S_Test
+from datetime import datetime
+
+from Smoothers.EKF_test import EKFTest
+from Smoothers.Extended_RTS_Smoother_test import S_Test
+from Smoothers.PF_test import PFTest
+
 from Extended_sysmdl import SystemModel
 from Extended_data import DataGen,DataLoader,DataLoader_GPU, Decimate_and_perturbate_Data,Short_Traj_Split
 from Extended_data import N_E, N_CV, N_T
-from Pipeline_ERTS_2passes import Pipeline_ERTS as Pipeline
 
-from RTSNet_nn_2passes import RTSNetNN_2passes
+from Pipelines.Pipeline_ERTS_2passes import Pipeline_ERTS as Pipeline
 
-# from PF_test import PFTest
-
-from datetime import datetime
+from RTSNet.RTSNet_nn_2passes import RTSNetNN_2passes
 
 from filing_paths import path_model
 import sys
@@ -29,7 +29,6 @@ if torch.cuda.is_available():
 else:
    cuda0 = torch.device("cpu")
    print("Running on the CPU")
-
 
 print("Pipeline Start")
 
@@ -49,7 +48,7 @@ print("Current Time =", strTime)
 offset = 0
 chop = False
 sequential_training = False
-path_results = 'ERTSNet/'
+path_results = 'RTSNet/'
 DatafolderName = 'Simulations/Lorenz_Atractor/data/'
 data_gen = 'data_gen.pt'
 data_gen_file = torch.load(DatafolderName+data_gen, map_location=cuda0)
@@ -92,7 +91,7 @@ for rindex in range(0, len(r)):
    print("cvset size:",cv_target_long.size())
    
    ## Load data from Welling's
-   # compact_path = "ERTSNet/new_arch_LA/decimation/Welling_Compare/lorenz_trainset300k.pickle"
+   # compact_path = "Simulations/Lorenz_Atractor/data/lorenz_trainset300k.pickle"
    # with open(compact_path, 'rb') as f:
    #    data = pickle.load(f)
    # testdata = [data[0][0:T_test], data[1][0:T_test]]
@@ -162,11 +161,10 @@ for rindex in range(0, len(r)):
    print("Number of parameters for RTSNet: ",NumofParameter)
    [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input_long, cv_target_long, train_input, train_target, path_results)
    ## Test Neural Network
-   # RTSNet_Pipeline.model = torch.load('ERTSNet/model_KNetNew_DT_procmis_r30q50_T2000.pt',map_location=cuda0)
    [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model, test_input, test_target, path_results)
    
    # Save trajectories
-   # trajfolderName = 'ERTSNet' + '/'
+   # trajfolderName = 'RTSNet/checkpoints/LorenzAttracotor/decimation/traj' + '/'
    # DataResultName = traj_resultName[rindex]
    # target_sample = torch.reshape(test_target[0,:,:],[1,m,T_test])
    # input_sample = torch.reshape(test_input[0,:,:],[1,n,T_test])

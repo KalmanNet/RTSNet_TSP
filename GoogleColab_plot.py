@@ -3,8 +3,8 @@ import numpy as np
 import os
 os.environ['KMP_DUPLICATE_LIB_OK']='True'
 from Plot import Plot_extended as Plot
-from Pipeline_ERTS import Pipeline_ERTS as Pipeline
-from KalmanNet_nn import KalmanNetNN
+from Pipelines.Pipeline_ERTS import Pipeline_ERTS as Pipeline
+from RTSNet.KalmanNet_nn import KalmanNetNN
 from Extended_sysmdl import SystemModel
 # from Extended_data import DecimateData
 # from Extended_data import DataGen,DataGen_True, Decimate_and_perturbate_Data,Short_Traj_Split
