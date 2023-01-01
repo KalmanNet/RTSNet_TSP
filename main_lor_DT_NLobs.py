@@ -6,7 +6,7 @@ from Extended_RTS_Smoother_test import S_Test
 from ParticleSmoother_test import PSTest
 
 from Extended_sysmdl import SystemModel
-from Extended_data import DataGen,DataLoader,DataLoader_GPU, Decimate_and_perturbate_Data,Short_Traj_Split
+from Extended_data import DataGen,DataLoader,DataLoader_GPU, Decimate_and_perturbate_Data,Short_Traj_Split,wandb_switch
 from Extended_data import N_E, N_CV, N_T
 from Pipeline_ERTS import Pipeline_ERTS as Pipeline
 from Pipeline_EKF import Pipeline_EKF
@@ -24,6 +24,10 @@ from RTSNet_nn_multipass import RTSNetNN_multipass
 from Pipeline_ERTS_multipass import Pipeline_ERTS as Pipeline_multipass
 
 from Plot import Plot_extended as Plot
+
+if wandb_switch:
+   import wandb
+   wandb.init(project="RTSNet_DT_NLobs")
 
 from filing_paths import path_model
 import sys
@@ -290,7 +294,12 @@ RTSNet_Pipeline.setssModel(sys_model_H)
 RTSNet_Pipeline.setModel(RTSNet_model)
 print("Number of trainable parameters for RTSNet:",sum(p.numel() for p in RTSNet_model.parameters() if p.requires_grad))
 RTSNet_Pipeline.setTrainingParams(n_Epochs=2000, n_Batch=100, learningRate=1e-4, weightDecay=1e-4) 
-# RTSNet_Pipeline.model = torch.load('ERTSNet/best-model_DTfull_rq3050_T2000.pt',map_location=dev)
+### Optinal: record parameters to wandb
+if wandb_switch:
+   wandb.log({
+   "learning_rate_pass2": RTSNet_Pipeline.learningRate,
+   "batch_size_pass2": RTSNet_Pipeline.N_B,
+   "weight_decay_pass2": RTSNet_Pipeline.weightDecay})
 if(chop):
    [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model_H, cv_input_pass2, cv_target_pass2, train_input_pass2, train_target_pass2, path_results,randomInit=True,train_init=train_init)
 else:
