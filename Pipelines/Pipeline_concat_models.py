@@ -4,14 +4,6 @@ import time
 import random
 from Plot import Plot_extended as Plot
 
-if torch.cuda.is_available():
-    dev = torch.device("cuda:0")
-    torch.set_default_tensor_type("torch.cuda.FloatTensor")
-    print("using GPU!")
-else:
-    dev = torch.device("cpu")
-    print("using CPU!")
-
 class Pipeline_twoRTSNets:
 
     def __init__(self, Time, folderName, modelName):
@@ -63,8 +55,8 @@ class Pipeline_twoRTSNets:
 
             y_mdl_tst = test_input[j, :, :]
 
-            x_out_test_forward_1 = torch.empty(SysModel.m,SysModel.T_test).to(dev, non_blocking=True)
-            x_out_test = torch.empty(SysModel.m, SysModel.T_test).to(dev, non_blocking=True)
+            x_out_test_forward_1 = torch.empty(SysModel.m,SysModel.T_test)
+            x_out_test = torch.empty(SysModel.m, SysModel.T_test)
             for t in range(0, SysModel.T_test):
                 x_out_test_forward_1[:, t] = self.model1(y_mdl_tst[:, t], None, None, None)
             x_out_test[:, SysModel.T_test-1] = x_out_test_forward_1[:, SysModel.T_test-1] # backward smoothing starts from x_T|T 
@@ -75,8 +67,8 @@ class Pipeline_twoRTSNets:
             
             ########################################################################
             # Second pass
-            x_out_test_forward_2 = torch.empty(SysModel.m,SysModel.T_test).to(dev, non_blocking=True)
-            x_out_test_2 = torch.empty(SysModel.m, SysModel.T_test).to(dev, non_blocking=True)
+            x_out_test_forward_2 = torch.empty(SysModel.m,SysModel.T_test)
+            x_out_test_2 = torch.empty(SysModel.m, SysModel.T_test)
             # Init with results from pass1
             if (randomInit):
                 self.model2.InitSequence(test_init[j], SysModel.T_test)               

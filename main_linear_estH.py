@@ -1,7 +1,7 @@
 import torch
 from datetime import datetime
 
-from Linear_sysmdl import SystemModel
+from Simulations.Linear_sysmdl import SystemModel
 from Extended_data import DataGen,DataLoader,DataLoader_GPU, Decimate_and_perturbate_Data,Short_Traj_Split
 from Extended_data import N_E, N_CV, N_T, F, H, F_rotated, H_rotated, T, T_test, m1_0, m2_0, m, n
 
@@ -16,14 +16,6 @@ from Smoothers.KalmanFilter_test import KFTest
 from Smoothers.RTS_Smoother_test import S_Test
 
 from Plot import Plot_RTS as Plot
-
-if torch.cuda.is_available():
-   dev = torch.device("cuda:0")  # you can continue going on here, like cuda:1 cuda:2....etc.
-   torch.set_default_tensor_type('torch.cuda.FloatTensor')
-   print("Running on the GPU")
-else:
-   dev = torch.device("cpu")
-   print("Running on the CPU")
 
 print("Pipeline Start")
 
@@ -142,8 +134,8 @@ for index in range(0,len(r2)):
    # KNet_Pipeline = Pipeline_KF(strTime, "KNet", "KNetEstH_"+ dataFileName[index])
    # print("True Observation matrix H:", H_rotated)
    # ### Least square estimation of H
-   # X = torch.squeeze(train_target[:,:,0]).to(dev,non_blocking = True)
-   # Y = torch.squeeze(train_input[:,:,0]).to(dev,non_blocking = True)
+   # X = torch.squeeze(train_target[:,:,0])
+   # Y = torch.squeeze(train_input[:,:,0])
    # for t in range(1,T):
    #    X_t = torch.squeeze(train_target[:,:,t])
    #    Y_t = torch.squeeze(train_input[:,:,t])
@@ -151,8 +143,8 @@ for index in range(0,len(r2)):
    #    Y = torch.cat((Y,Y_t),0)
    # Y_1 = torch.unsqueeze(Y[:,0],1)
    # Y_2 = torch.unsqueeze(Y[:,1],1)
-   # H_row1 = torch.matmul(torch.matmul(torch.inverse(torch.matmul(X.T,X)),X.T),Y_1).to(dev,non_blocking = True)
-   # H_row2 = torch.matmul(torch.matmul(torch.inverse(torch.matmul(X.T,X)),X.T),Y_2).to(dev,non_blocking = True)
+   # H_row1 = torch.matmul(torch.matmul(torch.inverse(torch.matmul(X.T,X)),X.T),Y_1)
+   # H_row2 = torch.matmul(torch.matmul(torch.inverse(torch.matmul(X.T,X)),X.T),Y_2)
    # H_hat = torch.cat((H_row1.T,H_row2.T),0)
    # print("Estimated Observation matrix H:", H_hat)
 
@@ -186,7 +178,6 @@ for index in range(0,len(r2)):
    RTSNet_Pipeline.setssModel(sys_model)
    RTSNet_Pipeline.setModel(RTSNet_model)
    RTSNet_Pipeline.setTrainingParams(n_Epochs=1000, n_Batch=30, learningRate=1E-3, weightDecay=1E-3)
-   # RTSNet_Pipeline.model = torch.load('RTSNet/new_architecture/linear/best-model_linear2x2rq020T100.pt',map_location=dev)
    [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results)
    ## Test Neural Network
    [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model, test_input, test_target, path_results)
@@ -203,7 +194,6 @@ for index in range(0,len(r2)):
    RTSNet_Pipeline.setssModel(sys_model_partialh)
    RTSNet_Pipeline.setModel(RTSNet_model)
    RTSNet_Pipeline.setTrainingParams(n_Epochs=1000, n_Batch=30, learningRate=1E-3, weightDecay=1E-3)
-   # RTSNet_Pipeline.model = torch.load('RTSNet/new_architecture/linear/best-model_hrot10_linear2x2rq-1010T100.pt',map_location=dev)
    [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model_partialh, cv_input, cv_target, train_input, train_target, path_results)
    ## Test Neural Network
    [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model_partialh, test_input, test_target, path_results)
@@ -214,8 +204,8 @@ for index in range(0,len(r2)):
    RTSNet_Pipeline = Pipeline(strTime, "RTSNet", "RTSNetEstH_"+ dataFileName[index])
    print("True Observation matrix H:", H_rotated)
    ### Least square estimation of H
-   X = torch.squeeze(train_target[:,:,0]).to(dev,non_blocking = True)
-   Y = torch.squeeze(train_input[:,:,0]).to(dev,non_blocking = True)
+   X = torch.squeeze(train_target[:,:,0])
+   Y = torch.squeeze(train_input[:,:,0])
    for t in range(1,T):
       X_t = torch.squeeze(train_target[:,:,t])
       Y_t = torch.squeeze(train_input[:,:,t])
@@ -223,8 +213,8 @@ for index in range(0,len(r2)):
       Y = torch.cat((Y,Y_t),0)
    Y_1 = torch.unsqueeze(Y[:,0],1)
    Y_2 = torch.unsqueeze(Y[:,1],1)
-   H_row1 = torch.matmul(torch.matmul(torch.inverse(torch.matmul(X.T,X)),X.T),Y_1).to(dev,non_blocking = True)
-   H_row2 = torch.matmul(torch.matmul(torch.inverse(torch.matmul(X.T,X)),X.T),Y_2).to(dev,non_blocking = True)
+   H_row1 = torch.matmul(torch.matmul(torch.inverse(torch.matmul(X.T,X)),X.T),Y_1)
+   H_row2 = torch.matmul(torch.matmul(torch.inverse(torch.matmul(X.T,X)),X.T),Y_2)
    H_hat = torch.cat((H_row1.T,H_row2.T),0)
    print("Estimated Observation matrix H:", H_hat)
 
@@ -238,7 +228,6 @@ for index in range(0,len(r2)):
    RTSNet_Pipeline.setModel(RTSNet_model)
    
    RTSNet_Pipeline.setTrainingParams(n_Epochs=1000, n_Batch=30, learningRate=1E-3, weightDecay=1E-3)
-   # RTSNet_Pipeline.model = torch.load('RTSNet/new_architecture/linear/best-model_hrot10_linear2x2rq-1010T100.pt',map_location=dev)
    [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model_partialh, cv_input, cv_target, train_input, train_target, path_results)
    ## Test Neural Network
    [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model_partialh, test_input, test_target, path_results)
@@ -257,7 +246,6 @@ for index in range(0,len(r2)):
    RNN_Pipeline.setssModel(sys_model)
    RNN_Pipeline.setModel(RNN_model)
    RNN_Pipeline.setTrainingParams(n_Epochs=1000, n_Batch=50, learningRate=1e-3, weightDecay=1e-5)
-   # RNN_Pipeline.model = torch.load('RNN/linear/2x2_rq020_T100.pt',map_location=dev)  
    RNN_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results, rnn=True)
    ## Test Neural Network
    [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RNN_Pipeline.NNTest(sys_model, test_input, test_target, path_results, rnn=True)

@@ -6,13 +6,6 @@ import os
 import numpy as np
 os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
-if torch.cuda.is_available():
-   dev = torch.device("cuda:0")  # you can continue going on here, like cuda:1 cuda:2....etc.
-   torch.set_default_tensor_type('torch.cuda.FloatTensor')
-else:
-   dev = torch.device("cpu")
-   print("Running on the CPU")
-
 wandb_switch = True # True if you want to use wandb
 
 ########################
@@ -44,9 +37,9 @@ T_test = 200
 # # H = I
 # H = torch.eye(2)
 
-# m1_0 = torch.tensor([[0.0], [0.0]]).to(dev)
+# m1_0 = torch.tensor([[0.0], [0.0]])
 # # m1x_0_design = torch.tensor([[10.0], [-10.0]])
-# m2_0 = 0 * 0 * torch.eye(m).to(dev)
+# m2_0 = 0 * 0 * torch.eye(m)
 
 
 ################################
@@ -64,9 +57,9 @@ H[0] = torch.ones(1,n)
 for i in range(n):
     H[i,n-1-i] = 1
 
-m1_0 = torch.zeros(m, 1).to(dev)
-# m1x_0_design = torch.tensor([[1.0], [-1.0], [2.0], [-2.0], [0.0]]).to(dev)
-m2_0 = 0 * 0 * torch.eye(m).to(dev)
+m1_0 = torch.zeros(m, 1)
+# m1x_0_design = torch.tensor([[1.0], [-1.0], [2.0], [-2.0], [0.0]])
+m2_0 = 0 * 0 * torch.eye(m)
 
 
 
@@ -75,11 +68,11 @@ F_rotated = torch.zeros_like(F)
 H_rotated = torch.zeros_like(H)
 if(m==2):
     alpha_degree = 10
-    rotate_alpha = torch.tensor([alpha_degree/180*torch.pi]).to(dev)
+    rotate_alpha = torch.tensor([alpha_degree/180*torch.pi])
     cos_alpha = torch.cos(rotate_alpha)
     sin_alpha = torch.sin(rotate_alpha)
     rotate_matrix = torch.tensor([[cos_alpha, -sin_alpha],
-                                [sin_alpha, cos_alpha]]).to(dev)
+                                [sin_alpha, cos_alpha]])
     # print(rotate_matrix)
     F_rotated = torch.mm(F,rotate_matrix) #inaccurate process model
     H_rotated = torch.mm(H,rotate_matrix) #inaccurate observation model
@@ -142,17 +135,17 @@ def DataGen(SysModel_data, fileName, T, T_test,randomInit_train=False,randomInit
 
 def DataLoader(fileName):
 
-    [training_input, training_target, cv_input, cv_target, test_input, test_target] = torch.load(fileName,map_location=dev)
+    [training_input, training_target, cv_input, cv_target, test_input, test_target] = torch.load(fileName)
     return [training_input, training_target, cv_input, cv_target, test_input, test_target]
 
 def DataLoader_GPU(fileName):
-    [training_input, training_target, cv_input, cv_target, test_input, test_target] = torch.utils.data.DataLoader(torch.load(fileName,map_location=dev),pin_memory = False)
-    training_input = training_input.squeeze().to(dev)
-    training_target = training_target.squeeze().to(dev)
-    cv_input = cv_input.squeeze().to(dev)
-    cv_target =cv_target.squeeze().to(dev)
-    test_input = test_input.squeeze().to(dev)
-    test_target = test_target.squeeze().to(dev)
+    [training_input, training_target, cv_input, cv_target, test_input, test_target] = torch.utils.data.DataLoader(torch.load(fileName),pin_memory = False)
+    training_input = training_input.squeeze()
+    training_target = training_target.squeeze()
+    cv_input = cv_input.squeeze()
+    cv_target =cv_target.squeeze()
+    test_input = test_input.squeeze()
+    test_target = test_target.squeeze()
     return [training_input, training_target, cv_input, cv_target, test_input, test_target]
 
 def DecimateData(all_tensors, t_gen,t_mod, offset=0):

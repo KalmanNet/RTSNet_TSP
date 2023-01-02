@@ -10,12 +10,6 @@ import torch.nn.functional as func
 
 from Simulations.Lorenz_Atractor.model import getJacobian
 
-if torch.cuda.is_available():
-    dev = torch.device("cuda:0")
-    torch.set_default_tensor_type("torch.cuda.FloatTensor")
-else:
-    dev = torch.device("cpu")
-
 
 class KalmanNetNN(torch.nn.Module):
 
@@ -55,19 +49,19 @@ class KalmanNetNN(torch.nn.Module):
         self.d_input_Q = self.m * in_mult
         self.d_hidden_Q = self.m ** 2
         self.GRU_Q = nn.GRU(self.d_input_Q, self.d_hidden_Q)
-        self.h_Q = torch.randn(self.seq_len_input, self.batch_size, self.d_hidden_Q).to(dev, non_blocking=True)
+        self.h_Q = torch.randn(self.seq_len_input, self.batch_size, self.d_hidden_Q)
 
         # GRU to track Sigma
         self.d_input_Sigma = self.d_hidden_Q + self.m * in_mult
         self.d_hidden_Sigma = self.m ** 2
         self.GRU_Sigma = nn.GRU(self.d_input_Sigma, self.d_hidden_Sigma)
-        self.h_Sigma = torch.randn(self.seq_len_input, self.batch_size, self.d_hidden_Sigma).to(dev, non_blocking=True)
+        self.h_Sigma = torch.randn(self.seq_len_input, self.batch_size, self.d_hidden_Sigma)
 
         # GRU to track S
         self.d_input_S = self.n ** 2 + 2 * self.n * in_mult
         self.d_hidden_S = self.n ** 2
         self.GRU_S = nn.GRU(self.d_input_S, self.d_hidden_S)
-        self.h_S = torch.randn(self.seq_len_input, self.batch_size, self.d_hidden_S).to(dev, non_blocking=True)
+        self.h_S = torch.randn(self.seq_len_input, self.batch_size, self.d_hidden_S)
 
         # Fully connected 1
         self.d_input_FC1 = self.d_hidden_Sigma
@@ -150,14 +144,14 @@ class KalmanNetNN(torch.nn.Module):
     def InitSequence(self, M1_0, T):
         self.T = T
 
-        self.m1x_posterior = torch.squeeze(M1_0).to(dev, non_blocking=True)
-        self.m1x_posterior_previous = self.m1x_posterior.to(dev, non_blocking=True)
-        self.m1x_prior_previous = self.m1x_posterior.to(dev, non_blocking=True)
-        self.y_previous = torch.squeeze(self.m1x_posterior).to(dev, non_blocking=True)
+        self.m1x_posterior = torch.squeeze(M1_0)
+        self.m1x_posterior_previous = self.m1x_posterior
+        self.m1x_prior_previous = self.m1x_posterior
+        self.y_previous = torch.squeeze(self.m1x_posterior)
 
         # KGain saving
         # self.i = 0
-        # self.KGain_array = self.KG_array = torch.zeros((self.T,self.m,self.n)).to(dev, non_blocking=True)
+        # self.KGain_array = self.KG_array = torch.zeros((self.T,self.m,self.n))
 
     ######################
     ### Compute Priors ###
@@ -313,7 +307,7 @@ class KalmanNetNN(torch.nn.Module):
     ### Forward ###
     ###############
     def forward(self, y):
-        y = torch.squeeze(y).to(dev, non_blocking=True)
+        y = torch.squeeze(y)
 
         return self.KNet_step(y)
 

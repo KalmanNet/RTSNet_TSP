@@ -4,14 +4,6 @@ import time
 import random
 from Plot import Plot_extended as Plot
 
-if torch.cuda.is_available():
-    dev = torch.device("cuda:0")
-    torch.set_default_tensor_type("torch.cuda.FloatTensor")
-    print("using GPU!")
-else:
-    dev = torch.device("cpu")
-    print("using CPU!")
-
 class Pipeline_ERTS:
 
     def __init__(self, Time, folderName, modelName):
@@ -53,13 +45,13 @@ class Pipeline_ERTS:
         self.N_E = train_input.size()[0]
         self.N_CV = cv_input.size()[0]
 
-        MSE_cv_linear_batch = torch.empty([self.N_CV]).to(dev, non_blocking=True)
-        self.MSE_cv_linear_epoch = torch.empty([self.N_Epochs]).to(dev, non_blocking=True)
-        self.MSE_cv_dB_epoch = torch.empty([self.N_Epochs]).to(dev, non_blocking=True)
+        MSE_cv_linear_batch = torch.empty([self.N_CV])
+        self.MSE_cv_linear_epoch = torch.empty([self.N_Epochs])
+        self.MSE_cv_dB_epoch = torch.empty([self.N_Epochs])
 
-        MSE_train_linear_batch = torch.empty([self.N_B]).to(dev, non_blocking=True)
-        self.MSE_train_linear_epoch = torch.empty([self.N_Epochs]).to(dev, non_blocking=True)
-        self.MSE_train_dB_epoch = torch.empty([self.N_Epochs]).to(dev, non_blocking=True)
+        MSE_train_linear_batch = torch.empty([self.N_B])
+        self.MSE_train_linear_epoch = torch.empty([self.N_Epochs])
+        self.MSE_train_dB_epoch = torch.empty([self.N_Epochs])
 
         ##############
         ### Epochs ###
@@ -92,8 +84,8 @@ class Pipeline_ERTS:
                     self.model.InitSequence(SysModel.m1x_0, SysModel.T)
 
                 y_training = train_input[n_e, :, :]
-                x_out_training_forward = torch.empty(SysModel.m, SysModel.T).to(dev, non_blocking=True)
-                x_out_training = torch.empty(SysModel.m, SysModel.T).to(dev, non_blocking=True)
+                x_out_training_forward = torch.empty(SysModel.m, SysModel.T)
+                x_out_training = torch.empty(SysModel.m, SysModel.T)
                 for t in range(0, SysModel.T):
                     x_out_training_forward[:, t] = self.model(y_training[:, t], None, None, None)
                 x_out_training[:, SysModel.T-1] = x_out_training_forward[:, SysModel.T-1] # backward smoothing starts from x_T|T 
@@ -104,8 +96,8 @@ class Pipeline_ERTS:
                 
                 ### second pass
                 # define BW tensors
-                x_out_train_forward_2 = torch.empty(SysModel.m,SysModel.T).to(dev, non_blocking=True)
-                x_out_train_2 = torch.empty(SysModel.m, SysModel.T).to(dev, non_blocking=True)
+                x_out_train_forward_2 = torch.empty(SysModel.m,SysModel.T)
+                x_out_train_2 = torch.empty(SysModel.m, SysModel.T)
                 # init 
                 if(randomInit):
                     self.model.InitSequence(train_init[n_e], SysModel.T)
@@ -180,8 +172,8 @@ class Pipeline_ERTS:
  
                     y_cv = cv_input[j, :, :]
 
-                    x_out_cv_forward = torch.empty(SysModel.m, SysModel.T_test).to(dev, non_blocking=True)
-                    x_out_cv = torch.empty(SysModel.m, SysModel.T_test).to(dev, non_blocking=True)
+                    x_out_cv_forward = torch.empty(SysModel.m, SysModel.T_test)
+                    x_out_cv = torch.empty(SysModel.m, SysModel.T_test)
                     # first filtering pass
                     for t in range(0, SysModel.T_test):
                         x_out_cv_forward[:, t] = self.model(y_cv[:, t], None, None, None)
@@ -193,8 +185,8 @@ class Pipeline_ERTS:
                         x_out_cv[:, t] = self.model(None, x_out_cv_forward[:, t], x_out_cv_forward[:, t+1],x_out_cv[:, t+2])
                     
                     ### second pass
-                    x_out_cv_forward_2 = torch.empty(SysModel.m,SysModel.T_test).to(dev, non_blocking=True)
-                    x_out_cv_2 = torch.empty(SysModel.m, SysModel.T_test).to(dev, non_blocking=True)
+                    x_out_cv_forward_2 = torch.empty(SysModel.m,SysModel.T_test)
+                    x_out_cv_2 = torch.empty(SysModel.m, SysModel.T_test)
                     # Init 
                     if(randomInit):
                         if(cv_init==None):
@@ -257,7 +249,7 @@ class Pipeline_ERTS:
         # MSE LOSS Function
         loss_fn = nn.MSELoss(reduction='mean')
 
-        self.model = torch.load(path_results+'best-model.pt', map_location=dev)
+        self.model = torch.load(path_results+'best-model.pt')
 
         self.model.eval()
 
@@ -274,8 +266,8 @@ class Pipeline_ERTS:
 
             y_mdl_tst = test_input[j, :, :]
 
-            x_out_test_forward_1 = torch.empty(SysModel.m,SysModel.T_test).to(dev, non_blocking=True)
-            x_out_test = torch.empty(SysModel.m, SysModel.T_test).to(dev, non_blocking=True)
+            x_out_test_forward_1 = torch.empty(SysModel.m,SysModel.T_test)
+            x_out_test = torch.empty(SysModel.m, SysModel.T_test)
             for t in range(0, SysModel.T_test):
                 x_out_test_forward_1[:, t] = self.model(y_mdl_tst[:, t], None, None, None)
             x_out_test[:, SysModel.T_test-1] = x_out_test_forward_1[:, SysModel.T_test-1] # backward smoothing starts from x_T|T 
@@ -286,8 +278,8 @@ class Pipeline_ERTS:
             
             ########################################################################
             # Second pass
-            x_out_test_forward_2 = torch.empty(SysModel.m,SysModel.T_test).to(dev, non_blocking=True)
-            x_out_test_2 = torch.empty(SysModel.m, SysModel.T_test).to(dev, non_blocking=True)
+            x_out_test_forward_2 = torch.empty(SysModel.m,SysModel.T_test)
+            x_out_test_2 = torch.empty(SysModel.m, SysModel.T_test)
             # Init with results from pass1
             if (randomInit):
                 self.model.InitSequence(test_init[j], SysModel.T_test)               

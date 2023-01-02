@@ -6,7 +6,7 @@ from Smoothers.Extended_RTS_Smoother_test import S_Test
 from Smoothers.ParticleSmoother_test import PSTest
 from Smoothers.PF_test import PFTest
 
-from Extended_sysmdl import SystemModel
+from Simulations.Extended_sysmdl import SystemModel
 from Extended_data import DataGen,DataLoader,DataLoader_GPU, Decimate_and_perturbate_Data,Short_Traj_Split,wandb_switch
 from Extended_data import N_E, N_CV, N_T
 
@@ -28,20 +28,8 @@ if wandb_switch:
    import wandb
    wandb.init(project="RTSNet_DT_NLobs")
 
-from filing_paths import path_model
-import sys
-sys.path.insert(1, path_model)
-from parameters import T, T_test, m1x_0, m2x_0, m, n,H_mod
-from model import f, h, h_nonlinear, toCartesian, getJacobian
-
-if torch.cuda.is_available():
-   dev = torch.device("cuda:0")  # you can continue going on here, like cuda:1 cuda:2....etc.
-   torch.set_default_tensor_type('torch.cuda.FloatTensor')
-   print("Running on the GPU")
-else:
-   dev = torch.device("cpu")
-   print("Running on the CPU")
-
+from Simulations.Lorenz_Atractor.parameters import T, T_test, m1x_0, m2x_0, m, n,H_mod
+from Simulations.Lorenz_Atractor.model import f, h, h_nonlinear, toCartesian, getJacobian
 
 print("Pipeline Start")
 ################
@@ -95,7 +83,7 @@ sys_model.InitSequence(m1x_0, m2x_0)# x0 and P0
 # DataGen(sys_model, DatafolderName + dataFileName[0], T, T_test,randomInit=False)
 print("Data Load")
 print(dataFileName[0])
-[train_input_long,train_target_long, cv_input, cv_target, test_input, test_target] =  torch.load(DatafolderName + dataFileName[0],map_location=dev)  
+[train_input_long,train_target_long, cv_input, cv_target, test_input, test_target] =  torch.load(DatafolderName + dataFileName[0])  
 if chop: 
    print("chop training data")    
    [train_target, train_input, train_init] = Short_Traj_Split(train_target_long, train_input_long, T)
@@ -278,7 +266,7 @@ fileName = "Simulations/Lorenz_Atractor/data/T20_hNL/Pass1_rq3030_T20.pt"
 # train_input_pass2 = rtsnet_out_train[N_CV:-1]
 # train_target_pass2 = train_target[N_CV:-1]
 # torch.save([train_input_pass2, train_target_pass2, cv_input_pass2, cv_target_pass2], fileName)
-[train_input_pass2, train_target_pass2, cv_input_pass2, cv_target_pass2] = torch.load(fileName, map_location=dev)
+[train_input_pass2, train_target_pass2, cv_input_pass2, cv_target_pass2] = torch.load(fileName)
 
 print("Train RTSNet pass2")
 RTSNet_model = RTSNetNN()
@@ -303,8 +291,8 @@ else:
 
 ## load trained Neural Network
 print("RTSNet with model mismatch")
-RTSNet_model1 = torch.load('RTSNet/checkpoints/LorenzAttracotor/DT/HNL/rq3030_T20.pt',map_location=dev)
-RTSNet_model2 = torch.load('RTSNet/best-model.pt',map_location=dev)
+RTSNet_model1 = torch.load('RTSNet/checkpoints/LorenzAttracotor/DT/HNL/rq3030_T20.pt')
+RTSNet_model2 = torch.load('RTSNet/best-model.pt')
 ## Setup Pipeline
 RTSNet_Pipeline = Pipeline_twoRTSNets(strTime, "RTSNet", "RTSNet")
 RTSNet_Pipeline.setModel(RTSNet_model1, RTSNet_model2)

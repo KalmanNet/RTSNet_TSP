@@ -5,14 +5,6 @@ import random
 import math
 from Plot import Plot_extended as Plot
 
-if torch.cuda.is_available():
-    dev = torch.device("cuda:0")
-    torch.set_default_tensor_type("torch.cuda.FloatTensor")
-    print("using GPU!")
-else:
-    dev = torch.device("cpu")
-    print("using CPU!")
-
 class Pipeline_ERTS:
 
     def __init__(self, Time, folderName, modelName):
@@ -57,13 +49,13 @@ class Pipeline_ERTS:
         self.N_E = train_input.size()[0]
         self.N_CV = cv_input.size()[0]
 
-        MSE_cv_linear_batch = torch.empty([self.N_CV]).to(dev, non_blocking=True)
-        self.MSE_cv_linear_epoch = torch.empty([self.N_Epochs]).to(dev, non_blocking=True)
-        self.MSE_cv_dB_epoch = torch.empty([self.N_Epochs]).to(dev, non_blocking=True)
+        MSE_cv_linear_batch = torch.empty([self.N_CV])
+        self.MSE_cv_linear_epoch = torch.empty([self.N_Epochs])
+        self.MSE_cv_dB_epoch = torch.empty([self.N_Epochs])
 
-        MSE_train_linear_batch_iterations = torch.empty([self.N_B, self.model.iterations]).to(dev, non_blocking=True)
-        self.MSE_train_linear_epoch_iterations = torch.empty([self.N_Epochs, self.model.iterations]).to(dev, non_blocking=True)
-        self.MSE_train_dB_epoch_iterations = torch.empty([self.N_Epochs, self.model.iterations]).to(dev, non_blocking=True)
+        MSE_train_linear_batch_iterations = torch.empty([self.N_B, self.model.iterations])
+        self.MSE_train_linear_epoch_iterations = torch.empty([self.N_Epochs, self.model.iterations])
+        self.MSE_train_dB_epoch_iterations = torch.empty([self.N_Epochs, self.model.iterations])
 
         ##############
         ### Epochs ###
@@ -97,8 +89,8 @@ class Pipeline_ERTS:
                 ### allocate tensors and lists for saving results
                 x_out_train_forward = []
                 x_out_train = []
-                x_out_training_forward = torch.empty(SysModel.m, SysModel.T).to(dev, non_blocking=True)
-                x_out_training = torch.empty(SysModel.m, SysModel.T).to(dev, non_blocking=True)     
+                x_out_training_forward = torch.empty(SysModel.m, SysModel.T)
+                x_out_training = torch.empty(SysModel.m, SysModel.T)   
                 ### first pass
                 if(randomInit):
                     self.model.InitSequence_multipass(0,train_init[n_e], SysModel.T)
@@ -119,8 +111,8 @@ class Pipeline_ERTS:
                 ### second pass and so on
                 for iteration in range(1, self.model.iterations):
                     # Allocate tensors
-                    x_out_training_forward = torch.empty(SysModel.m, SysModel.T).to(dev, non_blocking=True)
-                    x_out_training = torch.empty(SysModel.m, SysModel.T).to(dev, non_blocking=True)
+                    x_out_training_forward = torch.empty(SysModel.m, SysModel.T)
+                    x_out_training = torch.empty(SysModel.m, SysModel.T)
                     if(randomInit):
                         self.model.InitSequence_multipass(iteration,train_init[n_e], SysModel.T)
                     else:
@@ -140,7 +132,7 @@ class Pipeline_ERTS:
 
                 # Compute Training Loss
                 if (CompositionLoss):
-                    y_hat = torch.empty([SysModel.n, SysModel.T]).to(dev, non_blocking=True) 
+                    y_hat = torch.empty([SysModel.n, SysModel.T])
                     for t in range(SysModel.T):
                         y_hat[:,t] = SysModel.h(x_out_train[0][:,t])## want h(fold1) close to y
                     LOSS = self.alpha * self.loss_fn(x_out_train[self.model.iterations-1], train_target[n_e])+(1-self.alpha)*self.loss_fn(y_hat, train_input[n_e])
@@ -200,8 +192,8 @@ class Pipeline_ERTS:
                     y_cv = cv_input[j]
                     SysModel.T_test = y_cv.size()[-1]
 
-                    x_out_cv_forward = torch.empty(SysModel.m, SysModel.T_test).to(dev, non_blocking=True)
-                    x_out_cv = torch.empty(SysModel.m, SysModel.T_test).to(dev, non_blocking=True)
+                    x_out_cv_forward = torch.empty(SysModel.m, SysModel.T_test)
+                    x_out_cv = torch.empty(SysModel.m, SysModel.T_test)
                     ### first pass                  
                     if(randomInit):
                         if(cv_init==None):
@@ -283,7 +275,7 @@ class Pipeline_ERTS:
         # MSE LOSS Function
         loss_fn = nn.MSELoss(reduction='mean')
 
-        self.model = torch.load(path_results+'best-model.pt', map_location=dev)
+        self.model = torch.load(path_results+'best-model.pt')
 
         self.model.eval()
 
@@ -295,8 +287,8 @@ class Pipeline_ERTS:
             y_mdl_tst = test_input[j]
             SysModel.T_test = y_mdl_tst.size()[-1]
 
-            x_out_test_forward = torch.empty(SysModel.m,SysModel.T_test).to(dev, non_blocking=True)
-            x_out_test = torch.empty(SysModel.m, SysModel.T_test).to(dev, non_blocking=True)
+            x_out_test_forward = torch.empty(SysModel.m,SysModel.T_test)
+            x_out_test = torch.empty(SysModel.m, SysModel.T_test)
 
             if(randomInit):
                 self.model.InitSequence_multipass(0,test_init[j], SysModel.T_test)

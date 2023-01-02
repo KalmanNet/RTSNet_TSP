@@ -2,15 +2,8 @@
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as func
 
 from RNN.RNN_forward import RNN_FW
-
-if torch.cuda.is_available():
-    dev = torch.device("cuda:0")
-    torch.set_default_tensor_type("torch.cuda.FloatTensor")
-else:
-    dev = torch.device("cpu")
 
 in_mult_bw = 3
 out_mult_bw = 2
@@ -162,7 +155,7 @@ class Vanilla_RNN(RNN_FW):
             return self.BW_RNN_step(filter_x)
         else:
             # FW pass
-            y = torch.squeeze(y).to(dev, non_blocking=True)
+            y = torch.squeeze(y)
 
             return self.FW_RNN_step(y)
 

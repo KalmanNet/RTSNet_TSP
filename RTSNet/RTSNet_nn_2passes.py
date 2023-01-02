@@ -6,13 +6,6 @@ import torch.nn.functional as func
 
 from RTSNet.RTSNet_nn import RTSNetNN
 
-if torch.cuda.is_available():
-    dev = torch.device("cuda:0")
-    torch.set_default_tensor_type("torch.cuda.FloatTensor")
-else:
-    dev = torch.device("cpu")
-
-
 class RTSNetNN_2passes(RTSNetNN):
 
     ###################
@@ -49,19 +42,19 @@ class RTSNetNN_2passes(RTSNetNN):
         self.d_input_Q_2 = self.m * in_mult
         self.d_hidden_Q_2 = self.m ** 2
         self.GRU_Q_2 = nn.GRU(self.d_input_Q_2, self.d_hidden_Q_2)
-        self.h_Q_2 = torch.randn(self.seq_len_input, self.batch_size, self.d_hidden_Q_2).to(dev, non_blocking=True)
+        self.h_Q_2 = torch.randn(self.seq_len_input, self.batch_size, self.d_hidden_Q_2)
 
         # GRU to track Sigma
         self.d_input_Sigma_2 = self.d_hidden_Q_2 + self.m * in_mult
         self.d_hidden_Sigma_2 = self.m ** 2
         self.GRU_Sigma_2 = nn.GRU(self.d_input_Sigma_2, self.d_hidden_Sigma_2)
-        self.h_Sigma_2 = torch.randn(self.seq_len_input, self.batch_size, self.d_hidden_Sigma_2).to(dev, non_blocking=True)
+        self.h_Sigma_2 = torch.randn(self.seq_len_input, self.batch_size, self.d_hidden_Sigma_2)
 
         # GRU to track S
         self.d_input_S_2 = self.n ** 2 + 2 * self.n * in_mult
         self.d_hidden_S_2 = self.n ** 2
         self.GRU_S_2 = nn.GRU(self.d_input_S_2, self.d_hidden_S_2)
-        self.h_S_2 = torch.randn(self.seq_len_input, self.batch_size, self.d_hidden_S_2).to(dev, non_blocking=True)
+        self.h_S_2 = torch.randn(self.seq_len_input, self.batch_size, self.d_hidden_S_2)
 
         # Fully connected 1
         self.d_input_FC1_2 = self.d_hidden_Sigma_2
@@ -125,13 +118,13 @@ class RTSNetNN_2passes(RTSNetNN):
         self.d_input_Q_bw_2 = self.m * in_mult
         self.d_hidden_Q_bw_2 = self.m ** 2
         self.GRU_Q_bw_2 = nn.GRU(self.d_input_Q_bw_2, self.d_hidden_Q_bw_2)
-        self.h_Q_bw_2 = torch.randn(self.seq_len_input, self.batch_size, self.d_hidden_Q_bw_2).to(dev, non_blocking=True)
+        self.h_Q_bw_2 = torch.randn(self.seq_len_input, self.batch_size, self.d_hidden_Q_bw_2)
 
         # BW GRU to track Sigma
         self.d_input_Sigma_bw_2 = self.d_hidden_Q_bw_2 + 2 * self.m * in_mult
         self.d_hidden_Sigma_bw_2 = self.m ** 2
         self.GRU_Sigma_bw_2 = nn.GRU(self.d_input_Sigma_bw_2, self.d_hidden_Sigma_bw_2)
-        self.h_Sigma_bw_2 = torch.randn(self.seq_len_input, self.batch_size, self.d_hidden_Sigma_bw_2).to(dev, non_blocking=True)
+        self.h_Sigma_bw_2 = torch.randn(self.seq_len_input, self.batch_size, self.d_hidden_Sigma_bw_2)
 
         # BW Fully connected 1
         self.d_input_FC1_bw_2 = self.d_hidden_Sigma_bw_2 # + self.d_hidden_Q
@@ -409,7 +402,6 @@ class RTSNetNN_2passes(RTSNetNN):
                 return self.RTSNet_step_pass2(filter_x, filter_x_nexttime, smoother_x_tplus2)
             else:
                 # FW pass 2
-                yt = yt.to(dev, non_blocking=True)
                 return self.KNet_step_pass2(yt, filter_x)#note that here filter_x is from pass1
         else:
             if yt is None:
@@ -417,7 +409,6 @@ class RTSNetNN_2passes(RTSNetNN):
                 return self.RTSNet_step(filter_x, filter_x_nexttime, smoother_x_tplus2)
             else:
                 # FW pass 1
-                yt = yt.to(dev, non_blocking=True)
                 return self.KNet_step(yt)
 
     #########################

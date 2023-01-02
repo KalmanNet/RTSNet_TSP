@@ -8,14 +8,6 @@ from Extended_data import wandb_switch
 if wandb_switch: 
     import wandb
 
-if torch.cuda.is_available():
-    dev = torch.device("cuda:0")
-    torch.set_default_tensor_type("torch.cuda.FloatTensor")
-    print("using GPU!")
-else:
-    dev = torch.device("cpu")
-    print("using CPU!")
-
 class Pipeline_ERTS:
 
     def __init__(self, Time, folderName, modelName):
@@ -57,13 +49,13 @@ class Pipeline_ERTS:
         self.N_E = len(train_input)
         self.N_CV = len(cv_input)
 
-        MSE_cv_linear_batch = torch.empty([self.N_CV]).to(dev, non_blocking=True)
-        self.MSE_cv_linear_epoch = torch.empty([self.N_Epochs]).to(dev, non_blocking=True)
-        self.MSE_cv_dB_epoch = torch.empty([self.N_Epochs]).to(dev, non_blocking=True)
+        MSE_cv_linear_batch = torch.empty([self.N_CV])
+        self.MSE_cv_linear_epoch = torch.empty([self.N_Epochs])
+        self.MSE_cv_dB_epoch = torch.empty([self.N_Epochs])
 
-        MSE_train_linear_batch = torch.empty([self.N_B]).to(dev, non_blocking=True)
-        self.MSE_train_linear_epoch = torch.empty([self.N_Epochs]).to(dev, non_blocking=True)
-        self.MSE_train_dB_epoch = torch.empty([self.N_Epochs]).to(dev, non_blocking=True)
+        MSE_train_linear_batch = torch.empty([self.N_B])
+        self.MSE_train_linear_epoch = torch.empty([self.N_Epochs])
+        self.MSE_train_dB_epoch = torch.empty([self.N_Epochs])
         
         if MaskOnState:
             mask = torch.tensor([True,False,False])
@@ -97,8 +89,8 @@ class Pipeline_ERTS:
                 y_training = train_input[n_e]
                 SysModel.T = y_training.size()[-1]
 
-                x_out_training_forward = torch.empty(SysModel.m, SysModel.T).to(dev, non_blocking=True)
-                x_out_training = torch.empty(SysModel.m, SysModel.T).to(dev, non_blocking=True)
+                x_out_training_forward = torch.empty(SysModel.m, SysModel.T)
+                x_out_training = torch.empty(SysModel.m, SysModel.T)
                 
                 if(randomInit):
                     self.model.InitSequence(train_init[n_e], SysModel.T)
@@ -113,28 +105,17 @@ class Pipeline_ERTS:
                 for t in range(SysModel.T-3, -1, -1):
                     x_out_training[:, t] = self.model(None, x_out_training_forward[:, t], x_out_training_forward[:, t+1],x_out_training[:, t+2])
                     
-                # if (multipass):
-                #     x_out_train_forward_2 = torch.empty(SysModel.m,SysModel.T_test).to(dev, non_blocking=True)
-                #     x_out_train_2 = torch.empty(SysModel.m, SysModel.T_test).to(dev, non_blocking=True)
-                #     for t in range(0, SysModel.T_test):
-                #         x_out_train_forward_2[:, t] = self.model(x_out_training[:, t], None, None, None)
-                #     x_out_train_2[:, SysModel.T_test-1] = x_out_train_forward_2[:, SysModel.T_test-1] # backward smoothing starts from x_T|T 
-                #     self.model.InitBackward(x_out_train_2[:, SysModel.T_test-1]) 
-                #     x_out_train_2[:, SysModel.T_test-2] = self.model(None, x_out_train_forward_2[:, SysModel.T_test-2], x_out_train_forward_2[:, SysModel.T_test-1],None)
-                #     for t in range(SysModel.T_test-3, -1, -1):
-                #         x_out_train_2[:, t] = self.model(None, x_out_train_forward_2[:, t], x_out_train_forward_2[:, t+1],x_out_training[:, t+2])          
-                #     x_out_training = x_out_train_2
 
                 # Compute Training Loss
                 LOSS = 0
                 if (CompositionLoss):
                     if(MaskOnState):                      
-                        y_hat = torch.empty([SysModel.n, SysModel.T]).to(dev, non_blocking=True) 
+                        y_hat = torch.empty([SysModel.n, SysModel.T])
                         for t in range(SysModel.T):
                             y_hat[:,t] = SysModel.h(x_out_training[:,t])
                         LOSS = self.alpha * self.loss_fn(x_out_training[mask], train_target[n_e][mask])+(1-self.alpha)*self.loss_fn(y_hat[mask], train_input[n_e][mask])
                     else:
-                        y_hat = torch.empty([SysModel.n, SysModel.T]).to(dev, non_blocking=True) 
+                        y_hat = torch.empty([SysModel.n, SysModel.T])
                         for t in range(SysModel.T):
                             y_hat[:,t] = SysModel.h(x_out_training[:,t])
                         LOSS = self.alpha * self.loss_fn(x_out_training, train_target[n_e])+(1-self.alpha)*self.loss_fn(y_hat, train_input[n_e])
@@ -186,8 +167,8 @@ class Pipeline_ERTS:
                     y_cv = cv_input[j]
                     SysModel.T_test = y_cv.size()[-1]
 
-                    x_out_cv_forward = torch.empty(SysModel.m, SysModel.T_test).to(dev, non_blocking=True)
-                    x_out_cv = torch.empty(SysModel.m, SysModel.T_test).to(dev, non_blocking=True)
+                    x_out_cv_forward = torch.empty(SysModel.m, SysModel.T_test)
+                    x_out_cv = torch.empty(SysModel.m, SysModel.T_test)
                     
                     if(randomInit):
                         if(cv_init==None):
@@ -203,19 +184,7 @@ class Pipeline_ERTS:
                     self.model.InitBackward(x_out_cv[:, SysModel.T_test-1]) 
                     x_out_cv[:, SysModel.T_test-2] = self.model(None, x_out_cv_forward[:, SysModel.T_test-2], x_out_cv_forward[:, SysModel.T_test-1],None)
                     for t in range(SysModel.T_test-3, -1, -1):
-                        x_out_cv[:, t] = self.model(None, x_out_cv_forward[:, t], x_out_cv_forward[:, t+1],x_out_cv[:, t+2])
-                        
-                    # if (multipass):
-                    #     x_out_cv_forward_2 = torch.empty(SysModel.m,SysModel.T_test).to(dev, non_blocking=True)
-                    #     x_out_cv_2 = torch.empty(SysModel.m, SysModel.T_test).to(dev, non_blocking=True)
-                    #     for t in range(0, SysModel.T_test):
-                    #         x_out_cv_forward_2[:, t] = self.model(x_out_cv[:, t], None, None, None)
-                    #     x_out_cv_2[:, SysModel.T_test-1] = x_out_cv_forward_2[:, SysModel.T_test-1] # backward smoothing starts from x_T|T 
-                    #     self.model.InitBackward(x_out_cv_2[:, SysModel.T_test-1]) 
-                    #     x_out_cv_2[:, SysModel.T_test-2] = self.model(None, x_out_cv_forward_2[:, SysModel.T_test-2], x_out_cv_forward_2[:, SysModel.T_test-1],None)
-                    #     for t in range(SysModel.T_test-3, -1, -1):
-                    #         x_out_cv_2[:, t] = self.model(None, x_out_cv_forward_2[:, t], x_out_cv_forward_2[:, t+1],x_out_cv[:, t+2])          
-                    #     x_out_cv = x_out_cv_2
+                        x_out_cv[:, t] = self.model(None, x_out_cv_forward[:, t], x_out_cv_forward[:, t+1],x_out_cv[:, t+2])                       
 
                     # Compute CV Loss
                     if(MaskOnState):
@@ -256,7 +225,7 @@ class Pipeline_ERTS:
 
         return [self.MSE_cv_linear_epoch, self.MSE_cv_dB_epoch, self.MSE_train_linear_epoch, self.MSE_train_dB_epoch]
 
-    def NNTest(self, SysModel, test_input, test_target, path_results, MaskOnState=False, rnn=False,multipass=False,randomInit=False,test_init=None,load_model=False,load_model_path=None):
+    def NNTest(self, SysModel, test_input, test_target, path_results, MaskOnState=False, rnn=False,randomInit=False,test_init=None,load_model=False,load_model_path=None):
 
         self.N_T = len(test_input)
 
@@ -272,12 +241,12 @@ class Pipeline_ERTS:
 
         # Load model
         if load_model:
-            self.model = torch.load(load_model_path, map_location=dev) 
+            self.model = torch.load(load_model_path) 
         else:
             if (rnn):
-                self.model = torch.load(path_results+'rnn_best-model.pt', map_location=dev)
+                self.model = torch.load(path_results+'rnn_best-model.pt')
             else:
-                self.model = torch.load(path_results+'best-model.pt', map_location=dev)
+                self.model = torch.load(path_results+'best-model.pt')
 
         self.model.eval()
 
@@ -290,8 +259,8 @@ class Pipeline_ERTS:
             y_mdl_tst = test_input[j]
             SysModel.T_test = y_mdl_tst.size()[-1]
 
-            x_out_test_forward_1 = torch.empty(SysModel.m,SysModel.T_test).to(dev, non_blocking=True)
-            x_out_test = torch.empty(SysModel.m, SysModel.T_test).to(dev, non_blocking=True)
+            x_out_test_forward_1 = torch.empty(SysModel.m,SysModel.T_test)
+            x_out_test = torch.empty(SysModel.m, SysModel.T_test)
 
             if (randomInit):
                 self.model.InitSequence(test_init[j], SysModel.T_test)               
@@ -306,20 +275,6 @@ class Pipeline_ERTS:
             for t in range(SysModel.T_test-3, -1, -1):
                 x_out_test[:, t] = self.model(None, x_out_test_forward_1[:, t], x_out_test_forward_1[:, t+1],x_out_test[:, t+2])
             
-            ########################################################################
-            # Second pass
-            # if (multipass):
-            #     x_out_test_forward_2 = torch.empty(SysModel.m,SysModel.T_test).to(dev, non_blocking=True)
-            #     x_out_test_2 = torch.empty(SysModel.m, SysModel.T_test).to(dev, non_blocking=True)
-            #     for t in range(0, SysModel.T_test):
-            #         x_out_test_forward_2[:, t] = self.model(x_out_test[:, t], None, None, None)
-            #     x_out_test_2[:, SysModel.T_test-1] = x_out_test_forward_2[:, SysModel.T_test-1] # backward smoothing starts from x_T|T 
-            #     self.model.InitBackward(x_out_test_2[:, SysModel.T_test-1]) 
-            #     x_out_test_2[:, SysModel.T_test-2] = self.model(None, x_out_test_forward_2[:, SysModel.T_test-2], x_out_test_forward_2[:, SysModel.T_test-1],None)
-            #     for t in range(SysModel.T_test-3, -1, -1):
-            #         x_out_test_2[:, t] = self.model(None, x_out_test_forward_2[:, t], x_out_test_forward_2[:, t+1],x_out_test[:, t+2])          
-            #     x_out_test = x_out_test_2
-
             if(MaskOnState):
                 self.MSE_test_linear_arr[j] = loss_fn(x_out_test[mask], test_target[j][mask]).item()
             else:

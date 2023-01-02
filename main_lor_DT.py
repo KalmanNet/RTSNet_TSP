@@ -6,7 +6,7 @@ from Smoothers.Extended_RTS_Smoother_test import S_Test
 from Smoothers.ParticleSmoother_test import PSTest
 from Smoothers.PF_test import PFTest
 
-from Extended_sysmdl import SystemModel
+from Simulations.Extended_sysmdl import SystemModel
 from Extended_data import DataGen,DataLoader,DataLoader_GPU, Decimate_and_perturbate_Data,Short_Traj_Split,wandb_switch
 from Extended_data import N_E, N_CV, N_T
 
@@ -27,20 +27,8 @@ if wandb_switch:
    import wandb
    wandb.init(project="RTSNet_lorDT")
 
-from filing_paths import path_model
-import sys
-sys.path.insert(1, path_model)
-from parameters import T, T_test, m1x_0, m2x_0, m, n,H_mod, H_mod_inv
-from model import f, h, fInacc, hRotate, fRotate, h_nonlinear
-
-if torch.cuda.is_available():
-   dev = torch.device("cuda:0")  # you can continue going on here, like cuda:1 cuda:2....etc.
-   torch.set_default_tensor_type('torch.cuda.FloatTensor')
-   print("Running on the GPU")
-else:
-   dev = torch.device("cpu")
-   print("Running on the CPU")
-
+from Simulations.Lorenz_Atractor.parameters import T, T_test, m1x_0, m2x_0, m, n,H_mod, H_mod_inv
+from Simulations.Lorenz_Atractor.model import f, h, fInacc, hRotate, fRotate, h_nonlinear
 
 print("Pipeline Start")
 ################
@@ -108,7 +96,7 @@ sys_model.InitSequence(m1x_0, m2x_0)# x0 and P0
 # DataGen(sys_model, DatafolderName + dataFileName[0], T, T_test)
 print("Data Load")
 print(dataFileName[0])
-[train_input_long,train_target_long, cv_input, cv_target, test_input, test_target] =  torch.load(DatafolderName + dataFileName[0],map_location=dev)  
+[train_input_long,train_target_long, cv_input, cv_target, test_input, test_target] =  torch.load(DatafolderName + dataFileName[0])  
 if chop: 
    print("chop training data")    
    [train_target, train_input, train_init] = Short_Traj_Split(train_target_long, train_input_long, T)
@@ -257,7 +245,7 @@ if switch == 'full':
    ################################
       if load_dataset_for_pass2:
          print("Load dataset for pass 2")
-         [train_input_pass2, train_target_pass2, cv_input_pass2, cv_target_pass2, test_input, test_target] = torch.load(DatasetPass1_path, map_location=dev)
+         [train_input_pass2, train_target_pass2, cv_input_pass2, cv_target_pass2, test_input, test_target] = torch.load(DatasetPass1_path)
          
          print("Data Shape for RTSNet pass 2:")
          print("testset state x size:",test_target.size())
@@ -314,8 +302,8 @@ if switch == 'full':
       #######################################
       # load trained Neural Network
       print("Concat two RTSNets and test")
-      RTSNet_model1 = torch.load(RTSNetPass1_path,map_location=dev)
-      RTSNet_model2 = torch.load('RTSNet/best-model.pt',map_location=dev)
+      RTSNet_model1 = torch.load(RTSNetPass1_path)
+      RTSNet_model2 = torch.load('RTSNet/best-model.pt')
       ## Set up Neural Network
       RTSNet_Pipeline_2passes = Pipeline_twoRTSNets(strTime, "RTSNet", "RTSNet")
       RTSNet_Pipeline_2passes.setModel(RTSNet_model1, RTSNet_model2)
@@ -362,7 +350,7 @@ elif switch == 'partial':
    #########################
       if load_dataset_for_pass2:
          print("Load dataset for pass 2")
-         [train_input_pass2, train_target_pass2, cv_input_pass2, cv_target_pass2, test_input, test_target] = torch.load(DatasetPass1_path, map_location=dev)
+         [train_input_pass2, train_target_pass2, cv_input_pass2, cv_target_pass2, test_input, test_target] = torch.load(DatasetPass1_path)
          
          print("Data Shape for RTSNet pass 2:")
          print("testset state x size:",test_target.size())
@@ -419,8 +407,8 @@ elif switch == 'partial':
       #######################################
       # load trained Neural Network
       print("Concat two RTSNets and test")
-      RTSNet_model1 = torch.load(RTSNetPass1_path,map_location=dev)
-      RTSNet_model2 = torch.load('RTSNet/best-model.pt',map_location=dev)
+      RTSNet_model1 = torch.load(RTSNetPass1_path)
+      RTSNet_model2 = torch.load('RTSNet/best-model.pt')
       ## Set up Neural Network
       RTSNet_Pipeline_2passes = Pipeline_twoRTSNets(strTime, "RTSNet", "RTSNet")
       RTSNet_Pipeline_2passes.setModel(RTSNet_model1, RTSNet_model2)
@@ -433,8 +421,8 @@ elif switch == 'partial':
 elif switch == 'estH':
    print("True Observation matrix H:", H_mod)
    ### Least square estimation of H
-   X = torch.squeeze(train_target[:,:,0]).to(dev,non_blocking = True)
-   Y = torch.squeeze(train_input[:,:,0]).to(dev,non_blocking = True)
+   X = torch.squeeze(train_target[:,:,0])
+   Y = torch.squeeze(train_input[:,:,0])
    for t in range(1,T):
       X_t = torch.squeeze(train_target[:,:,t])
       Y_t = torch.squeeze(train_input[:,:,t])
@@ -443,9 +431,9 @@ elif switch == 'estH':
    Y_1 = torch.unsqueeze(Y[:,0],1)
    Y_2 = torch.unsqueeze(Y[:,1],1)
    Y_3 = torch.unsqueeze(Y[:,2],1)
-   H_row1 = torch.matmul(torch.matmul(torch.inverse(torch.matmul(X.T,X)),X.T),Y_1).to(dev,non_blocking = True)
-   H_row2 = torch.matmul(torch.matmul(torch.inverse(torch.matmul(X.T,X)),X.T),Y_2).to(dev,non_blocking = True)
-   H_row3 = torch.matmul(torch.matmul(torch.inverse(torch.matmul(X.T,X)),X.T),Y_3).to(dev,non_blocking = True)
+   H_row1 = torch.matmul(torch.matmul(torch.inverse(torch.matmul(X.T,X)),X.T),Y_1)
+   H_row2 = torch.matmul(torch.matmul(torch.inverse(torch.matmul(X.T,X)),X.T),Y_2)
+   H_row3 = torch.matmul(torch.matmul(torch.inverse(torch.matmul(X.T,X)),X.T),Y_3)
    H_hat = torch.cat((H_row1.T,H_row2.T,H_row3.T),0)
    print("Estimated Observation matrix H:", H_hat)
 
@@ -486,7 +474,7 @@ elif switch == 'estH':
    ######################
       if load_dataset_for_pass2:
          print("Load dataset for pass 2")
-         [train_input_pass2, train_target_pass2, cv_input_pass2, cv_target_pass2, test_input, test_target] = torch.load(DatasetPass1_path, map_location=dev)
+         [train_input_pass2, train_target_pass2, cv_input_pass2, cv_target_pass2, test_input, test_target] = torch.load(DatasetPass1_path)
          
          print("Data Shape for RTSNet pass 2:")
          print("testset state x size:",test_target.size())
@@ -543,8 +531,8 @@ elif switch == 'estH':
       #######################################
       # load trained Neural Network
       print("Concat two RTSNets")
-      RTSNet_model1 = torch.load(RTSNetPass1_path,map_location=dev)
-      RTSNet_model2 = torch.load('RTSNet/best-model.pt',map_location=dev)
+      RTSNet_model1 = torch.load(RTSNetPass1_path)
+      RTSNet_model2 = torch.load('RTSNet/best-model.pt')
       ## Set up Neural Network
       RTSNet_Pipeline_2passes = Pipeline_twoRTSNets(strTime, "RTSNet", "RTSNet")
       RTSNet_Pipeline_2passes.setModel(RTSNet_model1, RTSNet_model2)

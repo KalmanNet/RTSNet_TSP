@@ -2,18 +2,10 @@
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as func
 
 from RTSNet.RTSNet_nn import RTSNetNN
 
-if torch.cuda.is_available():
-    dev = torch.device("cuda:0")
-    torch.set_default_tensor_type("torch.cuda.FloatTensor")
-else:
-    dev = torch.device("cpu")
-
-
-class RTSNetNN_multipass(torch.nn.Module):
+class RTSNetNN_multipass(nn.Module):
 
     ###################
     ### Constructor ###
@@ -42,7 +34,7 @@ class RTSNetNN_multipass(torch.nn.Module):
     ##################################
     def h_identity(self, x):
         H_identity = torch.eye(self.RTSNet_passes[0].m) # use m not n: use the estimated state from previous pass as input
-        y = torch.matmul(H_identity,x).to(dev)
+        y = torch.matmul(H_identity,x)
         return y
     
     def InitSystemDynamics_multipass(self, f, h, m, n):       
@@ -69,10 +61,10 @@ class RTSNetNN_multipass(torch.nn.Module):
     def InitSequence_multipass(self, i, M1_0, T):
         self.T = T
         
-        self.RTSNet_passes[i].m1x_posterior = torch.squeeze(M1_0).to(dev, non_blocking=True)
-        self.RTSNet_passes[i].m1x_posterior_previous = self.RTSNet_passes[i].m1x_posterior.to(dev, non_blocking=True)
-        self.RTSNet_passes[i].m1x_prior_previous = self.RTSNet_passes[i].m1x_posterior.to(dev, non_blocking=True)
-        self.RTSNet_passes[i].y_previous = self.RTSNet_passes[i].h(self.RTSNet_passes[i].m1x_posterior).to(dev, non_blocking=True)
+        self.RTSNet_passes[i].m1x_posterior = torch.squeeze(M1_0)
+        self.RTSNet_passes[i].m1x_posterior_previous = self.RTSNet_passes[i].m1x_posterior
+        self.RTSNet_passes[i].m1x_prior_previous = self.RTSNet_passes[i].m1x_posterior
+        self.RTSNet_passes[i].y_previous = self.RTSNet_passes[i].h(self.RTSNet_passes[i].m1x_posterior)
 
     ####################################
     ### Initialize Backward Sequence ###
@@ -90,7 +82,6 @@ class RTSNetNN_multipass(torch.nn.Module):
             return self.RTSNet_passes[iteration].RTSNet_step(filter_x, filter_x_nexttime, smoother_x_tplus2)
         else:
             # FW pass
-            yt = yt.to(dev, non_blocking=True)
             return self.RTSNet_passes[iteration].KNet_step(yt)
     
     #########################

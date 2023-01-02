@@ -9,7 +9,7 @@ from Smoothers.Extended_RTS_Smoother_test import S_Test
 from Smoothers.PF_test import PFTest
 from Smoothers.ParticleSmoother_test import PSTest
 
-from Extended_sysmdl import SystemModel
+from Simulations.Extended_sysmdl import SystemModel
 from Extended_data import DataGen,DataLoader,DataLoader_GPU, Decimate_and_perturbate_Data,Short_Traj_Split,wandb_switch
 
 from Pipelines.Pipeline_EKF import Pipeline_EKF
@@ -26,20 +26,8 @@ if wandb_switch:
    import wandb
    wandb.init(project="RTSNet_Decimation")
 
-from filing_paths import path_model
-import sys
-sys.path.insert(1, path_model)
-from parameters import m1x_0, m2x_0, m, n,delta_t_gen,delta_t
-from model import f, h, fInacc, hRotate, fRotate
-
-if torch.cuda.is_available():
-   dev = torch.device("cuda:0")  # you can continue going on here, like cuda:1 cuda:2....etc.
-   torch.set_default_tensor_type('torch.cuda.FloatTensor')
-   print("Running on the GPU")
-else:
-   dev = torch.device("cpu")
-   print("Running on the CPU")
-
+from Simulations.Lorenz_Atractor.parameters import m1x_0, m2x_0, m, n,delta_t_gen,delta_t
+from Simulations.Lorenz_Atractor.model import f, h, fInacc, hRotate, fRotate
 
 print("Pipeline Start")
 
@@ -66,7 +54,7 @@ DatagenfolderName = 'Simulations/Lorenz_Atractor/data/'
 DatafileName = 'decimated_r0_Ttest3000.pt'
 Datasecondpass = 'r0_outputoffirstpass.pt'
 data_gen = 'data_gen.pt'
-data_gen_file = torch.load(DatagenfolderName+data_gen, map_location=dev)
+data_gen_file = torch.load(DatagenfolderName+data_gen)
 [true_sequence] = data_gen_file['All Data']
 
 r = torch.tensor([1]) ###[1/5.9566]
@@ -117,14 +105,14 @@ for rindex in range(0, len(r)):
    #########################
    print("Data Load")
    #########################
-   [train_input, train_target, cv_input_long, cv_target_long, test_input, test_target] = torch.load(DatafolderName+DatafileName,map_location=dev)  
+   [train_input, train_target, cv_input_long, cv_target_long, test_input, test_target] = torch.load(DatafolderName+DatafileName)  
    
    if(chop):
       print("chop training data")  
       [train_target, train_input, train_init] = Short_Traj_Split(train_target, train_input, T)
    
    if(secondpass):
-      traj = torch.load(DatafolderName+Datasecondpass,map_location=dev) 
+      traj = torch.load(DatafolderName+Datasecondpass) 
       train_input = traj['RTSNet']
       cv_input_long = train_input[0:5]
       test_input = train_input[5:15]
@@ -245,7 +233,7 @@ for rindex in range(0, len(r)):
    # [MSE_knet_test_dB_avg,trace_knet_dB_avg] = KNet_Pipeline.NNTest_evol(sys_model, test_input, test_target, path_results)
    # PlotfolderName = path_results
    # MSE_resultName = "error_evol"
-   # error_evol = torch.load(PlotfolderName+MSE_resultName, map_location=dev)
+   # error_evol = torch.load(PlotfolderName+MSE_resultName)
    # print(error_evol.keys())
    # MSE_knet_test_dB_avg = error_evol['MSE_knet']
    # trace_knet_dB_avg = error_evol['trace_knet']
@@ -302,7 +290,7 @@ for rindex in range(0, len(r)):
    else:
       [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input_long, cv_target_long, train_input, train_target, path_results)
    ## Test Neural Network
-   # RTSNet_Pipeline.model = torch.load('RTSNet/checkpoints/LorenzAttracotor/decimation/model/best-model_r0_J2_NE1000_MSE-15.5.pt',map_location=dev)
+   # RTSNet_Pipeline.model = torch.load('RTSNet/checkpoints/LorenzAttracotor/decimation/model/best-model_r0_J2_NE1000_MSE-15.5.pt')
    [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model, test_input, test_target, path_results)
    
 
@@ -316,8 +304,8 @@ for rindex in range(0, len(r)):
    ###############################################
    ## load trained Neural Network
 #    print("RTSNet with model mismatch")
-#    RTSNet_model1 = torch.load('RTSNet/checkpoints/LorenzAttracotor/decimation/model/best-model_r0_J2_NE1000_MSE-15.5.pt',map_location=dev)
-#    RTSNet_model2 = torch.load('RTSNet/checkpoints/LorenzAttracotor/decimation/model/second-pass-of-15.5.pt',map_location=dev)
+#    RTSNet_model1 = torch.load('RTSNet/checkpoints/LorenzAttracotor/decimation/model/best-model_r0_J2_NE1000_MSE-15.5.pt')
+#    RTSNet_model2 = torch.load('RTSNet/checkpoints/LorenzAttracotor/decimation/model/second-pass-of-15.5.pt')
 #    ## Train Neural Network
 #    RTSNet_Pipeline = Pipeline_twoRTSNets(strTime, "RTSNet", "RTSNet")
 #    RTSNet_Pipeline.setModel(RTSNet_model1, RTSNet_model2)

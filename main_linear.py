@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 from datetime import datetime
 
-from Linear_sysmdl import SystemModel
+from Simulations.Linear_sysmdl import SystemModel
 from Extended_data import DataGen,DataLoader,DataLoader_GPU, Decimate_and_perturbate_Data,Short_Traj_Split
 from Extended_data import N_E, N_CV, N_T, F, H, F_rotated, H_rotated, T, T_test, m1_0, m2_0, m, n
 
@@ -15,14 +15,6 @@ from RNN.RNN_FWandBW import Vanilla_RNN
 from Pipelines.Pipeline_ERTS import Pipeline_ERTS as Pipeline
 
 from Plot import Plot_RTS as Plot
-
-if torch.cuda.is_available():
-   dev = torch.device("cuda:0")  # you can continue going on here, like cuda:1 cuda:2....etc.
-   torch.set_default_tensor_type('torch.cuda.FloatTensor')
-   print("Running on the GPU")
-else:
-   dev = torch.device("cpu")
-   print("Running on the CPU")
 
 print("Pipeline Start")
 
@@ -72,12 +64,12 @@ print("Start Data Gen")
 DataGen(sys_model, dataFolderName + dataFileName, T, T_test,randomInit_train=InitIsRandom_train,randomInit_cv=InitIsRandom_cv,randomInit_test=InitIsRandom_test,randomLength=LengthIsRandom)
 print("Data Load")
 if(InitIsRandom_train or InitIsRandom_cv or InitIsRandom_test):
-   [train_input, train_target, train_init, cv_input, cv_target, cv_init, test_input, test_target, test_init] = torch.load(dataFolderName + dataFileName,map_location=dev)
+   [train_input, train_target, train_init, cv_input, cv_target, cv_init, test_input, test_target, test_init] = torch.load(dataFolderName + dataFileName)
    print("trainset size:",train_target.size())
    print("cvset size:",cv_target.size())
    print("testset size:",test_target.size())
 elif(LengthIsRandom):
-   [train_input, train_target, cv_input, cv_target, test_input, test_target] = torch.load(dataFolderName + dataFileName,map_location=dev)
+   [train_input, train_target, cv_input, cv_target, test_input, test_target] = torch.load(dataFolderName + dataFileName)
    ### Check sequence lengths
    # for sequences in train_target:
    #    print("trainset size:",sequences.size())
@@ -144,7 +136,7 @@ else:
 # r2 = torch.tensor([2, 1, 0.5, 0.1])
 # r = torch.sqrt(r2)
 # q = r
-# MSE_KF_RTS_dB = torch.empty(size=[2,len(r)]).to(dev)
+# MSE_KF_RTS_dB = torch.empty(size=[2,len(r)])
 # dataFileName = ['data_2x2_r2q2_T20_Ttest20.pt','data_2x2_r1q1_T20_Ttest20.pt','data_2x2_r0.5q0.5_T20_Ttest20.pt','data_2x2_r0.1q0.1_T20_Ttest20.pt']
 # for rindex in range(0, len(r)):
 #     #Generate and load data
@@ -183,7 +175,6 @@ RTSNet_Pipeline = Pipeline(strTime, "RTSNet", "RTSNet")
 RTSNet_Pipeline.setssModel(sys_model)
 RTSNet_Pipeline.setModel(RTSNet_model)
 RTSNet_Pipeline.setTrainingParams(n_Epochs=10000, n_Batch=50, learningRate=1E-5, weightDecay=1E-3)
-# RTSNet_Pipeline.model = torch.load('RTSNet/new_architecture/linear_Journal/rq020_T100_randinit.pt',map_location=dev)
 if (InitIsRandom_train or InitIsRandom_cv or InitIsRandom_test):
    [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results, randomInit = True, cv_init=cv_init,train_init=train_init)
    ## Test Neural Network
@@ -204,7 +195,6 @@ RTSNet_Pipeline.save()
 # RNN_Pipeline.setssModel(sys_model)
 # RNN_Pipeline.setModel(RNN_model)
 # RNN_Pipeline.setTrainingParams(n_Epochs=1000, n_Batch=50, learningRate=1e-3, weightDecay=1e-5)
-# RNN_Pipeline.model = torch.load('RNN/linear/2x2_rq020_T100.pt',map_location=dev)
 # if InitIsRandom:
 #    RNN_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results, rnn=True, randomInit = True, cv_init=cv_init,train_init=train_init)
 #    ## Test Neural Network
@@ -225,7 +215,6 @@ RTSNet_Pipeline.save()
 # RTSNet_Pipeline.setssModel(sys_model_partialh)
 # RTSNet_Pipeline.setModel(RTSNet_model)
 # # RTSNet_Pipeline.setTrainingParams(n_Epochs=500, n_Batch=30, learningRate=1E-3, weightDecay=1E-5)
-# RTSNet_Pipeline.model = torch.load('RTSNet/new_architecture/linear/best-model_hrot10_linear2x2rq-1010T100.pt',map_location=dev)
 # # [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model_partialh, cv_input, cv_target, train_input, train_target, path_results)
 # ## Test Neural Network
 # [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,MSE_test_dB_std,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model_partialh, test_input, test_target, path_results)
@@ -260,7 +249,7 @@ RTSNet_Pipeline.save()
 
 # q2 = torch.mul(v,r2)
 # q = torch.sqrt(q2)
-# MSE_RTS_dB = torch.empty(size=[3,len(r)]).to(dev)
+# MSE_RTS_dB = torch.empty(size=[3,len(r)])
 # dataFileName = ['data_2x2_r1q1_T50.pt','data_2x2_r2q2_T50.pt','data_2x2_r3q3_T50.pt','data_2x2_r4q4_T50.pt','data_2x2_r5q5_T50.pt']
 # modelFolder = 'RTSNet' + '/'
 # modelName = ['F10_2x2_r1q1','F10_2x2_r2q2','F10_2x2_r3q3','F10_2x2_r4q4','F10_2x2_r5q5']

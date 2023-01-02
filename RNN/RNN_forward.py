@@ -2,13 +2,6 @@
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as func
-
-if torch.cuda.is_available():
-    dev = torch.device("cuda:0")
-    torch.set_default_tensor_type("torch.cuda.FloatTensor")
-else:
-    dev = torch.device("cpu")
 
 in_mult = 3
 out_mult = 2
@@ -92,8 +85,8 @@ class RNN_FW(torch.nn.Module):
     ###########################
     def InitSequence(self, M1_0, T):
         self.T = T
-        self.xhat = M1_0.to(dev, non_blocking=True)
-        self.xhat_previous = self.xhat.to(dev, non_blocking=True)
+        self.xhat = M1_0
+        self.xhat_previous = self.xhat
 
     def step_est(self, y):
         # If fully agnostic, xhat is x_t+1. 
@@ -163,7 +156,6 @@ class RNN_FW(torch.nn.Module):
     ### Forward ###
     ###############
     def forward(self, y):
-        y = y.to(dev, non_blocking=True)
 
         return self.FW_RNN_step(y)
 

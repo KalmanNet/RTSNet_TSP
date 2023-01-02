@@ -6,12 +6,6 @@ import torch.nn.functional as func
 
 from RTSNet.KalmanNet_LMMSEh import KalmanNetNN
 
-if torch.cuda.is_available():
-    dev = torch.device("cuda:0")
-    torch.set_default_tensor_type("torch.cuda.FloatTensor")
-else:
-    dev = torch.device("cpu")
-
 
 class RTSNetNN(KalmanNetNN):
 
@@ -53,13 +47,13 @@ class RTSNetNN(KalmanNetNN):
         self.d_input_Q_bw = self.m * in_mult
         self.d_hidden_Q_bw = self.m ** 2
         self.GRU_Q_bw = nn.GRU(self.d_input_Q_bw, self.d_hidden_Q_bw)
-        self.h_Q_bw = torch.randn(self.seq_len_input, self.batch_size, self.d_hidden_Q_bw).to(dev, non_blocking=True)
+        self.h_Q_bw = torch.randn(self.seq_len_input, self.batch_size, self.d_hidden_Q_bw)
 
         # BW GRU to track Sigma
         self.d_input_Sigma_bw = self.d_hidden_Q_bw + 2 * self.m * in_mult
         self.d_hidden_Sigma_bw = self.m ** 2
         self.GRU_Sigma_bw = nn.GRU(self.d_input_Sigma_bw, self.d_hidden_Sigma_bw)
-        self.h_Sigma_bw = torch.randn(self.seq_len_input, self.batch_size, self.d_hidden_Sigma_bw).to(dev, non_blocking=True)
+        self.h_Sigma_bw = torch.randn(self.seq_len_input, self.batch_size, self.d_hidden_Sigma_bw)
 
         # BW Fully connected 1
         self.d_input_FC1_bw = self.d_hidden_Sigma_bw # + self.d_hidden_Q
@@ -216,7 +210,6 @@ class RTSNetNN(KalmanNetNN):
             return self.RTSNet_step(filter_x, filter_x_nexttime, smoother_x_tplus2)
         else:
             # FW pass
-            yt = yt.to(dev, non_blocking=True)
             return self.KNet_step(yt)
     
     #########################

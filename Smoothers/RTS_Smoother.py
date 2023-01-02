@@ -3,7 +3,6 @@ Theoretical Linear RTS Smoother
 """
 import torch
 
-
 class rts_smoother:
 
     def __init__(self, SystemModel): 

@@ -2,10 +2,7 @@
 Theoretical Non-linear Linear RTS Smoother
 """
 import torch
-from filing_paths import path_model
-import sys
-sys.path.insert(1, path_model)
-from model import getJacobian
+from Simulations.Lorenz_Atractor.model import getJacobian
 
 class Extended_rts_smoother:
 

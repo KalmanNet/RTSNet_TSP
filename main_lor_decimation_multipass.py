@@ -8,7 +8,7 @@ from Smoothers.EKF_test import EKFTest
 from Smoothers.Extended_RTS_Smoother_test import S_Test
 from Smoothers.PF_test import PFTest
 
-from Extended_sysmdl import SystemModel
+from Simulations.Extended_sysmdl import SystemModel
 from Extended_data import DataGen,DataLoader,DataLoader_GPU, Decimate_and_perturbate_Data,Short_Traj_Split
 from Extended_data import N_E, N_CV, N_T
 
@@ -16,20 +16,8 @@ from Pipelines.Pipeline_ERTS_multipass import Pipeline_ERTS as Pipeline
 
 from RTSNet.RTSNet_nn_multipass import RTSNetNN_multipass
 
-from filing_paths import path_model
-import sys
-sys.path.insert(1, path_model)
-from parameters import m1x_0, m2x_0, m, n,delta_t_gen,delta_t
-from model import f, h, fInacc, hRotate, fRotate
-
-if torch.cuda.is_available():
-   cuda0 = torch.device("cuda:0")  # you can continue going on here, like cuda:1 cuda:2....etc.
-   torch.set_default_tensor_type('torch.cuda.FloatTensor')
-   print("Running on the GPU")
-else:
-   cuda0 = torch.device("cpu")
-   print("Running on the CPU")
-
+from Simulations.Lorenz_Atractor.parameters import m1x_0, m2x_0, m, n,delta_t_gen,delta_t
+from Simulations.Lorenz_Atractor.model import f, h, fInacc, hRotate, fRotate
 
 print("Pipeline Start")
 
@@ -53,7 +41,7 @@ sequential_training = False
 path_results = 'RTSNet/'
 DatafolderName = 'Simulations/Lorenz_Atractor/data/'
 data_gen = 'data_gen.pt'
-data_gen_file = torch.load(DatafolderName+data_gen, map_location=cuda0)
+data_gen_file = torch.load(DatafolderName+data_gen)
 [true_sequence] = data_gen_file['All Data']
 
 r = torch.tensor([1.])
@@ -145,7 +133,6 @@ for rindex in range(0, len(r)):
    # KNet_Pipeline.setTrainingParams(n_Epochs=100, n_Batch=10, learningRate=1e-3, weightDecay=1e-6)
    # [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = KNet_Pipeline.NNTrain(sys_model, cv_input_long, cv_target_long, train_input, train_target, path_results, sequential_training)
    # ## Test Neural Network
-   # # KNet_Pipeline.model = torch.load('KNet/model_KNetNew_DT_procmis_r30q50_T2000.pt',map_location=cuda0)
    # [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg, KNet_KG_array, knet_out,RunTime] = KNet_Pipeline.NNTest(sys_model, test_input, test_target, path_results)
    # # Print MSE Cross Validation
    # print("MSE Test:", MSE_test_dB_avg, "[dB]")

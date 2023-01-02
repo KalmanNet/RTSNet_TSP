@@ -3,18 +3,7 @@ Theoretical Non Linear Kalman
 """
 import torch
 
-from filing_paths import path_model
-
-import sys
-sys.path.insert(1, path_model)
-from model import getJacobian
-
-if torch.cuda.is_available():
-    dev = torch.device("cuda:0")  # you can continue going on here, like cuda:1 cuda:2....etc.
-    torch.set_default_tensor_type('torch.cuda.FloatTensor')
-else:
-   dev = torch.device("cpu")
-   print("Running on the CPU")
+from Simulations.Lorenz_Atractor.model import getJacobian
 
 class ExtendedKalmanFilter:
 

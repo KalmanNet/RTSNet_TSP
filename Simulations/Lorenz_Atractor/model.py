@@ -2,18 +2,7 @@ import math
 import torch
 torch.pi = torch.acos(torch.zeros(1)).item() * 2 # which is 3.1415927410125732
 from torch import autograd
-from filing_paths import path_model
-import sys
-sys.path.insert(1, path_model)
-from parameters import m, n, J, delta_t,delta_t_test,delta_t_gen, H_design, B, C, B_mod, C_mod, delta_t_mod, J_mod, H_mod, H_design_inv, H_mod_inv,RotMatrix
-
-if torch.cuda.is_available():
-    dev = torch.device("cuda:0")  # you can continue going on here, like cuda:1 cuda:2....etc.
-    torch.set_default_tensor_type('torch.cuda.FloatTensor')
-else:
-   dev = torch.device("cpu")
-   print("Running on the CPU")
-
+from Simulations.Lorenz_Atractor.parameters import m, n, J, delta_t,delta_t_test,delta_t_gen, H_design, B, C, B_mod, C_mod, delta_t_mod, J_mod, H_mod, H_design_inv, H_mod_inv,RotMatrix
 
 def f_test(x):
     
@@ -23,8 +12,8 @@ def f_test(x):
     # Taylor Expansion for F    
     F = torch.eye(m)
     for j in range(1,J+1):
-        F_add = (torch.matrix_power(A*delta_t_test, j)/math.factorial(j)).to(dev)
-        F = torch.add(F, F_add).to(dev)
+        F_add = (torch.matrix_power(A*delta_t_test, j)/math.factorial(j))
+        F = torch.add(F, F_add)
 
     return torch.matmul(F, x)
 
@@ -34,26 +23,26 @@ def f_gen(x):
     # Taylor Expansion for F    
     F = torch.eye(m)
     for j in range(1,J+1):
-        F_add = (torch.matrix_power(A*delta_t_gen, j)/math.factorial(j)).to(dev)
-        F = torch.add(F, F_add).to(dev)
+        F_add = (torch.matrix_power(A*delta_t_gen, j)/math.factorial(j))
+        F = torch.add(F, F_add)
 
     return torch.matmul(F, x)
 
 def f(x):
     BX = torch.reshape(torch.matmul(B, x),(m,m))
     #A = torch.add(torch.einsum('nhw,wa->nh', B, x).T,C)
-    A = (torch.add(BX.permute(*torch.arange(BX.ndim - 1, -1, -1)),C)).to(dev)
+    A = (torch.add(BX.permute(*torch.arange(BX.ndim - 1, -1, -1)),C))
     
     # Taylor Expansion for F    
     F = torch.eye(m)
     for j in range(1,J+1):
-        F_add = (torch.matrix_power(A*delta_t, j)/math.factorial(j)).to(dev)
-        F = torch.add(F, F_add).to(dev)
+        F_add = (torch.matrix_power(A*delta_t, j)/math.factorial(j))
+        F = torch.add(F, F_add)
     x_out = torch.matmul(F, x)
     return x_out
 
 def h(x):
-    y = torch.matmul(H_design,x).to(dev)
+    y = torch.matmul(H_design,x)
     return y
     #return toSpherical(x)
 
@@ -65,19 +54,19 @@ def fInacc(x):
     # Taylor Expansion for F    
     F = torch.eye(m)
     for j in range(1,J_mod+1):
-        F_add = (torch.matrix_power(A*delta_t_mod, j)/math.factorial(j)).to(dev)
-        F = torch.add(F, F_add).to(dev)
+        F_add = (torch.matrix_power(A*delta_t_mod, j)/math.factorial(j))
+        F = torch.add(F, F_add)
 
     return torch.matmul(F, x)
 
 def fRotate(x):
     BX = torch.reshape(torch.matmul(B, x),(m,m)) 
-    A = (torch.add(BX.permute(*torch.arange(BX.ndim - 1, -1, -1)),C)).to(dev)  
+    A = (torch.add(BX.permute(*torch.arange(BX.ndim - 1, -1, -1)),C))  
     # Taylor Expansion for F    
     F = torch.eye(m)
     for j in range(1,J+1):
-        F_add = (torch.matrix_power(A*delta_t, j)/math.factorial(j)).to(dev)
-        F = torch.add(F, F_add).to(dev)
+        F_add = (torch.matrix_power(A*delta_t, j)/math.factorial(j))
+        F = torch.add(F, F_add)
     F_rotated = torch.mm(RotMatrix,F)
     return torch.matmul(F_rotated, x)
 
@@ -89,10 +78,10 @@ def f_interpolate(x, n=2):
     
     for _ in range(n):
         BX = torch.reshape(torch.matmul(B_mod, x),(m,m))
-        A = torch.add(BX.permute(*torch.arange(BX.ndim - 1, -1, -1)),C_mod)#.to(dev, non_blocking=True)
+        A = torch.add(BX.permute(*torch.arange(BX.ndim - 1, -1, -1)),C_mod)
    
         # Taylor Expansion for F    
-        F = torch.eye(m)#.to(dev, non_blocking=True)
+        F = torch.eye(m)
         for j in range(1,J+1):
             F_add = torch.matrix_power(A*delta_t/n, j)/math.factorial(j)
             F = torch.add(F, F_add)
@@ -103,10 +92,10 @@ def f_interpolate_approx(x, n=2):
 
     for _ in range(n):
         BX = torch.reshape(torch.matmul(B_mod, x),(m,m))
-        A = torch.add(BX.permute(*torch.arange(BX.ndim - 1, -1, -1)),C_mod)#.to(dev, non_blocking=True)
+        A = torch.add(BX.permute(*torch.arange(BX.ndim - 1, -1, -1)),C_mod)
    
         # Taylor Expansion for F    
-        F = torch.eye(m)#.to(dev, non_blocking=True)
+        F = torch.eye(m)
         for j in range(1,J_mod+1):
             F_add = torch.matrix_power(A*delta_t/n, j)/math.factorial(j)
             F = torch.add(F, F_add)
