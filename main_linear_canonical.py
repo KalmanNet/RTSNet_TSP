@@ -35,8 +35,8 @@ path_results = 'RTSNet/'
 ### Design Model ###
 ####################
 InitIsRandom_train = False
-InitIsRandom_cv = True
-InitIsRandom_test = True
+InitIsRandom_cv = False
+InitIsRandom_test = False
 LengthIsRandom = False
 
 args = config.general_settings()
@@ -46,8 +46,8 @@ args.N_T = 200
 args.T = 100
 args.T_test = 100
 
-r2 = torch.tensor([1])
-vdB = -20 # ratio v=q2/r2
+r2 = torch.tensor([10])
+vdB = 0 # ratio v=q2/r2
 v = 10**(vdB/10)
 q2 = torch.mul(v,r2)
 print("1/r2 [dB]: ", 10 * torch.log10(1/r2[0]))

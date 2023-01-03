@@ -53,7 +53,7 @@ switch = 'partial' # 'full' or 'partial' or 'estH'
 # 1pass or 2pass
 two_pass = True # if true: use two pass method, else: use one pass method
 
-load_trained_pass1 = True # if True: load trained RTSNet pass1, else train pass1
+load_trained_pass1 = False # if True: load trained RTSNet pass1, else train pass1
 if load_trained_pass1 == True: 
    #if true, specify the path to the trained pass1 model
    RTSNetPass1_path = "RTSNet/checkpoints/LorenzAttracotor/DT/T100_Hrot1/rq-1010_partial.pt"

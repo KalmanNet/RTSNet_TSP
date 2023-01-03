@@ -285,11 +285,6 @@ else:
 [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model, test_input, test_target, path_results)
 
 
-# ## Save histogram
-# MSE_ResultName = 'Partial_MSE_KNet' 
-# torch.save(MSE_test_dB_avg,trajfolderName + MSE_ResultName)
-
-
 ###############################################
 ### Concat two RTSNets with model mismatch  ###
 ###############################################

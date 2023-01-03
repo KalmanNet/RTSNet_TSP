@@ -68,11 +68,11 @@ CV_model = False # if true: use CV model, else: use CA model
 
 ### 1pass or 2pass
 two_pass = True # if true: use two pass method, else: use one pass method
-load_trained_pass1 = True # if True: load trained RTSNet pass1, else train pass1
+load_trained_pass1 = False # if True: load trained RTSNet pass1, else train pass1
 # if true, specify the path to the trained pass1 model
 RTSNetPass1_path = "RTSNet/checkpoints/Linear/linearCA/knownInit/CA_trainPVA.pt"
 # Save the dataset generated from testing RTSNet1 on train and CV data
-load_dataset_for_pass2 = True # if True: load dataset generated from testing RTSNet1 on train and CV data
+load_dataset_for_pass2 = False # if True: load dataset generated from testing RTSNet1 on train and CV data
 # if true, specify the path to the dataset
 DatasetPass1_path = "Simulations/Linear_CA/data/two_pass/ResultofPass1_PVA.pt" 
 
