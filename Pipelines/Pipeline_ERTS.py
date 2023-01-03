@@ -1,12 +1,13 @@
+"""
+This file contains the class Pipeline_ERTS, 
+which is used to train and test RTSNet in both linear and non-linear cases.
+"""
+
 import torch
 import torch.nn as nn
 import time
 import random
 from Plot import Plot_extended as Plot
-
-from Extended_data import wandb_switch
-if wandb_switch: 
-    import wandb
 
 class Pipeline_ERTS:
 
@@ -27,8 +28,8 @@ class Pipeline_ERTS:
     def setModel(self, model):
         self.model = model
 
-    def setTrainingParams(self, n_Epochs, n_Batch, learningRate, weightDecay, alpha=0.5):
-        self.N_Epochs = n_Epochs  # Number of Training Epochs
+    def setTrainingParams(self, n_steps, n_Batch, learningRate, weightDecay, alpha=0.5):
+        self.N_steps = n_steps  # Number of Training Steps
         self.N_B = n_Batch # Number of Samples in Batch
         self.learningRate = learningRate # Learning Rate
         self.weightDecay = weightDecay # L2 Weight Regularization - Weight Decay
@@ -50,12 +51,12 @@ class Pipeline_ERTS:
         self.N_CV = len(cv_input)
 
         MSE_cv_linear_batch = torch.empty([self.N_CV])
-        self.MSE_cv_linear_epoch = torch.empty([self.N_Epochs])
-        self.MSE_cv_dB_epoch = torch.empty([self.N_Epochs])
+        self.MSE_cv_linear_epoch = torch.empty([self.N_steps])
+        self.MSE_cv_dB_epoch = torch.empty([self.N_steps])
 
         MSE_train_linear_batch = torch.empty([self.N_B])
-        self.MSE_train_linear_epoch = torch.empty([self.N_Epochs])
-        self.MSE_train_dB_epoch = torch.empty([self.N_Epochs])
+        self.MSE_train_linear_epoch = torch.empty([self.N_steps])
+        self.MSE_train_dB_epoch = torch.empty([self.N_steps])
         
         if MaskOnState:
             mask = torch.tensor([True,False,False])
@@ -69,7 +70,7 @@ class Pipeline_ERTS:
         self.MSE_cv_dB_opt = 1000
         self.MSE_cv_idx_opt = 0
 
-        for ti in range(0, self.N_Epochs):
+        for ti in range(0, self.N_steps):
 
             ###############################
             ### Training Sequence Batch ###
@@ -195,11 +196,6 @@ class Pipeline_ERTS:
                 # Average
                 self.MSE_cv_linear_epoch[ti] = torch.mean(MSE_cv_linear_batch)
                 self.MSE_cv_dB_epoch[ti] = 10 * torch.log10(self.MSE_cv_linear_epoch[ti])
-
-                ### Optinal: record loss on wandb
-                if wandb_switch:
-                    wandb.log({"val_loss": self.MSE_cv_dB_epoch[ti]})
-                ###
                 
                 if (self.MSE_cv_dB_epoch[ti] < self.MSE_cv_dB_opt):
                     self.MSE_cv_dB_opt = self.MSE_cv_dB_epoch[ti]
@@ -302,18 +298,13 @@ class Pipeline_ERTS:
         # Print Run Time
         print("Inference Time:", t)
 
-        ### Optinal: record loss on wandb
-        if wandb_switch:
-            wandb.summary['test_loss'] = self.MSE_test_dB_avg
-        ###
-
         return [self.MSE_test_linear_arr, self.MSE_test_linear_avg, self.MSE_test_dB_avg, x_out_list, t]
 
     def PlotTrain_KF(self, MSE_KF_linear_arr, MSE_KF_dB_avg):
 
         self.Plot = Plot(self.folderName, self.modelName)
 
-        self.Plot.NNPlot_epochs(self.N_Epochs, self.N_B, MSE_KF_dB_avg,
+        self.Plot.NNPlot_epochs(self.N_steps, self.N_B, MSE_KF_dB_avg,
                                 self.MSE_test_dB_avg, self.MSE_cv_dB_epoch, self.MSE_train_dB_epoch)
 
         self.Plot.NNPlot_Hist(MSE_KF_linear_arr, self.MSE_test_linear_arr)
@@ -322,7 +313,7 @@ class Pipeline_ERTS:
     
         self.Plot = Plot(self.folderName, self.modelName)
 
-        self.Plot.NNPlot_epochs(self.N_E,self.N_Epochs, self.N_B, MSE_KF_dB_avg, MSE_RTS_dB_avg,
+        self.Plot.NNPlot_epochs(self.N_E,self.N_steps, self.N_B, MSE_KF_dB_avg, MSE_RTS_dB_avg,
                                 self.MSE_test_dB_avg, self.MSE_cv_dB_epoch, self.MSE_train_dB_epoch)
 
         self.Plot.NNPlot_Hist(MSE_KF_linear_arr, MSE_RTS_linear_arr, self.MSE_test_linear_arr)

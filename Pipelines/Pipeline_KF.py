@@ -1,3 +1,8 @@
+"""
+This file contains the class Pipeline_KF, 
+which is used to train and test KalmanNet in linear cases.
+"""
+
 import torch
 import torch.nn as nn
 import random
@@ -24,8 +29,8 @@ class Pipeline_KF:
     def setModel(self, model):
         self.model = model
 
-    def setTrainingParams(self, n_Epochs, n_Batch, learningRate, weightDecay):
-        self.N_Epochs = n_Epochs  # Number of Training Epochs
+    def setTrainingParams(self, n_steps, n_Batch, learningRate, weightDecay):
+        self.N_steps = n_steps  # Number of Training Steps
         self.N_B = n_Batch # Number of Samples in Batch
         self.learningRate = learningRate # Learning Rate
         self.weightDecay = weightDecay # L2 Weight Regularization - Weight Decay
@@ -46,12 +51,12 @@ class Pipeline_KF:
         self.N_CV = n_CV
 
         MSE_cv_linear_batch = torch.empty([self.N_CV])
-        self.MSE_cv_linear_epoch = torch.empty([self.N_Epochs])
-        self.MSE_cv_dB_epoch = torch.empty([self.N_Epochs])
+        self.MSE_cv_linear_epoch = torch.empty([self.N_steps])
+        self.MSE_cv_dB_epoch = torch.empty([self.N_steps])
 
         MSE_train_linear_batch = torch.empty([self.N_B])
-        self.MSE_train_linear_epoch = torch.empty([self.N_Epochs])
-        self.MSE_train_dB_epoch = torch.empty([self.N_Epochs])
+        self.MSE_train_linear_epoch = torch.empty([self.N_steps])
+        self.MSE_train_dB_epoch = torch.empty([self.N_steps])
 
         ##############
         ### Epochs ###
@@ -60,7 +65,7 @@ class Pipeline_KF:
         self.MSE_cv_dB_opt = 1000
         self.MSE_cv_idx_opt = 0
 
-        for ti in range(0, self.N_Epochs):
+        for ti in range(0, self.N_steps):
 
             #################################
             ### Validation Sequence Batch ###
@@ -212,7 +217,7 @@ class Pipeline_KF:
 
         self.Plot = Plot(self.folderName, self.modelName)
 
-        self.Plot.NNPlot_epochs(self.N_Epochs, MSE_KF_dB_avg,
+        self.Plot.NNPlot_epochs(self.N_steps, MSE_KF_dB_avg,
                                 self.MSE_test_dB_avg, self.MSE_cv_dB_epoch, self.MSE_train_dB_epoch)
 
         self.Plot.NNPlot_Hist(MSE_KF_linear_arr, self.MSE_test_linear_arr)

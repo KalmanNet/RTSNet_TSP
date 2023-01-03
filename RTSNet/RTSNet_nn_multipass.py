@@ -21,13 +21,13 @@ class RTSNetNN_multipass(nn.Module):
     #############
     ### Build ###
     #############
-    def NNBuild_multipass(self, ssModel, KNet_in_mult = 5, KNet_out_mult = 40, RTSNet_in_mult = 5, RTSNet_out_mult = 40):
+    def NNBuild_multipass(self, ssModel, args):
 
         self.InitSystemDynamics_multipass(ssModel.f,ssModel.h,ssModel.m,ssModel.n)
 
         for i in range(self.iterations):
-            self.RTSNet_passes[i].InitKGainNet(ssModel.prior_Q, ssModel.prior_Sigma, ssModel.prior_S, KNet_in_mult, KNet_out_mult)
-            self.RTSNet_passes[i].InitRTSGainNet(ssModel.prior_Q, ssModel.prior_Sigma, RTSNet_in_mult, RTSNet_out_mult)
+            self.RTSNet_passes[i].InitKGainNet(ssModel.prior_Q, ssModel.prior_Sigma, ssModel.prior_S, args)
+            self.RTSNet_passes[i].InitRTSGainNet(ssModel.prior_Q, ssModel.prior_Sigma, args)
     
     ##################################
     ### Initialize System Dynamics ###

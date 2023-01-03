@@ -1,8 +1,12 @@
+""""
+Pipeline for RTSNet with multiple passes
+"""
+
+import math
 import torch
 import torch.nn as nn
 import time
 import random
-import math
 from Plot import Plot_extended as Plot
 
 class Pipeline_ERTS:
@@ -24,8 +28,8 @@ class Pipeline_ERTS:
     def setModel(self, model):
         self.model = model
 
-    def setTrainingParams(self, n_Epochs, n_Batch, learningRate, weightDecay,clip_value=1e5,alpha=0.5):
-        self.N_Epochs = n_Epochs  # Number of Training Epochs
+    def setTrainingParams(self, n_steps, n_Batch, learningRate, weightDecay,clip_value=1e5,alpha=0.5):
+        self.N_steps = n_steps  # Number of Training Steps
         self.N_B = n_Batch # Number of Samples in Batch
         self.learningRate = learningRate # Learning Rate
         self.weightDecay = weightDecay # L2 Weight Regularization - Weight Decay
@@ -50,12 +54,12 @@ class Pipeline_ERTS:
         self.N_CV = cv_input.size()[0]
 
         MSE_cv_linear_batch = torch.empty([self.N_CV])
-        self.MSE_cv_linear_epoch = torch.empty([self.N_Epochs])
-        self.MSE_cv_dB_epoch = torch.empty([self.N_Epochs])
+        self.MSE_cv_linear_epoch = torch.empty([self.N_steps])
+        self.MSE_cv_dB_epoch = torch.empty([self.N_steps])
 
         MSE_train_linear_batch_iterations = torch.empty([self.N_B, self.model.iterations])
-        self.MSE_train_linear_epoch_iterations = torch.empty([self.N_Epochs, self.model.iterations])
-        self.MSE_train_dB_epoch_iterations = torch.empty([self.N_Epochs, self.model.iterations])
+        self.MSE_train_linear_epoch_iterations = torch.empty([self.N_steps, self.model.iterations])
+        self.MSE_train_dB_epoch_iterations = torch.empty([self.N_steps, self.model.iterations])
 
         ##############
         ### Epochs ###
@@ -65,7 +69,7 @@ class Pipeline_ERTS:
         self.MSE_cv_idx_opt = 0
 
 
-        for ti in range(1, self.N_Epochs):
+        for ti in range(1, self.N_steps):
 
             ###############################
             ### Training Sequence Batch ###
@@ -357,7 +361,7 @@ class Pipeline_ERTS:
 
         self.Plot = Plot(self.folderName, self.modelName)
 
-        self.Plot.NNPlot_epochs(self.N_Epochs, self.N_B, MSE_KF_dB_avg,
+        self.Plot.NNPlot_epochs(self.N_steps, self.N_B, MSE_KF_dB_avg,
                                 self.MSE_test_dB_avg, self.MSE_cv_dB_epoch, self.MSE_train_dB_epoch_iterations[:,-1])
 
         self.Plot.NNPlot_Hist(MSE_KF_linear_arr, self.MSE_test_linear_arr)

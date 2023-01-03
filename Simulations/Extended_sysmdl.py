@@ -3,8 +3,8 @@
 1 Store system model parameters: 
     state transition function f, 
     observation function h, 
-    process noise q, 
-    observation noise r, 
+    process noise Q, 
+    observation noise R, 
     train&CV dataset sequence length T,
     test dataset sequence length T_test,
     state dimension m,
@@ -14,28 +14,24 @@
 """
 
 import torch
-import numpy as np
+from torch.distributions.multivariate_normal import MultivariateNormal
 
 class SystemModel:
 
-    def __init__(self, f, q, h, r, T, T_test, m, n, prior_Q=None, prior_Sigma=None, prior_S=None):
+    def __init__(self, f, Q, h, R, T, T_test, m, n, prior_Q=None, prior_Sigma=None, prior_S=None):
 
         ####################
         ### Motion Model ###
         ####################
         self.f = f
-
-        self.q = q
         self.m = m
-        self.Q = q * q * torch.eye(self.m)
+        self.Q = Q
         #########################
         ### Observation Model ###
         #########################
         self.h = h
-
-        self.r = r
         self.n = n
-        self.R = r * r * torch.eye(self.n)
+        self.R = R
         ################
         ### Sequence ###
         ################
@@ -61,8 +57,6 @@ class SystemModel:
         else:
             self.prior_S = prior_S
 
-
-
     #####################
     ### Init Sequence ###
     #####################
@@ -75,20 +69,11 @@ class SystemModel:
     #########################
     ### Update Covariance ###
     #########################
-    def UpdateCovariance_Gain(self, q, r):
-
-        self.q = q
-        self.Q = q * q * torch.eye(self.m)
-
-        self.r = r
-        self.R = r * r * torch.eye(self.n)
-
     def UpdateCovariance_Matrix(self, Q, R):
 
         self.Q = Q
 
         self.R = R
-
 
     #########################
     ### Generate Sequence ###
@@ -107,16 +92,20 @@ class SystemModel:
 
             ########################
             #### State Evolution ###
-            ########################
-            # Process Noise
-            if self.q == 0:
-                xt = self.f(self.x_prev)              
-            else:
+            ########################   
+            if torch.equal(Q_gen,torch.zeros(self.m,self.m)):# No noise
+                 xt = self.f(self.x_prev)   
+            elif self.m == 1: # 1 dim noise
                 xt = self.f(self.x_prev)
-                mean = torch.zeros([self.m])
-                
-                eq = torch.normal(mean, self.q)
-                         
+                eq = torch.normal(mean=0, std=Q_gen)
+                # Additive Process Noise
+                xt = torch.add(xt,eq)
+            else:            
+                xt = self.f(self.x_prev)
+                mean = torch.zeros([self.m])              
+                distrib = MultivariateNormal(loc=mean, covariance_matrix=Q_gen)
+                eq = distrib.rsample()
+                eq = torch.reshape(eq[:],[self.m,1])
                 # Additive Process Noise
                 xt = torch.add(xt,eq)
 
@@ -124,15 +113,18 @@ class SystemModel:
             ### Emission ###
             ################
             yt = self.h(xt)
-
-            # Observation Noise
-            mean = torch.zeros([self.n])
-            er = torch.normal(mean, self.r)
-            # er = np.random.multivariate_normal(mean, R_gen, 1)
-            # er = torch.transpose(torch.tensor(er), 0, 1)
-
-            # Additive Observation Noise
-            yt = torch.add(yt,er)
+            # Observation Noise         
+            if self.n == 1: # 1 dim noise
+                er = torch.normal(mean=0, std=R_gen)
+                # Additive Observation Noise
+                yt = torch.add(yt,er)
+            else:  
+                mean = torch.zeros([self.n])            
+                distrib = MultivariateNormal(loc=mean, covariance_matrix=R_gen)
+                er = distrib.rsample()
+                er = torch.reshape(er[:],[self.n,1])       
+                # Additive Observation Noise
+                yt = torch.add(yt,er)
             
             ########################
             ### Squeeze to Array ###
@@ -196,31 +188,3 @@ class SystemModel:
                 self.Input[i, :, :] = self.y
                 # Training sequence output
                 self.Target[i, :, :] = self.x
-
-
-    def sampling(self, q, r, gain):
-
-        if (gain != 0):
-            gain_q = 0.1
-            #aq = gain * q * np.random.randn(self.m, self.m)
-            aq = gain_q * q * torch.eye(self.m)
-            #aq = gain_q * q * torch.tensor([[1.0, 1.0], [1.0, 1.0]])
-        else:
-            aq = 0
-
-        Aq = q * torch.eye(self.m) + aq
-        Q_gen = np.transpose(Aq) * Aq
-
-        if (gain != 0):
-            gain_r = 0.5
-            #ar = gain * r * np.random.randn(self.n, self.n)
-            ar = gain_r * r * torch.eye(self.n)
-            #ar = gain_r * r * torch.tensor([[1.0, 1.0], [1.0, 1.0]])
-
-        else:
-            ar = 0
-
-        Ar = r * torch.eye(self.n) + ar
-        R_gen = np.transpose(Ar) * Ar
-
-        return [Q_gen, R_gen]

@@ -1,11 +1,9 @@
-"""# **Class: Vanilla RNN**"""
+"""# **Class: Bi-directional RNN**
+RNN with one forward filtering pass
+"""
 
 import torch
 import torch.nn as nn
-
-in_mult = 3
-out_mult = 2
-nGRU_FW = 3
 
 class RNN_FW(torch.nn.Module):
 
@@ -19,7 +17,7 @@ class RNN_FW(torch.nn.Module):
     ### Initialize Kalman Gain Network ###
     ######################################
 
-    def Build(self, SysModel, fully_agnostic = False):
+    def Build(self, args, SysModel, fully_agnostic = False):
         self.fully_agnostic = fully_agnostic
 
         # Set State Evolution Function
@@ -33,11 +31,11 @@ class RNN_FW(torch.nn.Module):
         self.InitSequence(SysModel.m1x_0, SysModel.T)
 
         # input dim for GRU
-        input_dim_RNN = (self.m + self.n) * in_mult
+        input_dim_RNN = (self.m + self.n) * args.in_mult_RNN
         # Hidden Dimension for GRU
-        self.hidden_dim = ((self.n * self.n) + (self.m * self.m)) * out_mult
+        self.hidden_dim = ((self.n * self.n) + (self.m * self.m)) * args.out_mult_RNN
 
-        self.n_layers = nGRU_FW
+        self.n_layers = args.nGRU_FW_RNN
         # Hidden Sequence Length
         self.seq_len_hidden = self.n_layers
 

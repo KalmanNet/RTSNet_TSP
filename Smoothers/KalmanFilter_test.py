@@ -2,15 +2,14 @@ import torch
 import torch.nn as nn
 import time
 from Smoothers.Linear_KF import KalmanFilter
-from Extended_data import N_T
 
-def KFTest(SysModel, test_input, test_target, allStates=True, randomInit = False, test_init=None):
+def KFTest(args, SysModel, test_input, test_target, allStates=True, randomInit = False, test_init=None):
 
     # LOSS
     loss_fn = nn.MSELoss(reduction='mean')
 
     # MSE [Linear]
-    MSE_KF_linear_arr = torch.empty(N_T)
+    MSE_KF_linear_arr = torch.empty(args.N_T)
     start = time.time()
     KF = KalmanFilter(SysModel)
     j=0

@@ -1,3 +1,8 @@
+"""
+This file contains the class Pipeline_concat_models. 
+It concatenates trained RTSNet pass1 and pass2 models, and test the joint RTSNet - 2.
+"""
+
 import torch
 import torch.nn as nn
 import time

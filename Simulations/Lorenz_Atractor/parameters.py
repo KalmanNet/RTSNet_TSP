@@ -1,5 +1,7 @@
 import torch
 import math
+torch.pi = torch.acos(torch.zeros(1)).item() * 2 # which is 3.1415927410125732
+from torch import autograd
 
 #########################
 ### Design Parameters ###
@@ -8,36 +10,18 @@ m = 3
 n = 3
 variance = 0
 m1x_0 = torch.ones(m, 1) 
-m1x_0_design_test = torch.ones(m, 1)
 m2x_0 = 0 * 0 * torch.eye(m)
 
-#################################################
-### Generative Parameters For Lorenz Atractor ###
-#################################################
-
-# Auxiliar MultiDimensional Tensor B and C (they make A --> Differential equation matrix)
-B = torch.tensor([[[0,  0, 0],[0, 0, -1],[0,  1, 0]], torch.zeros(m,m), torch.zeros(m,m)]).float()
-C = torch.tensor([[-10, 10,    0],
-                  [ 28, -1,    0],
-                  [  0,  0, -8/3]]).float()
-
+### Decimation
 delta_t_gen =  1e-5
 delta_t = 0.02
-delta_t_test = 0.02
-J = 5
+ratio = delta_t_gen/delta_t
 
-# Decimation ratio
-ratio = delta_t_gen/delta_t_test
+### Taylor expansion order
+J = 5 
+J_mod = 2
 
-# Length of Time Series Sequence
-# T = math.ceil(3000 / ratio)
-# T_test = math.ceil(6e6 * ratio)
-T = 100
-T_test = 100
-
-H_design = torch.eye(3)
-
-## Angle of rotation in the 3 axes
+### Angle of rotation in the 3 axes
 roll_deg = yaw_deg = pitch_deg = 1
 
 roll = roll_deg * (math.pi/180)
@@ -58,69 +42,139 @@ RZ = torch.tensor([
                 [0, 0, 1]])
 
 RotMatrix = torch.mm(torch.mm(RZ, RY), RX)
-H_mod = torch.mm(RotMatrix,H_design)
 
-H_design_inv = torch.inverse(H_design)
+### Auxiliar MultiDimensional Tensor B and C (they make A --> Differential equation matrix)
+B = torch.tensor([[[0,  0, 0],[0, 0, -1],[0,  1, 0]], torch.zeros(m,m), torch.zeros(m,m)]).float()
+C = torch.tensor([[-10, 10,    0],
+                  [ 28, -1,    0],
+                  [  0,  0, -8/3]]).float()
 
-# Noise Parameters
-r_dB = 0
-lambda_r = math.sqrt(10**(-r_dB/10))
-nx = 0
-lambda_q = lambda_r * nx
+######################################################
+### State evolution function f for Lorenz Atractor ###
+######################################################
+### f_gen is for dataset generation
+def f_gen(x):
+    BX = torch.reshape(torch.matmul(B, x),(m,m))
+    A = torch.add(BX.permute(*torch.arange(BX.ndim - 1, -1, -1)),C)  
+    # Taylor Expansion for F    
+    F = torch.eye(m)
+    for j in range(1,J+1):
+        F_add = (torch.matrix_power(A*delta_t_gen, j)/math.factorial(j))
+        F = torch.add(F, F_add)
 
-# Noise Matrices
+    return torch.matmul(F, x)
+
+### f will be fed to smoothers & RTSNet, note that the mismatch comes from delta_t
+def f(x):
+    BX = torch.reshape(torch.matmul(B, x),(m,m))
+    A = (torch.add(BX.permute(*torch.arange(BX.ndim - 1, -1, -1)),C))
+    
+    # Taylor Expansion for F    
+    F = torch.eye(m)
+    for j in range(1,J+1):
+        F_add = (torch.matrix_power(A*delta_t, j)/math.factorial(j))
+        F = torch.add(F, F_add)
+    x_out = torch.matmul(F, x)
+    return x_out
+
+### fInacc will be fed to smoothers & RTSNet, note that the mismatch comes from delta_t and J_mod
+def fInacc(x):
+    BX = torch.reshape(torch.matmul(B, x),(m,m))
+    #A = torch.add(torch.einsum('nhw,wa->nh', B, x).T,C)
+    A = torch.add(BX.permute(*torch.arange(BX.ndim - 1, -1, -1)),C)
+    
+    # Taylor Expansion for F    
+    F = torch.eye(m)
+    for j in range(1,J_mod+1):
+        F_add = (torch.matrix_power(A*delta_t, j)/math.factorial(j))
+        F = torch.add(F, F_add)
+
+    return torch.matmul(F, x)
+
+### fInacc will be fed to smoothers & RTSNet, note that the mismatch comes from delta_t and rotation
+def fRotate(x):
+    BX = torch.reshape(torch.matmul(B, x),(m,m)) 
+    A = (torch.add(BX.permute(*torch.arange(BX.ndim - 1, -1, -1)),C))  
+    # Taylor Expansion for F    
+    F = torch.eye(m)
+    for j in range(1,J+1):
+        F_add = (torch.matrix_power(A*delta_t, j)/math.factorial(j))
+        F = torch.add(F, F_add)
+    F_rotated = torch.mm(RotMatrix,F)
+    return torch.matmul(F_rotated, x)
+
+##################################################
+### Observation function h for Lorenz Atractor ###
+##################################################
+H_design = torch.eye(n)
+H_Rotate = torch.mm(RotMatrix,H_design)
+H_Rotate_inv = torch.inverse(H_Rotate)
+
+def h(x):
+    y = torch.matmul(H_design,x)
+    return y
+
+def h_nonlinear(x):
+    return torch.squeeze(toSpherical(x))
+
+def hRotate(x):
+    return torch.matmul(H_Rotate,x)
+
+
+###############################################
+### process noise Q and observation noise R ###
+###############################################
 Q_non_diag = False
 R_non_diag = False
 
-Q = (lambda_q**2) * torch.eye(m)
+Q_structure = torch.eye(m)
+R_structure = torch.eye(n)
 
 if(Q_non_diag):
-    q_d = lambda_q**2
-    q_nd = (lambda_q **2)/2
+    q_d = 1
+    q_nd = 1/2
     Q = torch.tensor([[q_d, q_nd, q_nd],[q_nd, q_d, q_nd],[q_nd, q_nd, q_d]])
 
-R = (lambda_r**2) * torch.eye(n)
-
 if(R_non_diag):
-    r_d = lambda_r**2
-    r_nd = (lambda_r **2)/2
+    r_d = 1
+    r_nd = 1/2
     R = torch.tensor([[r_d, r_nd, r_nd],[r_nd, r_d, r_nd],[r_nd, r_nd, r_d]])
 
-#########################
-### Model Parameters ####
-#########################
+##################################
+### Utils for non-linear cases ###
+##################################
+def getJacobian(x, g):
+    # if(x.size()[1] == 1):
+    #     y = torch.reshape((x.T),[x.size()[0]])
+    
+    y = torch.reshape((x.permute(*torch.arange(x.ndim - 1, -1, -1))),[x.size()[0]])
 
-m1x_0_mod = m1x_0
-m1x_0_mod_test = m1x_0_design_test
-m2x_0_mod = 0 * 0 * torch.eye(m)
+    Jac = autograd.functional.jacobian(g, y)
+    Jac = Jac.view(-1,m)
+    return Jac
 
-# Sampling time step
-delta_t_mod = delta_t
+def toSpherical(cart):
 
-# Length of Time Series Sequence
-T_mod = math.ceil(T * ratio)
-T_test_mod = math.ceil(T_test * ratio)
+    rho = torch.norm(cart, p=2).view(1,1)
+    phi = torch.atan2(cart[1, ...], cart[0, ...]).view(1, 1)
+    phi = phi + (phi < 0).type_as(phi) * (2 * torch.pi)
 
-##############################################
-#### Model Parameters For Lorenz Atractor ####
-##############################################
+    theta = torch.acos(cart[2, ...] / rho).view(1, 1)
 
-# Auxiliar MultiDimensional Tensor B and C (they make A)
-B_mod = torch.tensor([[[0,  0, 0],[0, 0, -1],[0,  1, 0]], torch.zeros(m,m), torch.zeros(m,m)])
-C_mod = torch.tensor([[-10, 10,    0],
-                      [ 28, -1,    0],
-                      [  0,  0, -8/3]])
+    spher = torch.cat([rho, theta, phi], dim=0)
 
-J_mod = 2
+    return spher
 
-# H_mod = torch.eye(n)
-#H_mod = H_design
-H_mod_inv = torch.inverse(H_mod)
+def toCartesian(sphe):
 
-# Noise Parameters
-lambda_q_mod = 0.8
-lambda_r_mod = 1
+    rho = sphe[0]
+    theta = sphe[1]
+    phi = sphe[2]
 
-# Noise Matrices
-Q_mod = (lambda_q_mod**2) * torch.eye(m)
-R_mod = (lambda_r_mod**2) * torch.eye(n)
+    x = (rho * torch.sin(theta) * torch.cos(phi)).view(1,-1)
+    y = (rho * torch.sin(theta) * torch.sin(phi)).view(1,-1)
+    z = (rho * torch.cos(theta)).view(1,-1)
+
+    cart = torch.cat([x,y,z],dim=0)
+
+    return torch.squeeze(cart)

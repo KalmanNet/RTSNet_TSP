@@ -12,7 +12,7 @@ class KalmanNetNN(torch.nn.Module):
     def __init__(self):
         super().__init__()
     
-    def NNBuild(self, SysModel, in_mult = 5, out_mult = 40):
+    def NNBuild(self, SysModel, args):
 
         self.InitSystemDynamics(SysModel.f, SysModel.h, SysModel.m, SysModel.n)
 
@@ -22,12 +22,12 @@ class KalmanNetNN(torch.nn.Module):
         # Number of neurons in the 2nd hidden layer
         #H2_KNet = (SysModel.m * SysModel.n) * 1 * (4)
 
-        self.InitKGainNet(SysModel.prior_Q, SysModel.prior_Sigma, SysModel.prior_S, in_mult, out_mult)
+        self.InitKGainNet(SysModel.prior_Q, SysModel.prior_Sigma, SysModel.prior_S, args)
 
     ######################################
     ### Initialize Kalman Gain Network ###
     ######################################
-    def InitKGainNet(self, prior_Q, prior_Sigma, prior_S, in_mult, out_mult):
+    def InitKGainNet(self, prior_Q, prior_Sigma, prior_S, args):
 
         self.seq_len_input = 1
         self.batch_size = 1
@@ -39,19 +39,19 @@ class KalmanNetNN(torch.nn.Module):
 
 
         # GRU to track Q
-        self.d_input_Q = self.m * in_mult
+        self.d_input_Q = self.m * args.in_mult_KNet
         self.d_hidden_Q = self.m ** 2
         self.GRU_Q = nn.GRU(self.d_input_Q, self.d_hidden_Q)
         self.h_Q = torch.randn(self.seq_len_input, self.batch_size, self.d_hidden_Q)
 
         # GRU to track Sigma
-        self.d_input_Sigma = self.d_hidden_Q + self.m * in_mult
+        self.d_input_Sigma = self.d_hidden_Q + self.m * args.in_mult_KNet
         self.d_hidden_Sigma = self.m ** 2
         self.GRU_Sigma = nn.GRU(self.d_input_Sigma, self.d_hidden_Sigma)
         self.h_Sigma = torch.randn(self.seq_len_input, self.batch_size, self.d_hidden_Sigma)
 
         # GRU to track S
-        self.d_input_S = self.n ** 2 + 2 * self.n * in_mult
+        self.d_input_S = self.n ** 2 + 2 * self.n * args.in_mult_KNet
         self.d_hidden_S = self.n ** 2
         self.GRU_S = nn.GRU(self.d_input_S, self.d_hidden_S)
         self.h_S = torch.randn(self.seq_len_input, self.batch_size, self.d_hidden_S)
@@ -66,7 +66,7 @@ class KalmanNetNN(torch.nn.Module):
         # Fully connected 2
         self.d_input_FC2 = self.d_hidden_S + self.d_hidden_Sigma
         self.d_output_FC2 = self.n * self.m
-        self.d_hidden_FC2 = self.d_input_FC2 * out_mult
+        self.d_hidden_FC2 = self.d_input_FC2 * args.out_mult_KNet
         self.FC2 = nn.Sequential(
                 nn.Linear(self.d_input_FC2, self.d_hidden_FC2),
                 nn.ReLU(),
@@ -88,21 +88,21 @@ class KalmanNetNN(torch.nn.Module):
         
         # Fully connected 5
         self.d_input_FC5 = self.m
-        self.d_output_FC5 = self.m * in_mult
+        self.d_output_FC5 = self.m * args.in_mult_KNet
         self.FC5 = nn.Sequential(
                 nn.Linear(self.d_input_FC5, self.d_output_FC5),
                 nn.ReLU())
 
         # Fully connected 6
         self.d_input_FC6 = self.m
-        self.d_output_FC6 = self.m * in_mult
+        self.d_output_FC6 = self.m * args.in_mult_KNet
         self.FC6 = nn.Sequential(
                 nn.Linear(self.d_input_FC6, self.d_output_FC6),
                 nn.ReLU())
         
         # Fully connected 7
         self.d_input_FC7 = 2 * self.n
-        self.d_output_FC7 = 2 * self.n * in_mult
+        self.d_output_FC7 = 2 * self.n * args.in_mult_KNet
         self.FC7 = nn.Sequential(
                 nn.Linear(self.d_input_FC7, self.d_output_FC7),
                 nn.ReLU())

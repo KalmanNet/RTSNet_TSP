@@ -1,14 +1,11 @@
-"""# **Class: Vanilla RNN**"""
+"""# **Class: Bi-directional RNN**
+RNN with one forward filtering pass and one backward smoothing pass
+"""
 
 import torch
 import torch.nn as nn
 
 from RNN.RNN_forward import RNN_FW
-
-in_mult_bw = 3
-out_mult_bw = 2
-nGRU_FW = 3
-nGRU_BW = 2
 
 class Vanilla_RNN(RNN_FW):
 
@@ -22,7 +19,7 @@ class Vanilla_RNN(RNN_FW):
     ### Initialize Kalman Gain Network ###
     ######################################
 
-    def Build(self, SysModel, fully_agnostic = False):
+    def Build(self, args, SysModel, fully_agnostic = False):
         self.fully_agnostic = fully_agnostic
 
         # Set State Evolution Function
@@ -36,31 +33,31 @@ class Vanilla_RNN(RNN_FW):
         self.InitSequence(SysModel.m1x_0, SysModel.T)
 
         # input dim for FW GRU
-        input_dim_RNN = (self.m + self.n) * in_mult_bw
+        input_dim_RNN = (self.m + self.n) * args.in_mult_RNN
         # Hidden Dimension for FW GRU
-        self.hidden_dim = ((self.n * self.n) + (self.m * self.m)) * out_mult_bw
+        self.hidden_dim = ((self.n * self.n) + (self.m * self.m)) * args.out_mult_RNN
         # FW GRU layers
-        self.n_layers = nGRU_FW
+        self.n_layers = args.nGRU_FW_RNN
         # Hidden Sequence Length
         self.seq_len_hidden = self.n_layers
         
         self.InitRNN(input_dim_RNN)
 
         # input dim for BW GRU
-        input_dim_RNN = (self.m + self.m) * in_mult_bw
+        input_dim_RNN = (self.m + self.m) * args.in_mult_RNN_BW
         # Hidden Dimension for BW GRU
-        self.hidden_dim_bw = 2 * self.m * self.m * out_mult_bw
+        self.hidden_dim_bw = 2 * self.m * self.m * args.out_mult_RNN_BW
 
-        self.InitRNN_BW(input_dim_RNN)
+        self.InitRNN_BW(args, input_dim_RNN)
 
     ######################################
     ### Initialize Kalman Gain Network ###
     ######################################
-    def InitRNN_BW(self, input_dim_RNN):
+    def InitRNN_BW(self, args, input_dim_RNN):
 
         self.seq_len_input = 1
         self.batch_size = 1
-        self.n_layers_bw = nGRU_BW
+        self.n_layers_bw = args.nGRU_BW_RNN
         # Hidden Sequence Length
         self.seq_len_hidden_bw = self.n_layers_bw
 

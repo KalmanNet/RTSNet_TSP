@@ -180,8 +180,6 @@ class Plot:
 
         print('End')
 
-
-
 class Plot_RTS(Plot):
 
     def __init__(self, folderName, modelName):
@@ -698,7 +696,7 @@ class Plot_extended(Plot_RTS):
         ax2.grid(True)          
         plt.savefig(fileName)
 
-    def Partial_Plot_Pen(self, r, MSE_Partial_dB):
+    
         fileName = self.folderName + 'Nonlinear_Pen_PartialF'
         magnifying_glass, main_partial = plt.subplots(figsize = [20, 15])
         x_plt = 10 * torch.log10(1/r**2)

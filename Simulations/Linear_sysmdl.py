@@ -77,7 +77,6 @@ class SystemModel:
     #########################
     ### Update Covariance ###
     #########################
-
     def UpdateCovariance_Matrix(self, Q, R):
 
         self.Q = Q

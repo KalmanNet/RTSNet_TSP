@@ -2,7 +2,7 @@
 Theoretical Non-linear Linear RTS Smoother
 """
 import torch
-from Simulations.Lorenz_Atractor.model import getJacobian
+from Simulations.Lorenz_Atractor.parameters import getJacobian
 
 class Extended_rts_smoother:
 

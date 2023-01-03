@@ -17,11 +17,11 @@ class RTSNetNN(KalmanNetNN):
     #############
     ### Build ###
     #############
-    def NNBuild(self, ssModel, KNet_in_mult = 5, KNet_out_mult = 40, RTSNet_in_mult = 5, RTSNet_out_mult = 40):
+    def NNBuild(self, ssModel, args):
 
         self.InitSystemDynamics(ssModel.f, ssModel.h, ssModel.m, ssModel.n)
 
-        self.InitKGainNet(ssModel.prior_Q, ssModel.prior_Sigma, ssModel.prior_S, KNet_in_mult, KNet_out_mult)
+        self.InitKGainNet(ssModel.prior_Q, ssModel.prior_Sigma, ssModel.prior_S, args)
 
         # # Number of neurons in the 1st hidden layer
         # H1_RTSNet = (ssModel.m + ssModel.m) * (10) * 8
@@ -29,12 +29,12 @@ class RTSNetNN(KalmanNetNN):
         # # Number of neurons in the 2nd hidden layer
         # H2_RTSNet = (ssModel.m * ssModel.m) * 1 * (4)
 
-        self.InitRTSGainNet(ssModel.prior_Q, ssModel.prior_Sigma, RTSNet_in_mult, RTSNet_out_mult)
+        self.InitRTSGainNet(ssModel.prior_Q, ssModel.prior_Sigma, args)
 
     #################################################
     ### Initialize Backward Smoother Gain Network ###
     #################################################
-    def InitRTSGainNet(self, prior_Q, prior_Sigma, in_mult, out_mult):
+    def InitRTSGainNet(self, prior_Q, prior_Sigma, args):
         self.seq_len_input = 1
         self.batch_size = 1
 
@@ -43,13 +43,13 @@ class RTSNetNN(KalmanNetNN):
 
 
         # BW GRU to track Q
-        self.d_input_Q_bw = self.m * in_mult
+        self.d_input_Q_bw = self.m * args.in_mult_RTSNet
         self.d_hidden_Q_bw = self.m ** 2
         self.GRU_Q_bw = nn.GRU(self.d_input_Q_bw, self.d_hidden_Q_bw)
         self.h_Q_bw = torch.randn(self.seq_len_input, self.batch_size, self.d_hidden_Q_bw)
 
         # BW GRU to track Sigma
-        self.d_input_Sigma_bw = self.d_hidden_Q_bw + 2 * self.m * in_mult
+        self.d_input_Sigma_bw = self.d_hidden_Q_bw + 2 * self.m * args.in_mult_RTSNet
         self.d_hidden_Sigma_bw = self.m ** 2
         self.GRU_Sigma_bw = nn.GRU(self.d_input_Sigma_bw, self.d_hidden_Sigma_bw)
         self.h_Sigma_bw = torch.randn(self.seq_len_input, self.batch_size, self.d_hidden_Sigma_bw)
@@ -57,7 +57,7 @@ class RTSNetNN(KalmanNetNN):
         # BW Fully connected 1
         self.d_input_FC1_bw = self.d_hidden_Sigma_bw # + self.d_hidden_Q
         self.d_output_FC1_bw = self.m * self.m
-        self.d_hidden_FC1_bw = self.d_input_FC1_bw * out_mult
+        self.d_hidden_FC1_bw = self.d_input_FC1_bw * args.out_mult_RTSNet
         self.FC1_bw = nn.Sequential(
                 nn.Linear(self.d_input_FC1_bw, self.d_hidden_FC1_bw),
                 nn.ReLU(),
@@ -72,14 +72,14 @@ class RTSNetNN(KalmanNetNN):
         
         # BW Fully connected 3
         self.d_input_FC3_bw = self.m
-        self.d_output_FC3_bw = self.m * in_mult
+        self.d_output_FC3_bw = self.m * args.in_mult_RTSNet
         self.FC3_bw = nn.Sequential(
                 nn.Linear(self.d_input_FC3_bw, self.d_output_FC3_bw),
                 nn.ReLU())
 
         # BW Fully connected 4
         self.d_input_FC4_bw = 2 * self.m
-        self.d_output_FC4_bw = 2 * self.m * in_mult
+        self.d_output_FC4_bw = 2 * self.m * args.in_mult_RTSNet
         self.FC4_bw = nn.Sequential(
                 nn.Linear(self.d_input_FC4_bw, self.d_output_FC4_bw),
                 nn.ReLU())
