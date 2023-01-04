@@ -1,4 +1,4 @@
-"""This file contains the parameters for the simulation"""
+"""This file contains the settings for the simulation"""
 import torch
 import argparse
 

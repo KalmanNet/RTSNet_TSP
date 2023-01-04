@@ -60,14 +60,11 @@ switch = 'partial' # 'full' or 'partial' or 'estH'
 two_pass = True # if true: use two pass method, else: use one pass method
 
 load_trained_pass1 = False # if True: load trained RTSNet pass1, else train pass1
-if load_trained_pass1 == True: 
-   #if true, specify the path to the trained pass1 model
-   RTSNetPass1_path = "RTSNet/checkpoints/LorenzAttracotor/DT/T100_Hrot1/rq-1010_partial.pt"
-else:
-   RTSNetPass1_path = "RTSNet/best-model.pt"
+# specify the path to save trained pass1 model
+RTSNetPass1_path = "RTSNet/checkpoints/LorenzAttracotor/DT/T100_Hrot1/rq-1010_partial.pt"
 # Save the dataset generated from testing RTSNet1 on train and CV data
 load_dataset_for_pass2 = False # if True: load dataset generated from testing RTSNet1 on train and CV data
-# Specify the path to the dataset
+# Specify the path to save the dataset
 DatasetPass1_path = "Simulations/Lorenz_Atractor/data/T100_Hrot1/2ndPass/partial/ResultofPass1_rq-1010partial.pt" 
 
    
@@ -210,7 +207,8 @@ if switch == 'full':
          [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results)
       ## Test Neural Network
       [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model, test_input, test_target, path_results)
-
+      # Save trained model
+      torch.save(RTSNet_Pipeline.model, RTSNetPass1_path)
    ####################################################################################
 
    if two_pass:
@@ -304,7 +302,8 @@ elif switch == 'partial':
          [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model_partial, cv_input, cv_target, train_input, train_target, path_results)
       ## Test Neural Network
       [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model_partial, test_input, test_target, path_results)
-
+      # Save trained model
+      torch.save(RTSNet_Pipeline.model, RTSNetPass1_path)
    ###################################################################################
    if two_pass:
    #########################
@@ -416,7 +415,8 @@ elif switch == 'estH':
       [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model_esth, cv_input, cv_target, train_input, train_target, path_results)
       ## Test Neural Network
       [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model_esth, test_input, test_target, path_results)
-      RTSNet_Pipeline.save()
+      # Save trained model
+      torch.save(RTSNet_Pipeline.model, RTSNetPass1_path)
    ###################################################################################
    if two_pass:
    ######################

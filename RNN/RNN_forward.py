@@ -126,7 +126,7 @@ class RNN_FW(torch.nn.Module):
 
         def expand_dim(x):
             x = torch.squeeze(x)
-            expanded = torch.empty(self.seq_len_input, self.batch_size, x.shape[-1])
+            expanded = torch.empty(self.seq_len_input, self.batch_size, 1 if x.dim()==0 else x.shape[-1])
             expanded[0, 0, :] = x
             return expanded
         

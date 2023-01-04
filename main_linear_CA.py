@@ -335,7 +335,7 @@ RNN_Pipeline.save()
 ####################
 ### Plot results ###
 ####################
-PlotfolderName = "Graphs/Linear_CA/"
+PlotfolderName = "Figures/Linear_CA/"
 PlotfileName0 = "TrainPVA_position.png"
 PlotfileName1 = "TrainPVA_velocity.png"
 PlotfileName2 = "TrainPVA_acceleration.png"

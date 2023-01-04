@@ -1,3 +1,7 @@
+"""
+The file contains utility functions for the simulations.
+"""
+
 import torch
 
 def DataGen(args, SysModel_data, fileName, randomInit_train=False,randomInit_cv=False,randomInit_test=False,randomLength=False):
