@@ -51,7 +51,10 @@ class KalmanFilter:
     # Compute Posterior
     def Correct(self):
         # Compute the 1-st posterior moment
-        self.m1x_posterior = self.m1x_prior + torch.matmul(self.KG, self.dy)
+        if self.dy.dim() == 0: # for linear kinematic, observe-only-postion case
+            self.m1x_posterior = self.m1x_prior + torch.squeeze(self.dy * self.KG)
+        else:
+            self.m1x_posterior = self.m1x_prior + torch.matmul(self.KG, self.dy)
 
         # Compute the 2-nd posterior moment
         self.m2x_posterior = torch.matmul(self.m2y, torch.transpose(self.KG, 0, 1))

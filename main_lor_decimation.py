@@ -41,11 +41,17 @@ print("Current Time =", strTime)
 ###  Settings   ###
 ###################
 args = config.general_settings()
+### dataset parameters
 args.N_E = 100
 args.N_CV = 5
 args.N_T = 10
 args.T = 3000
 args.T_test = 3000
+### training parameters
+args.n_steps = 2000
+args.n_batch = 1
+args.lr = 1e-3
+args.wd = 1e-4
 
 offset = 0 # offset for the data
 chop = False # whether to chop the dataset sequences into smaller ones
@@ -220,7 +226,7 @@ KNet_model.NNBuild(sys_model, args)
 KNet_Pipeline = Pipeline_EKF(strTime, "KNet", "KalmanNet")
 KNet_Pipeline.setModel(KNet_model)
 KNet_Pipeline.setssModel(sys_model)
-KNet_Pipeline.setTrainingParams(n_steps=100, n_Batch=10, learningRate=1e-3, weightDecay=1e-6)
+KNet_Pipeline.setTrainingParams(args)
 [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = KNet_Pipeline.NNTrain(sys_model, cv_input_long, cv_target_long, train_input, train_target, path_results)
 # Test Neural Network
 NumofParameter = sum(p.numel() for p in KNet_Pipeline.model.parameters() if p.requires_grad)
@@ -252,7 +258,7 @@ print("Number of trainable parameters for RNN:",sum(p.numel() for p in RNN_model
 RNN_Pipeline = Pipeline(strTime, "RTSNet", "VanillaRNN")
 RNN_Pipeline.setssModel(sys_model)
 RNN_Pipeline.setModel(RNN_model)
-RNN_Pipeline.setTrainingParams(n_steps=1000, n_Batch=50, learningRate=1e-3, weightDecay=1e-5)
+RNN_Pipeline.setTrainingParams(args)
 if(chop):
    [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RNN_Pipeline.NNTrain(sys_model, cv_input_long, cv_target_long, train_input, train_target, path_results,randomInit=True,train_init=train_init)
 else:
@@ -272,7 +278,7 @@ RTSNet_model.NNBuild(sys_model, args)
 ## Train Neural Network
 RTSNet_Pipeline = Pipeline(strTime, "RTSNet", "RTSNet")
 RTSNet_Pipeline.setModel(RTSNet_model)
-RTSNet_Pipeline.setTrainingParams(n_steps=1000, n_Batch=1, learningRate=1e-3, weightDecay=1e-4)
+RTSNet_Pipeline.setTrainingParams(args)
 NumofParameter = RTSNet_Pipeline.count_parameters()
 print("Number of parameters for RTSNet: ",NumofParameter)
 

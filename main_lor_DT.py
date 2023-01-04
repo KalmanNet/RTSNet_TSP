@@ -38,11 +38,17 @@ print("Current Time =", strTime)
 ###  Settings   ###
 ###################
 args = config.general_settings()
+### dataset parameters
 args.N_E = 1000
 args.N_CV = 100
 args.N_T = 200
 args.T = 100
 args.T_test = 100
+### training parameters
+args.n_steps = 2000
+args.n_batch = 30
+args.lr = 1e-3
+args.wd = 1e-3
 
 offset = 0 # offset for the data
 chop = False # whether to chop data sequences into shorter sequences
@@ -57,11 +63,12 @@ load_trained_pass1 = False # if True: load trained RTSNet pass1, else train pass
 if load_trained_pass1 == True: 
    #if true, specify the path to the trained pass1 model
    RTSNetPass1_path = "RTSNet/checkpoints/LorenzAttracotor/DT/T100_Hrot1/rq-1010_partial.pt"
+else:
+   RTSNetPass1_path = "RTSNet/best-model.pt"
 # Save the dataset generated from testing RTSNet1 on train and CV data
 load_dataset_for_pass2 = False # if True: load dataset generated from testing RTSNet1 on train and CV data
-if load_dataset_for_pass2 == True: 
-   # if true, specify the path to the dataset
-   DatasetPass1_path = "Simulations/Lorenz_Atractor/data/T100_Hrot1/2ndPass/partial/ResultofPass1_rq-1010partial.pt" 
+# Specify the path to the dataset
+DatasetPass1_path = "Simulations/Lorenz_Atractor/data/T100_Hrot1/2ndPass/partial/ResultofPass1_rq-1010partial.pt" 
 
    
 # noise q and r
@@ -196,7 +203,7 @@ if switch == 'full':
       RTSNet_Pipeline.setssModel(sys_model)
       RTSNet_Pipeline.setModel(RTSNet_model)
       print("Number of trainable parameters for RTSNet:",sum(p.numel() for p in RTSNet_model.parameters() if p.requires_grad))
-      RTSNet_Pipeline.setTrainingParams(n_steps=1000, n_Batch=30, learningRate=1e-3, weightDecay=1e-6) 
+      RTSNet_Pipeline.setTrainingParams(args) 
       if(chop):
          [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results,randomInit=True,train_init=train_init)
       else:
@@ -255,7 +262,7 @@ if switch == 'full':
       RTSNet_Pipeline = Pipeline(strTime, "RTSNet", "RTSNet_pass2")
       RTSNet_Pipeline.setssModel(sys_model_pass2)
       RTSNet_Pipeline.setModel(RTSNet_model)
-      RTSNet_Pipeline.setTrainingParams(n_steps=2000, n_Batch=10, learningRate=1E-3, weightDecay=1E-9)
+      RTSNet_Pipeline.setTrainingParams(args)
       #######################################
       [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model_pass2, cv_input_pass2, cv_target_pass2, train_input_pass2, train_target_pass2, path_results)
       RTSNet_Pipeline.save()
@@ -290,7 +297,7 @@ elif switch == 'partial':
       RTSNet_Pipeline = Pipeline(strTime, "RTSNet", "RTSNet")
       RTSNet_Pipeline.setssModel(sys_model_partial)
       RTSNet_Pipeline.setModel(RTSNet_model)
-      RTSNet_Pipeline.setTrainingParams(n_steps=2000, n_Batch=20, learningRate=1e-3, weightDecay=1e-3)
+      RTSNet_Pipeline.setTrainingParams(args)
       if(chop):
          [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model_partial, cv_input, cv_target, train_input, train_target, path_results,randomInit=True,train_init=train_init)
       else:
@@ -348,7 +355,7 @@ elif switch == 'partial':
       RTSNet_Pipeline = Pipeline(strTime, "RTSNet", "RTSNet_pass2")
       RTSNet_Pipeline.setssModel(sys_model_pass2)
       RTSNet_Pipeline.setModel(RTSNet_model)
-      RTSNet_Pipeline.setTrainingParams(n_steps=2000, n_Batch=10, learningRate=1E-4, weightDecay=1E-9)
+      RTSNet_Pipeline.setTrainingParams(args)
       #######################################
       [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model_pass2, cv_input_pass2, cv_target_pass2, train_input_pass2, train_target_pass2, path_results)
       RTSNet_Pipeline.save()
@@ -405,7 +412,7 @@ elif switch == 'estH':
       RTSNet_model = RTSNetNN()
       RTSNet_model.NNBuild(sys_model_esth, args)
       RTSNet_Pipeline.setModel(RTSNet_model)
-      RTSNet_Pipeline.setTrainingParams(n_steps=2000, n_Batch=10, learningRate=1E-3, weightDecay=1E-3)
+      RTSNet_Pipeline.setTrainingParams(args)
       [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model_esth, cv_input, cv_target, train_input, train_target, path_results)
       ## Test Neural Network
       [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model_esth, test_input, test_target, path_results)
@@ -460,7 +467,7 @@ elif switch == 'estH':
       RTSNet_Pipeline = Pipeline(strTime, "RTSNet", "RTSNet_pass2")
       RTSNet_Pipeline.setssModel(sys_model_pass2)
       RTSNet_Pipeline.setModel(RTSNet_model)
-      RTSNet_Pipeline.setTrainingParams(n_steps=3000, n_Batch=10, learningRate=1E-4, weightDecay=1E-9)
+      RTSNet_Pipeline.setTrainingParams(args)
       #######################################
       [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model_pass2, cv_input_pass2, cv_target_pass2, train_input_pass2, train_target_pass2, path_results)
       RTSNet_Pipeline.save()

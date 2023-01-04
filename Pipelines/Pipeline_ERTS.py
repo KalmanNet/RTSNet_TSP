@@ -28,12 +28,12 @@ class Pipeline_ERTS:
     def setModel(self, model):
         self.model = model
 
-    def setTrainingParams(self, n_steps, n_Batch, learningRate, weightDecay, alpha=0.5):
-        self.N_steps = n_steps  # Number of Training Steps
-        self.N_B = n_Batch # Number of Samples in Batch
-        self.learningRate = learningRate # Learning Rate
-        self.weightDecay = weightDecay # L2 Weight Regularization - Weight Decay
-        self.alpha = alpha # Composition loss
+    def setTrainingParams(self, args, alpha=0.5):
+        self.N_steps = args.n_steps  # Number of Training Steps
+        self.N_B = args.n_batch # Number of Samples in Batch
+        self.learningRate = args.lr # Learning Rate
+        self.weightDecay = args.wd # L2 Weight Regularization - Weight Decay
+        self.alpha = alpha # Composition loss factor
         # MSE LOSS Function
         self.loss_fn = nn.MSELoss(reduction='mean')
 

@@ -35,11 +35,17 @@ path_results = 'RTSNet/'
 ### Design Model ###
 ####################
 args = config.general_settings()
+### dataset parameters
 args.N_E = 1000
 args.N_CV = 100
 args.N_T = 200
 args.T = 100
 args.T_test = 100
+### training parameters
+args.n_steps = 2000
+args.n_batch = 30
+args.lr = 1e-3
+args.wd = 1e-3
 
 r2 = torch.tensor([10,1.,0.1,1e-2,1e-3])
 vdB = -20 # ratio v=q2/r2
@@ -106,7 +112,7 @@ for index in range(0,len(r2)):
    RTSNet_Pipeline = Pipeline(strTime, "RTSNet", "RTSNet")
    RTSNet_Pipeline.setssModel(sys_model)
    RTSNet_Pipeline.setModel(RTSNet_model)
-   RTSNet_Pipeline.setTrainingParams(n_steps=1000, n_Batch=30, learningRate=1E-3, weightDecay=1E-3)
+   RTSNet_Pipeline.setTrainingParams(args)
    [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results)
    ## Test Neural Network
    [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model, test_input, test_target, path_results)
@@ -122,7 +128,7 @@ for index in range(0,len(r2)):
    RTSNet_Pipeline = Pipeline(strTime, "RTSNet", "RTSNet")
    RTSNet_Pipeline.setssModel(sys_model_partialh)
    RTSNet_Pipeline.setModel(RTSNet_model)
-   RTSNet_Pipeline.setTrainingParams(n_steps=1000, n_Batch=30, learningRate=1E-3, weightDecay=1E-3)
+   RTSNet_Pipeline.setTrainingParams(args)
    [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model_partialh, cv_input, cv_target, train_input, train_target, path_results)
    ## Test Neural Network
    [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model_partialh, test_input, test_target, path_results)
@@ -156,7 +162,7 @@ for index in range(0,len(r2)):
    RTSNet_model.NNBuild(sys_model_esth, args)
    RTSNet_Pipeline.setModel(RTSNet_model)
    
-   RTSNet_Pipeline.setTrainingParams(n_steps=1000, n_Batch=30, learningRate=1E-3, weightDecay=1E-3)
+   RTSNet_Pipeline.setTrainingParams(args)
    [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model_partialh, cv_input, cv_target, train_input, train_target, path_results)
    ## Test Neural Network
    [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model_partialh, test_input, test_target, path_results)
@@ -174,7 +180,7 @@ for index in range(0,len(r2)):
    RNN_Pipeline = Pipeline(strTime, "RTSNet", "VanillaRNN")
    RNN_Pipeline.setssModel(sys_model)
    RNN_Pipeline.setModel(RNN_model)
-   RNN_Pipeline.setTrainingParams(n_steps=1000, n_Batch=50, learningRate=1e-3, weightDecay=1e-5)
+   RNN_Pipeline.setTrainingParams(args)
    RNN_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results, rnn=True)
    ## Test Neural Network
    [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RNN_Pipeline.NNTest(sys_model, test_input, test_target, path_results, rnn=True)

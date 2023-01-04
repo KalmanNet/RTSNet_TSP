@@ -35,6 +35,7 @@ print("Current Time =", strTime)
 ###  Settings   ###
 ###################
 args = config.general_settings()
+### dataset parameters
 args.N_E = 1000
 args.N_CV = 100
 args.N_T = 200
@@ -45,6 +46,11 @@ args.in_mult_KNet = 40
 args.out_mult_KNet = 5
 args.in_mult_RTSNet = 40
 args.out_mult_RTSNet = 5
+### training parameters
+args.n_steps = 2000
+args.n_batch = 100
+args.lr = 1e-4
+args.wd = 1e-4
 
 offset = 0
 chop = False
@@ -142,7 +148,7 @@ RTSNet_Pipeline = Pipeline(strTime, "RTSNet", "RTSNet")
 RTSNet_Pipeline.setssModel(sys_model)
 RTSNet_Pipeline.setModel(RTSNet_model)
 print("Number of trainable parameters for RTSNet:",sum(p.numel() for p in RTSNet_model.parameters() if p.requires_grad))
-RTSNet_Pipeline.setTrainingParams(n_steps=2000, n_Batch=100, learningRate=1e-4, weightDecay=1e-4) 
+RTSNet_Pipeline.setTrainingParams(args) 
 if(chop):
    [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results,randomInit=True,train_init=train_init)
 else:
@@ -179,7 +185,7 @@ RTSNet_Pipeline = Pipeline(strTime, "RTSNet", "RTSNet")
 RTSNet_Pipeline.setssModel(sys_model_H)
 RTSNet_Pipeline.setModel(RTSNet_model)
 print("Number of trainable parameters for RTSNet:",sum(p.numel() for p in RTSNet_model.parameters() if p.requires_grad))
-RTSNet_Pipeline.setTrainingParams(n_steps=2000, n_Batch=100, learningRate=1e-4, weightDecay=1e-4) 
+RTSNet_Pipeline.setTrainingParams(args) 
 if(chop):
    [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model_H, cv_input_pass2, cv_target_pass2, train_input_pass2, train_target_pass2, path_results,randomInit=True,train_init=train_init)
 else:
@@ -210,7 +216,7 @@ print("Number of parameters for RTSNet: ",NumofParameter)
 # ## Train Neural Network
 # RTSNet_Pipeline = Pipeline_multipass(strTime, "RTSNet", "RTSNet")
 # RTSNet_Pipeline.setModel(RTSNet_model)
-# RTSNet_Pipeline.setTrainingParams(n_Epochs=2000, n_Batch=100, learningRate=1e-4, weightDecay=1e-4)
+# RTSNet_Pipeline.setTrainingParams(args)
 # NumofParameter = RTSNet_Pipeline.count_parameters()
 # if(chop):
 #    [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results,CompositionLoss=True,randomInit=True,train_init=train_init)

@@ -32,18 +32,32 @@ InitIsRandom_test = True
 KnownRandInit_test = True
 
 args = config.general_settings()
-if(KnownRandInit_train or KnownRandInit_cv or KnownRandInit_test):
-   std = 0
-else:
-   std = 1
-m1x_0 = torch.zeros(m) # Initial State
-m1x_0_cv = torch.zeros(m_cv) # Initial State for CV
-m2x_0 = std * std * torch.eye(m) # Initial Covariance
-m2x_0_cv = std * std * torch.eye(m_cv) # Initial Covariance for CV
-
 ### Length of Time Series Sequence
 args.T = 100
 args.T_test = 100
+### training parameters
+args.n_steps = 4000
+args.n_batch = 10
+args.lr = 1e-4
+args.wd = 1e-4
+
+if(InitIsRandom_train or InitIsRandom_cv or InitIsRandom_test):
+   std_gen = 1
+else:
+   std_gen = 0
+
+if(KnownRandInit_train or KnownRandInit_cv or KnownRandInit_test):
+   std_feed = 0
+else:
+   std_feed = 1
+
+m1x_0 = torch.zeros(m) # Initial State
+m1x_0_cv = torch.zeros(m_cv) # Initial State for CV
+m2x_0 = std_feed * std_feed * torch.eye(m) # Initial Covariance for feeding to smoothers and RTSNet
+m2x_0_gen = std_gen * std_gen * torch.eye(m) # Initial Covariance for generating dataset
+m2x_0_cv = std_feed * std_feed * torch.eye(m_cv) # Initial Covariance for CV
+
+
 
 print("Pipeline Start")
 
@@ -69,11 +83,11 @@ CV_model = False # if true: use CV model, else: use CA model
 ### 1pass or 2pass
 two_pass = True # if true: use two pass method, else: use one pass method
 load_trained_pass1 = False # if True: load trained RTSNet pass1, else train pass1
-# if true, specify the path to the trained pass1 model
+# specify the path to save trained pass1 model
 RTSNetPass1_path = "RTSNet/checkpoints/Linear/linearCA/knownInit/CA_trainPVA.pt"
 # Save the dataset generated from testing RTSNet1 on train and CV data
 load_dataset_for_pass2 = False # if True: load dataset generated from testing RTSNet1 on train and CV data
-# if true, specify the path to the dataset
+# specify the path to save the dataset
 DatasetPass1_path = "Simulations/Linear_CA/data/two_pass/ResultofPass1_PVA.pt" 
 
 DatafolderName = 'Simulations/Linear_CA/data/'
@@ -84,7 +98,7 @@ DatafileName = 'decimated_dt1e-2_T100_r0_randnInit.pt'
 ####################
 # Generation model (CA)
 sys_model_gen = SystemModel(F_gen, Q_gen, H_onlyPos, R_onlyPos, args.T, args.T_test)
-sys_model_gen.InitSequence(m1x_0, m2x_0)# x0 and P0
+sys_model_gen.InitSequence(m1x_0, m2x_0_gen)# x0 and P0
 
 # Feed model (to KF, RTS and RTSNet) 
 if CV_model:
@@ -167,7 +181,7 @@ else:
    RTSNet_Pipeline = Pipeline(strTime, "RTSNet", "RTSNet")
    RTSNet_Pipeline.setssModel(sys_model)
    RTSNet_Pipeline.setModel(RTSNet_model)
-   RTSNet_Pipeline.setTrainingParams(n_steps=4000, n_Batch=10, learningRate=1E-4, weightDecay=1E-4)
+   RTSNet_Pipeline.setTrainingParams(args)
    if (KnownRandInit_train):
       print("Train RTSNet with Known Random Initial State")
       print("Train Loss on All States (if false, loss on position only):", Train_Loss_On_AllState)
@@ -187,8 +201,8 @@ else:
       ## Test Neural Network
       print("Compute Loss on All States (if false, loss on position only):", Loss_On_AllState)
       [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model, test_input, test_target, path_results,MaskOnState=not Loss_On_AllState)
-
-   RTSNet_Pipeline.save()
+   # Save trained model
+   torch.save(RTSNet_Pipeline.model, RTSNetPass1_path)
    print("RTSNet pass 1 pipeline end!")
 
 if two_pass:
@@ -262,7 +276,7 @@ if two_pass:
    RTSNet_Pipeline = Pipeline(strTime, "RTSNet", "RTSNet_pass2")
    RTSNet_Pipeline.setssModel(sys_model_pass2)
    RTSNet_Pipeline.setModel(RTSNet_model)
-   RTSNet_Pipeline.setTrainingParams(n_steps=4000, n_Batch=10, learningRate=1E-4, weightDecay=1E-4)
+   RTSNet_Pipeline.setTrainingParams(args)
    if (KnownRandInit_train):
       print("Train RTSNet pass 2 with Known Random Initial State")
       print("Train Loss on All States (if false, loss on position only):", Train_Loss_On_AllState)
@@ -299,7 +313,12 @@ if two_pass:
 ## Vanilla RNN ###
 ##################
 ### Vanilla RNN ###################################################################################
-# Build RNN
+### set training parameters
+args.n_steps = 1000
+args.n_batch = 50
+args.lr = 1e-3
+args.wd = 1e-5
+### Build RNN
 print("Vanilla RNN")
 RNN_model = Vanilla_RNN()
 RNN_model.Build(args, sys_model,fully_agnostic = False)
@@ -307,7 +326,7 @@ print("Number of trainable parameters for RNN:",sum(p.numel() for p in RNN_model
 RNN_Pipeline = Pipeline(strTime, "RTSNet", "VanillaRNN")
 RNN_Pipeline.setssModel(sys_model)
 RNN_Pipeline.setModel(RNN_model)
-RNN_Pipeline.setTrainingParams(n_steps=1000, n_Batch=50, learningRate=1e-3, weightDecay=1e-5)
+RNN_Pipeline.setTrainingParams(args)
 RNN_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results, rnn=True)
 ## Test Neural Network
 [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RNN_Pipeline.NNTest(sys_model, test_input, test_target, path_results, rnn=True)
