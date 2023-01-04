@@ -2,7 +2,7 @@
 
 ![Overall architecture](Figures/overall_RTSNet.png)
 
-[RTSNet](https://arxiv.org/abs/2110.04717) extends [KalmanNet](https://arxiv.org/abs/2107.10043) from filtering to smoothing. The inside network structure is also upgraded.
+[RTSNet](https://arxiv.org/abs/2110.04717) extends [KalmanNet](https://arxiv.org/abs/2107.10043) from filtering to smoothing. The inside network structure is also upgraded compared with old version in [ICASSP2022](https://github.com/KalmanNet/RTSNet_ICASSP22).
 
 ## Running code
 
