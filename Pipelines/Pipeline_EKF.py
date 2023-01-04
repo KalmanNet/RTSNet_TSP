@@ -45,7 +45,7 @@ class Pipeline_EKF:
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learningRate, weight_decay=self.weightDecay)
 
 
-    def NNTrain(self, n_Examples, train_input, train_target, n_CV, cv_input, cv_target):
+    def NNTrain(self, n_Examples, train_input, train_target, n_CV, cv_input, cv_target, randomInit = False, cv_init=None,train_init=None):
 
         self.N_E = n_Examples
         self.N_CV = n_CV
@@ -76,7 +76,13 @@ class Pipeline_EKF:
 
             for j in range(0, self.N_CV):
                 y_cv = cv_input[j, :, :]
-                self.model.InitSequence(self.ssModel.m1x_0, self.ssModel.T_test)
+                if(randomInit):
+                    if(cv_init==None):
+                        self.model.InitSequence(self.ssModel.m1x_0, self.ssModel.T_test)
+                    else:
+                        self.model.InitSequence(cv_init[j], self.ssModel.T_test)                       
+                else:
+                    self.model.InitSequence(self.ssModel.m1x_0, self.ssModel.T_test)
 
                 x_out_cv = torch.empty(self.ssModel.m, self.ssModel.T_test)
                 for t in range(0, self.ssModel.T_test):
@@ -110,7 +116,10 @@ class Pipeline_EKF:
                 n_e = random.randint(0, self.N_E - 1)
 
                 y_training = train_input[n_e, :, :]
-                self.model.InitSequence(self.ssModel.m1x_0, self.ssModel.T)
+                if(randomInit):
+                    self.model.InitSequence(train_init[n_e], self.ssModel.T)
+                else:
+                    self.model.InitSequence(self.ssModel.m1x_0, self.ssModel.T)
 
                 x_out_training = torch.empty(self.ssModel.m, self.ssModel.T)
                 for t in range(0, self.ssModel.T):

@@ -105,7 +105,7 @@ class SystemModel:
                 mean = torch.zeros([self.m])              
                 distrib = MultivariateNormal(loc=mean, covariance_matrix=Q_gen)
                 eq = distrib.rsample()
-                eq = torch.reshape(eq[:],[self.m,1])
+                eq = torch.reshape(eq[:], xt.size())
                 # Additive Process Noise
                 xt = torch.add(xt,eq)
 
@@ -122,7 +122,7 @@ class SystemModel:
                 mean = torch.zeros([self.n])            
                 distrib = MultivariateNormal(loc=mean, covariance_matrix=R_gen)
                 er = distrib.rsample()
-                er = torch.reshape(er[:],[self.n,1])       
+                er = torch.reshape(er[:], yt.size())       
                 # Additive Observation Noise
                 yt = torch.add(yt,er)
             

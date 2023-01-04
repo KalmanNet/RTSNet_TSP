@@ -69,7 +69,7 @@ class Pipeline_ERTS:
         self.MSE_cv_idx_opt = 0
 
 
-        for ti in range(1, self.N_steps):
+        for ti in range(0, self.N_steps):
 
             ###############################
             ### Training Sequence Batch ###

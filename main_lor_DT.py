@@ -167,8 +167,8 @@ print("Evaluate PS partial")
 ### Save trajectories
 trajfolderName = 'Smoothers' + '/'
 DataResultName = traj_resultName[0]
-EKF_sample = torch.reshape(EKF_out[0,:,:],[1,m,args.T_test])
-ERTS_sample = torch.reshape(ERTS_out[0,:,:],[1,m,args.T_test])
+EKF_sample = torch.reshape(EKF_out[0],[1,m,args.T_test])
+ERTS_sample = torch.reshape(ERTS_out[0],[1,m,args.T_test])
 PS_sample = torch.reshape(PS_out[0,:,:],[1,m,args.T_test])
 target_sample = torch.reshape(test_target[0,:,:],[1,m,args.T_test])
 input_sample = torch.reshape(test_input[0,:,:],[1,n,args.T_test])

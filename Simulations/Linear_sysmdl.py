@@ -115,7 +115,7 @@ class SystemModel:
                 distrib = MultivariateNormal(loc=mean, covariance_matrix=Q_gen)
                 eq = distrib.rsample()
                 # eq = torch.normal(mean, self.q)
-                eq = torch.reshape(eq[:],[self.m,1])
+                eq = torch.reshape(eq[:], xt.size())
                 # Additive Process Noise
                 xt = torch.add(xt,eq)
 
@@ -135,10 +135,7 @@ class SystemModel:
                 mean = torch.zeros([self.n])            
                 distrib = MultivariateNormal(loc=mean, covariance_matrix=R_gen)
                 er = distrib.rsample()
-                er = torch.reshape(er[:],[self.n,1])
-                # mean = torch.zeros([self.n,1])
-                # er = torch.normal(mean, self.r)
-                
+                er = torch.reshape(er[:], yt.size())               
                 # Additive Observation Noise
                 yt = torch.add(yt,er)
 
@@ -197,7 +194,6 @@ class SystemModel:
                 ### if Normal Distribution for random init
                 distrib = MultivariateNormal(loc=torch.squeeze(self.m1x_0), covariance_matrix=self.m2x_0)
                 initConditions = distrib.rsample()
-                initConditions = torch.reshape(initConditions[:],[self.m,1])
                 self.m1x_0_rand[i,:] = torch.squeeze(initConditions)
                 
             

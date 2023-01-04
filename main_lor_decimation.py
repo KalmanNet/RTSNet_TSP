@@ -58,16 +58,14 @@ chop = False # whether to chop the dataset sequences into smaller ones
 secondpass = False # RTSNet - 1 or RTSNet - 2
 path_results = 'RTSNet/'
 DatafolderName = 'Simulations/Lorenz_Atractor/data/decimation/'
-DatagenfolderName = 'Simulations/Lorenz_Atractor/data/'
 DatafileName = 'decimated_r0_Ttest3000.pt'
 Datasecondpass = 'r0_outputoffirstpass.pt'
 data_gen = 'data_gen.pt'
-data_gen_file = torch.load(DatagenfolderName+data_gen)
+data_gen_file = torch.load(DatafolderName+data_gen)
 [true_sequence] = data_gen_file['All Data']
 
 r = torch.tensor([1])
 lambda_q = torch.tensor([0.3873])
-traj_resultName = ['traj_lor_dec_RTSNetJ2_r0_2pass.pt'] 
 
 ######################################
 ###  Compare EKF, RTS and RTSNet   ###
@@ -97,6 +95,7 @@ print("Data Gen")
 if chop:
    print("chop training data")  
    [train_target, train_input, train_init] = Short_Traj_Split(train_target_long, train_input_long, args.T)
+   args.N_E = train_target.size()[0]
 else:
    print("no chopping") 
    train_target = train_target_long
@@ -115,7 +114,7 @@ print("Data Load")
 if(chop):
    print("chop training data")  
    [train_target, train_input, train_init] = Short_Traj_Split(train_target, train_input, args.T)
-
+   args.N_E = train_target.size()[0]
 if(secondpass):
    traj = torch.load(DatafolderName+Datasecondpass) 
    train_input = traj['RTSNet']
@@ -155,10 +154,10 @@ print("cvset size:",cv_target_long.size())
 ########################################
 ### Evaluate Observation Noise Floor ###
 ########################################
-N_T = len(test_input)
+args.N_T = len(test_input)
 loss_obs = nn.MSELoss(reduction='mean')
-MSE_obs_linear_arr = torch.empty(N_T)# MSE [Linear]
-for j in range(0, N_T):        
+MSE_obs_linear_arr = torch.empty(args.N_T)# MSE [Linear]
+for j in range(0, args.N_T):        
    MSE_obs_linear_arr[j] = loss_obs(test_input[j], test_target[j]).item()
 MSE_obs_linear_avg = torch.mean(MSE_obs_linear_arr)
 MSE_obs_dB_avg = 10 * torch.log10(MSE_obs_linear_avg)
@@ -172,9 +171,9 @@ obs_std_dB = 10 * torch.log10(MSE_obs_linear_std + MSE_obs_linear_avg) - MSE_obs
 print("Observation Noise Floor(test dataset) - MSE LOSS:", MSE_obs_dB_avg, "[dB]")
 print("Observation Noise Floor(test dataset) - STD:", obs_std_dB, "[dB]")
 ###################################################
-N_E = len(train_input)
-MSE_obs_linear_arr = torch.empty(N_E)# MSE [Linear]
-for j in range(0, N_E):        
+args.N_E = len(train_input)
+MSE_obs_linear_arr = torch.empty(args.N_E)# MSE [Linear]
+for j in range(0, args.N_E):        
    MSE_obs_linear_arr[j] = loss_obs(train_input[j], train_target[j]).item()
 MSE_obs_linear_avg = torch.mean(MSE_obs_linear_arr)
 MSE_obs_dB_avg = 10 * torch.log10(MSE_obs_linear_avg)
@@ -222,30 +221,18 @@ print("Start RTS test J=2")
 ## Build Neural Network
 KNet_model = KalmanNetNN()
 KNet_model.NNBuild(sys_model, args)
-## Train Neural Network
-KNet_Pipeline = Pipeline_EKF(strTime, "KNet", "KalmanNet")
+KNet_Pipeline = Pipeline_EKF(strTime, "RTSNet", "KalmanNet")
 KNet_Pipeline.setModel(KNet_model)
 KNet_Pipeline.setssModel(sys_model)
+print("Number of trainable parameters for KNet:",sum(p.numel() for p in KNet_model.parameters() if p.requires_grad))
+# Train Neural Network
 KNet_Pipeline.setTrainingParams(args)
-[MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = KNet_Pipeline.NNTrain(sys_model, cv_input_long, cv_target_long, train_input, train_target, path_results)
+if(chop):
+   KNet_Pipeline.NNTrain(args.N_E, train_input, train_target, args.N_CV, cv_input_long, cv_target_long,randomInit=True,train_init=train_init)
+else:
+   KNet_Pipeline.NNTrain(args.N_E, train_input, train_target, args.N_CV, cv_input_long, cv_target_long)
 # Test Neural Network
-NumofParameter = sum(p.numel() for p in KNet_Pipeline.model.parameters() if p.requires_grad)
-print("Number of parameters for KNet: ",NumofParameter)
-[MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg, knet_out] = KNet_Pipeline.NNTest(N_T, test_input, test_target)
-# Print MSE Cross Validation
-print("MSE Test:", MSE_test_dB_avg, "[dB]")
-[MSE_knet_test_dB_avg,trace_knet_dB_avg] = KNet_Pipeline.NNTest_evol(sys_model, test_input, test_target, path_results)
-PlotfolderName = path_results
-MSE_resultName = "error_evol"
-error_evol = torch.load(PlotfolderName+MSE_resultName)
-print(error_evol.keys())
-MSE_knet_test_dB_avg = error_evol['MSE_knet']
-trace_knet_dB_avg = error_evol['trace_knet']
-MSE_EKF_dB_avg = error_evol['MSE_EKF']
-trace_dB_avg = error_evol['trace_EKF']
-Plot = Plot(PlotfolderName, modelName='KNet')
-print("Plot")
-Plot.error_evolution(MSE_knet_test_dB_avg,trace_knet_dB_avg,MSE_EKF_dB_avg, trace_dB_avg)
+[MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg, knet_out] = KNet_Pipeline.NNTest(args.N_T, test_input, test_target)
 
 ######################
 ### Vanilla RNN ######
@@ -295,9 +282,9 @@ else:
 ### Concat two RTSNets with model mismatch  ###
 ###############################################
 ## load trained Neural Network
-print("RTSNet with model mismatch")
-RTSNet_model1 = torch.load('RTSNet/checkpoints/LorenzAttracotor/decimation/model/best-model_r0_J2_NE1000_MSE-15.5.pt')
-RTSNet_model2 = torch.load('RTSNet/checkpoints/LorenzAttracotor/decimation/model/second-pass-of-15.5.pt')
+print("Concatenated RTSNet-2")
+RTSNet_model1 = torch.load('RTSNet/checkpoints/LorenzAttracotor/decimation/model/RTSNet-1.pt')
+RTSNet_model2 = torch.load('RTSNet/checkpoints/LorenzAttracotor/decimation/model/second-pass-of-RTSNet-2.pt')
 ## Train Neural Network
 RTSNet_Pipeline = Pipeline_twoRTSNets(strTime, "RTSNet", "RTSNet")
 RTSNet_Pipeline.setModel(RTSNet_model1, RTSNet_model2)
@@ -308,7 +295,7 @@ print("Number of parameters for RTSNet: ",NumofParameter)
 
 # Save trajectories
 trajfolderName = 'RTSNet/checkpoints/LorenzAttracotor/decimation/traj' + '/'
-DataResultName = 'traj_lor_dec_PS'
+DataResultName = 'traj_lor_dec.pt'
 target_sample = torch.reshape(test_target[0,:,:],[1,args.m,args.T_test])
 input_sample = torch.reshape(test_input[0,:,:],[1,args.n,args.T_test])
 torch.save({'PF J=5':PF_out,
