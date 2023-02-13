@@ -1,3 +1,10 @@
+"""This file contains the parameters for the Lorenz Atractor simulation.
+
+Update 2023-02-06: f and h support batch size speed up
+
+"""
+
+
 import torch
 import math
 torch.pi = torch.acos(torch.zeros(1)).item() * 2 # which is 3.1415927410125732
@@ -44,7 +51,6 @@ RZ = torch.tensor([
 RotMatrix = torch.mm(torch.mm(RZ, RY), RX)
 
 ### Auxiliar MultiDimensional Tensor B and C (they make A --> Differential equation matrix)
-B = torch.tensor([[[0,  0, 0],[0, 0, -1],[0,  1, 0]], torch.zeros(m,m), torch.zeros(m,m)]).float()
 C = torch.tensor([[-10, 10,    0],
                   [ 28, -1,    0],
                   [  0,  0, -8/3]]).float()
@@ -53,55 +59,75 @@ C = torch.tensor([[-10, 10,    0],
 ### State evolution function f for Lorenz Atractor ###
 ######################################################
 ### f_gen is for dataset generation
-def f_gen(x):
-    BX = torch.reshape(torch.matmul(B, x),(m,m))
-    A = torch.add(BX.permute(*torch.arange(BX.ndim - 1, -1, -1)),C)  
+def f_gen(x, jacobian=False):
+    BX = torch.zeros([x.shape[0],m,m]).float() #[batch_size, m, m]
+    BX[:,1,0] = torch.squeeze(-x[:,2,:]) 
+    BX[:,2,0] = torch.squeeze(x[:,1,:])
+    A = torch.add(BX, C)  
     # Taylor Expansion for F    
     F = torch.eye(m)
+    F = F.reshape((1, m, m)).repeat(x.shape[0], 1, 1) # [batch_size, m, m] identity matrix
     for j in range(1,J+1):
         F_add = (torch.matrix_power(A*delta_t_gen, j)/math.factorial(j))
         F = torch.add(F, F_add)
-
-    return torch.matmul(F, x)
+    if jacobian:
+        return torch.bmm(F, x), F
+    else:
+        return torch.bmm(F, x)
 
 ### f will be fed to smoothers & RTSNet, note that the mismatch comes from delta_t
-def f(x):
-    BX = torch.reshape(torch.matmul(B, x),(m,m))
-    A = (torch.add(BX.permute(*torch.arange(BX.ndim - 1, -1, -1)),C))
-    
+def f(x, jacobian=False):
+    BX = torch.zeros([x.shape[0],m,m]).float() #[batch_size, m, m]
+    BX[:,1,0] = torch.squeeze(-x[:,2,:]) 
+    BX[:,2,0] = torch.squeeze(x[:,1,:]) 
+    A = torch.add(BX, C) 
     # Taylor Expansion for F    
     F = torch.eye(m)
+    F = F.reshape((1, m, m)).repeat(x.shape[0], 1, 1) # [batch_size, m, m] identity matrix
     for j in range(1,J+1):
         F_add = (torch.matrix_power(A*delta_t, j)/math.factorial(j))
         F = torch.add(F, F_add)
-    x_out = torch.matmul(F, x)
-    return x_out
+    if jacobian:
+        return torch.bmm(F, x), F
+    else:
+        return torch.bmm(F, x)
 
 ### fInacc will be fed to smoothers & RTSNet, note that the mismatch comes from delta_t and J_mod
-def fInacc(x):
-    BX = torch.reshape(torch.matmul(B, x),(m,m))
-    #A = torch.add(torch.einsum('nhw,wa->nh', B, x).T,C)
-    A = torch.add(BX.permute(*torch.arange(BX.ndim - 1, -1, -1)),C)
-    
+def fInacc(x, jacobian=False):
+    BX = torch.zeros([x.shape[0],m,m]).float() #[batch_size, m, m]
+    BX[:,1,0] = torch.squeeze(-x[:,2,:]) 
+    BX[:,2,0] = torch.squeeze(x[:,1,:]) 
+    A = torch.add(BX, C)     
     # Taylor Expansion for F    
     F = torch.eye(m)
+    F = F.reshape((1, m, m))
+    F = F.repeat(x.shape[0], 1, 1) # [batch_size, m, m] identity matrix
     for j in range(1,J_mod+1):
         F_add = (torch.matrix_power(A*delta_t, j)/math.factorial(j))
         F = torch.add(F, F_add)
-
-    return torch.matmul(F, x)
+    if jacobian:
+        return torch.bmm(F, x), F
+    else:
+        return torch.bmm(F, x)
 
 ### fInacc will be fed to smoothers & RTSNet, note that the mismatch comes from delta_t and rotation
-def fRotate(x):
-    BX = torch.reshape(torch.matmul(B, x),(m,m)) 
-    A = (torch.add(BX.permute(*torch.arange(BX.ndim - 1, -1, -1)),C))  
+def fRotate(x, jacobian=False):
+    BX = torch.zeros([x.shape[0],m,m]).float() #[batch_size, m, m]
+    BX[:,1,0] = torch.squeeze(-x[:,2,:]) 
+    BX[:,2,0] = torch.squeeze(x[:,1,:])
+    A = torch.add(BX, C)   
     # Taylor Expansion for F    
     F = torch.eye(m)
+    F = F.reshape((1, m, m))
+    F = F.repeat(x.shape[0], 1, 1) # [batch_size, m, m] identity matrix
     for j in range(1,J+1):
         F_add = (torch.matrix_power(A*delta_t, j)/math.factorial(j))
         F = torch.add(F, F_add)
-    F_rotated = torch.mm(RotMatrix,F)
-    return torch.matmul(F_rotated, x)
+    F_rotated = torch.bmm(RotMatrix.reshape(1,m,m).repeat(x.shape[0],1,1),F)
+    if jacobian:
+        return torch.bmm(F_rotated, x), F_rotated
+    else:
+        return torch.bmm(F_rotated, x)
 
 ##################################################
 ### Observation function h for Lorenz Atractor ###
@@ -110,15 +136,23 @@ H_design = torch.eye(n)
 H_Rotate = torch.mm(RotMatrix,H_design)
 H_Rotate_inv = torch.inverse(H_Rotate)
 
-def h(x):
-    y = torch.matmul(H_design,x)
-    return y
+def h(x, jacobian=False):
+    H = H_design.reshape((1, n, n)).repeat(x.shape[0], 1, 1) # [batch_size, n, n] identity matrix   
+    y = torch.bmm(H,x)
+    if jacobian:
+        return y, H
+    else:
+        return y
 
 def h_nonlinear(x):
-    return torch.squeeze(toSpherical(x))
+    return toSpherical(x)
 
-def hRotate(x):
-    return torch.matmul(H_Rotate,x)
+def hRotate(x, jacobian=False):
+    H = H_Rotate.reshape((1, n, n)).repeat(x.shape[0], 1, 1) # [batch_size, n, n] rotated matrix
+    if jacobian:
+        return torch.bmm(H,x), H
+    else:
+        return torch.bmm(H,x)
 
 
 ###############################################
@@ -144,37 +178,54 @@ if(R_non_diag):
 ### Utils for non-linear cases ###
 ##################################
 def getJacobian(x, g):
-    # if(x.size()[1] == 1):
-    #     y = torch.reshape((x.T),[x.size()[0]])
+    """
+    Currently, pytorch does not have a built-in function to compute Jacobian matrix
+    in a batched manner, so we have to iterate over the batch dimension.
     
-    y = torch.reshape((x.permute(*torch.arange(x.ndim - 1, -1, -1))),[x.size()[0]])
-
-    Jac = autograd.functional.jacobian(g, y)
-    Jac = Jac.view(-1,m)
+    input x (torch.tensor): [batch_size, m/n, 1]
+    input g (function): function to be differentiated
+    output Jac (torch.tensor): [batch_size, m, m] for f, [batch_size, n, m] for h
+    """
+    # Method 1: using autograd.functional.jacobian
+    # batch_size = x.shape[0]
+    # Jac_x0 = torch.squeeze(autograd.functional.jacobian(g, torch.unsqueeze(x[0,:,:],0)))
+    # Jac = torch.zeros([batch_size, Jac_x0.shape[0], Jac_x0.shape[1]])
+    # Jac[0,:,:] = Jac_x0
+    # for i in range(1,batch_size):
+    #     Jac[i,:,:] = torch.squeeze(autograd.functional.jacobian(g, torch.unsqueeze(x[i,:,:],0)))
+    # Method 2: using F, H directly
+    _,Jac = g(x, jacobian=True)
     return Jac
 
 def toSpherical(cart):
-
-    rho = torch.norm(cart, p=2).view(1,1)
-    phi = torch.atan2(cart[1, ...], cart[0, ...]).view(1, 1)
+    """
+    input cart (torch.tensor): [batch_size, m, 1] or [batch_size, m]
+    output spher (torch.tensor): [batch_size, n, 1]
+    """
+    rho = torch.linalg.norm(cart,dim=1).reshape(cart.shape[0], 1)# [batch_size, 1]
+    phi = torch.atan2(cart[:, 1, ...], cart[:, 0, ...]).reshape(cart.shape[0], 1) # [batch_size, 1]
     phi = phi + (phi < 0).type_as(phi) * (2 * torch.pi)
+    
+    theta = torch.div(torch.squeeze(cart[:, 2, ...]), torch.squeeze(rho))
+    theta = torch.acos(theta).reshape(cart.shape[0], 1) # [batch_size, 1]
 
-    theta = torch.acos(cart[2, ...] / rho).view(1, 1)
-
-    spher = torch.cat([rho, theta, phi], dim=0)
+    spher = torch.cat([rho, theta, phi], dim=1).reshape(cart.shape[0],3,1) # [batch_size, n, 1]
 
     return spher
 
 def toCartesian(sphe):
+    """
+    input sphe (torch.tensor): [batch_size, n, 1] or [batch_size, n]
+    output cart (torch.tensor): [batch_size, n]
+    """
+    rho = sphe[:, 0, ...]
+    theta = sphe[:, 1, ...]
+    phi = sphe[:, 2, ...]
 
-    rho = sphe[0]
-    theta = sphe[1]
-    phi = sphe[2]
+    x = (rho * torch.sin(theta) * torch.cos(phi)).reshape(sphe.shape[0],1)
+    y = (rho * torch.sin(theta) * torch.sin(phi)).reshape(sphe.shape[0],1)
+    z = (rho * torch.cos(theta)).reshape(sphe.shape[0],1)
 
-    x = (rho * torch.sin(theta) * torch.cos(phi)).view(1,-1)
-    y = (rho * torch.sin(theta) * torch.sin(phi)).view(1,-1)
-    z = (rho * torch.cos(theta)).view(1,-1)
+    cart = torch.cat([x,y,z],dim=1).reshape(cart.shape[0],3,1) # [batch_size, n, 1]
 
-    cart = torch.cat([x,y,z],dim=0)
-
-    return torch.squeeze(cart)
+    return cart

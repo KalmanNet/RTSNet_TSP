@@ -29,8 +29,8 @@ class KalmanNetNN(torch.nn.Module):
     ######################################
     def InitKGainNet(self, prior_Q, prior_Sigma, prior_S, args):
 
-        self.seq_len_input = 1
-        self.batch_size = 1
+        self.seq_len_input = 1 # KNet calculates time-step by time-step
+        self.batch_size = args.n_batch # Batch size
 
         self.prior_Q = prior_Q
         self.prior_Sigma = prior_Sigma
@@ -42,20 +42,17 @@ class KalmanNetNN(torch.nn.Module):
         self.d_input_Q = self.m * args.in_mult_KNet
         self.d_hidden_Q = self.m ** 2
         self.GRU_Q = nn.GRU(self.d_input_Q, self.d_hidden_Q)
-        self.h_Q = torch.randn(self.seq_len_input, self.batch_size, self.d_hidden_Q)
 
         # GRU to track Sigma
         self.d_input_Sigma = self.d_hidden_Q + self.m * args.in_mult_KNet
         self.d_hidden_Sigma = self.m ** 2
         self.GRU_Sigma = nn.GRU(self.d_input_Sigma, self.d_hidden_Sigma)
-        self.h_Sigma = torch.randn(self.seq_len_input, self.batch_size, self.d_hidden_Sigma)
-
+       
         # GRU to track S
         self.d_input_S = self.n ** 2 + 2 * self.n * args.in_mult_KNet
         self.d_hidden_S = self.n ** 2
         self.GRU_S = nn.GRU(self.d_input_S, self.d_hidden_S)
-        self.h_S = torch.randn(self.seq_len_input, self.batch_size, self.d_hidden_S)
-
+        
         # Fully connected 1
         self.d_input_FC1 = self.d_hidden_Sigma
         self.d_output_FC1 = self.n ** 2
@@ -107,17 +104,6 @@ class KalmanNetNN(torch.nn.Module):
                 nn.Linear(self.d_input_FC7, self.d_output_FC7),
                 nn.ReLU())
 
-        """
-        # Fully connected 8
-        self.d_input_FC8 = self.d_hidden_Q
-        self.d_output_FC8 = self.d_hidden_Q
-        self.d_hidden_FC8 = self.d_hidden_Q * Q_Sigma_mult
-        self.FC8 = nn.Sequential(
-                nn.Linear(self.d_input_FC8, self.d_hidden_FC8),
-                nn.ReLU(),
-                nn.Linear(self.d_hidden_FC8, self.d_output_FC8))
-        """
-
     ##################################
     ### Initialize System Dynamics ###
     ##################################
@@ -135,48 +121,47 @@ class KalmanNetNN(torch.nn.Module):
     ### Initialize Sequence ###
     ###########################
     def InitSequence(self, M1_0, T):
+        """
+        input M1_0 (torch.tensor): 1st moment of x at time 0 [batch_size, m, 1]
+        """
         self.T = T
 
-        self.m1x_posterior = torch.squeeze(M1_0)
+        self.m1x_posterior = M1_0
         self.m1x_posterior_previous = self.m1x_posterior
         self.m1x_prior_previous = self.m1x_posterior
         self.y_previous = self.h(self.m1x_posterior)
-
-        # KGain saving
-        # self.i = 0
-        # self.KGain_array = self.KG_array = torch.zeros((self.T,self.m,self.n))
 
     ######################
     ### Compute Priors ###
     ######################
     def step_prior(self):
         # Predict the 1-st moment of x
-        self.m1x_prior = torch.squeeze(self.f(self.m1x_posterior))
+        self.m1x_prior = self.f(self.m1x_posterior)
 
         # Predict the 1-st moment of y
-        self.m1y = torch.squeeze(self.h(self.m1x_prior))
+        self.m1y = self.h(self.m1x_prior)
 
     ##############################
     ### Kalman Gain Estimation ###
     ##############################
     def step_KGain_est(self, y):
-
-        obs_diff = y - torch.squeeze(self.y_previous)
-        obs_innov_diff = y - torch.squeeze(self.m1y)
+        # both in size [batch_size, n]
+        obs_diff = torch.squeeze(y) - torch.squeeze(self.y_previous) 
+        obs_innov_diff = torch.squeeze(y) - torch.squeeze(self.m1y)
+        # both in size [batch_size, m]
         fw_evol_diff = torch.squeeze(self.m1x_posterior) - torch.squeeze(self.m1x_posterior_previous)
         fw_update_diff = torch.squeeze(self.m1x_posterior) - torch.squeeze(self.m1x_prior_previous)
 
-        obs_diff = func.normalize(obs_diff, p=2, dim=0, eps=1e-12, out=None)
-        obs_innov_diff = func.normalize(obs_innov_diff, p=2, dim=0, eps=1e-12, out=None)
-        fw_evol_diff = func.normalize(fw_evol_diff, p=2, dim=0, eps=1e-12, out=None)
-        fw_update_diff = func.normalize(fw_update_diff, p=2, dim=0, eps=1e-12, out=None)
-
+        obs_diff = func.normalize(obs_diff, p=2, dim=1, eps=1e-12, out=None)
+        obs_innov_diff = func.normalize(obs_innov_diff, p=2, dim=1, eps=1e-12, out=None)
+        fw_evol_diff = func.normalize(fw_evol_diff, p=2, dim=1, eps=1e-12, out=None)
+        fw_update_diff = func.normalize(fw_update_diff, p=2, dim=1, eps=1e-12, out=None)
 
         # Kalman Gain Network Step
         KG = self.KGain_step(obs_diff, obs_innov_diff, fw_evol_diff, fw_update_diff)
 
         # Reshape Kalman Gain to a Matrix
-        self.KGain = torch.reshape(KG, (self.m, self.n))
+        self.KGain = torch.reshape(KG, (self.batch_size, self.m, self.n))
 
     #######################
     ### Kalman Net Step ###
@@ -189,16 +174,11 @@ class KalmanNetNN(torch.nn.Module):
         # Compute Kalman Gain
         self.step_KGain_est(y)
 
-        # Save KGain in array
-        # self.KGain_array[self.i] = self.KGain
-        # self.i += 1
-
         # Innovation
-        # y_obs = torch.unsqueeze(y, 1)
-        dy = y - self.m1y
+        dy = y - self.m1y # [batch_size, n, 1]
 
         # Compute the 1-st posterior moment
-        INOV = torch.matmul(self.KGain, dy)
+        INOV = torch.bmm(self.KGain, dy)
         self.m1x_posterior_previous = self.m1x_posterior
         self.m1x_posterior = self.m1x_prior + INOV
 
@@ -209,7 +189,7 @@ class KalmanNetNN(torch.nn.Module):
         self.y_previous = y
 
         # return
-        return torch.squeeze(self.m1x_posterior)
+        return self.m1x_posterior
 
     ########################
     ### Kalman Gain Step ###
@@ -218,7 +198,7 @@ class KalmanNetNN(torch.nn.Module):
 
         def expand_dim(x):
             expanded = torch.empty(self.seq_len_input, self.batch_size, x.shape[-1])
-            expanded[0, 0, :] = x
+            expanded[0, :, :] = x
             return expanded
 
         obs_diff = expand_dim(obs_diff)
@@ -237,12 +217,6 @@ class KalmanNetNN(torch.nn.Module):
         # Q-GRU
         in_Q = out_FC5
         out_Q, self.h_Q = self.GRU_Q(in_Q, self.h_Q)
-
-        """
-        # FC 8
-        in_FC8 = out_Q
-        out_FC8 = self.FC8(in_FC8)
-        """
 
         # FC 6
         in_FC6 = fw_update_diff
@@ -286,29 +260,26 @@ class KalmanNetNN(torch.nn.Module):
         self.h_Sigma = out_FC4
 
         return out_FC2
-
     ###############
     ### Forward ###
     ###############
     def forward(self, y):
-        y = torch.squeeze(y)
-
         return self.KNet_step(y)
 
     #########################
     ### Init Hidden State ###
     #########################
-    def init_hidden(self):
+    def init_hidden_KNet(self):
         weight = next(self.parameters()).data
-        hidden = weight.new(1, self.batch_size, self.d_hidden_S).zero_()
+        hidden = weight.new(self.seq_len_input, self.batch_size, self.d_hidden_S).zero_()
         self.h_S = hidden.data
-        self.h_S[0, 0, :] = self.prior_S.flatten()
-        hidden = weight.new(1, self.batch_size, self.d_hidden_Sigma).zero_()
+        self.h_S = self.prior_S.flatten().reshape(1, 1, -1).repeat(self.seq_len_input,self.batch_size, 1) # batch size expansion
+        hidden = weight.new(self.seq_len_input, self.batch_size, self.d_hidden_Sigma).zero_()
         self.h_Sigma = hidden.data
-        self.h_Sigma[0, 0, :] = self.prior_Sigma.flatten()
-        hidden = weight.new(1, self.batch_size, self.d_hidden_Q).zero_()
+        self.h_Sigma = self.prior_Sigma.flatten().reshape(1,1, -1).repeat(self.seq_len_input,self.batch_size, 1) # batch size expansion
+        hidden = weight.new(self.seq_len_input, self.batch_size, self.d_hidden_Q).zero_()
         self.h_Q = hidden.data
-        self.h_Q[0, 0, :] = self.prior_Q.flatten()
+        self.h_Q = self.prior_Q.flatten().reshape(1,1, -1).repeat(self.seq_len_input,self.batch_size, 1) # batch size expansion
 
 
 

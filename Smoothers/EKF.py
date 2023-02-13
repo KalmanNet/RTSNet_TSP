@@ -22,33 +22,30 @@ class ExtendedKalmanFilter:
 
         self.T = SystemModel.T
         self.T_test = SystemModel.T_test
-
-        # Pre allocate KG array
-        self.KG_array = torch.zeros((self.T_test,self.m,self.n))
    
     # Predict
     def Predict(self):
         # Predict the 1-st moment of x
-        self.m1x_prior = torch.squeeze(self.f(self.m1x_posterior))
+        self.m1x_prior = self.f(self.m1x_posterior)
         # Compute the Jacobians
         self.UpdateJacobians(getJacobian(self.m1x_posterior,self.f), getJacobian(self.m1x_prior, self.h))
         # Predict the 2-nd moment of x
-        self.m2x_prior = torch.matmul(self.F, self.m2x_posterior)
-        self.m2x_prior = torch.matmul(self.m2x_prior, self.F_T) + self.Q
+        self.m2x_prior = torch.bmm(self.batched_F, self.m2x_posterior)
+        self.m2x_prior = torch.bmm(self.m2x_prior, self.batched_F_T) + self.Q
 
         # Predict the 1-st moment of y
-        self.m1y = torch.squeeze(self.h(self.m1x_prior))
+        self.m1y = self.h(self.m1x_prior)
         # Predict the 2-nd moment of y
-        self.m2y = torch.matmul(self.H, self.m2x_prior)
-        self.m2y = torch.matmul(self.m2y, self.H_T) + self.R
+        self.m2y = torch.bmm(self.batched_H, self.m2x_prior)
+        self.m2y = torch.bmm(self.m2y, self.batched_H_T) + self.R
 
     # Compute the Kalman Gain
     def KGain(self):
-        self.KG = torch.matmul(self.m2x_prior, self.H_T)
-        self.KG = torch.matmul(self.KG, torch.inverse(self.m2y))
+        self.KG = torch.bmm(self.m2x_prior, self.batched_H_T)
+        self.KG = torch.bmm(self.KG, torch.inverse(self.m2y))
 
         #Save KalmanGain
-        self.KG_array[self.i] = self.KG
+        self.KG_array[:,:,:,self.i] = self.KG
         self.i += 1
 
     # Innovation
@@ -58,11 +55,11 @@ class ExtendedKalmanFilter:
     # Compute Posterior
     def Correct(self):
         # Compute the 1-st posterior moment
-        self.m1x_posterior = self.m1x_prior + torch.matmul(self.KG, self.dy)
+        self.m1x_posterior = self.m1x_prior + torch.bmm(self.KG, self.dy)
 
         # Compute the 2-nd posterior moment
-        self.m2x_posterior = torch.matmul(self.m2y, torch.transpose(self.KG, 0, 1))
-        self.m2x_posterior = self.m2x_prior - torch.matmul(self.KG, self.m2x_posterior)
+        self.m2x_posterior = torch.bmm(self.m2y, torch.transpose(self.KG, 1, 2))
+        self.m2x_posterior = self.m2x_prior - torch.bmm(self.KG, self.m2x_posterior)
 
     def Update(self, y):
         self.Predict()
@@ -72,34 +69,44 @@ class ExtendedKalmanFilter:
 
         return self.m1x_posterior, self.m2x_posterior
 
-    def InitSequence(self, m1x_0, m2x_0):
-        self.m1x_0 = m1x_0
-        self.m2x_0 = m2x_0
-
-        #########################
+    #########################
 
     def UpdateJacobians(self, F, H):
-        self.F = F
-        self.F_T = torch.transpose(F,0,1)
-        self.H = H
-        self.H_T = torch.transpose(H,0,1)
-        #print(self.H,self.F,'\n')
-    ### Generate Sequence ###
-    #########################
-    def GenerateSequence(self, y, T):
-        # Pre allocate an array for predicted state and variance
-        self.x = torch.empty(size=[self.m, T])
-        self.sigma = torch.empty(size=[self.m, self.m, T])
+        self.batched_F = F
+        self.batched_F_T = torch.transpose(F,1,2)
+        self.batched_H = H
+        self.batched_H_T = torch.transpose(H,1,2)
+    
+    def Init_batched_sequence(self, m1x_0_batch, m2x_0_batch):
+
+            self.m1x_0_batch = m1x_0_batch # [batch_size, m, 1]
+            self.m2x_0_batch = m2x_0_batch # [batch_size, m, m]
+
+    ######################
+    ### Generate Batch ###
+    ######################
+    def GenerateBatch(self, y):
+        """
+        input y: batch of observations [batch_size, n, T]
+        """
+        self.batch_size = y.shape[0] # batch size
+        T = y.shape[2] # sequence length (maximum length if randomLength=True)
+
         # Pre allocate KG array
-        self.KG_array = torch.zeros((T,self.m,self.n))
+        self.KG_array = torch.zeros([self.batch_size,self.m,self.n,T])
         self.i = 0 # Index for KG_array alocation
 
-        self.m1x_posterior = torch.squeeze(self.m1x_0)
-        self.m2x_posterior = torch.squeeze(self.m2x_0)
+        # Allocate Array for 1st and 2nd order moments (use zero padding)
+        self.x = torch.zeros(self.batch_size, self.m, T)
+        self.sigma = torch.zeros(self.batch_size, self.m, self.m, T)
+            
+        # Set 1st and 2nd order moments for t=0
+        self.m1x_posterior = self.m1x_0_batch
+        self.m2x_posterior = self.m2x_0_batch
 
-
+        # Generate in a batched manner
         for t in range(0, T):
-            yt = torch.squeeze(y[:, t])
+            yt = torch.unsqueeze(y[:, :, t],2)
             xt,sigmat = self.Update(yt)
-            self.x[:, t] = torch.squeeze(xt)
-            self.sigma[:, :, t] = torch.squeeze(sigmat)
+            self.x[:, :, t] = torch.squeeze(xt,2)
+            self.sigma[:, :, :, t] = sigmat

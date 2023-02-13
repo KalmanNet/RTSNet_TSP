@@ -4,62 +4,50 @@ The file contains utility functions for the simulations.
 
 import torch
 
-def DataGen(args, SysModel_data, fileName, randomInit_train=False,randomInit_cv=False,randomInit_test=False,randomLength=False):
+def DataGen(args, SysModel_data, fileName):
 
     ##################################
     ### Generate Training Sequence ###
     ##################################
-    SysModel_data.GenerateBatch(args.N_E, args.T, randomInit=randomInit_train,randomLength=randomLength)
-    training_input = SysModel_data.Input
-    training_target = SysModel_data.Target
-    if(randomInit_train):
-        training_init = SysModel_data.m1x_0_rand
-    else:
-        x0 = torch.squeeze(SysModel_data.m1x_0)
-        training_init = x0.repeat(args.N_E,1) #size: N_E x m
+    SysModel_data.GenerateBatch(args, args.N_E, args.T, randomInit=args.randomInit_train)
+    train_input = SysModel_data.Input
+    train_target = SysModel_data.Target
+    ### init conditions ###
+    train_init = SysModel_data.m1x_0_batch #size: N_E x m x 1
+    ### length mask ###
+    if args.randomLength:
+        train_lengthMask = SysModel_data.lengthMask
 
     ####################################
     ### Generate Validation Sequence ###
     ####################################
-    SysModel_data.GenerateBatch(args.N_CV, args.T, randomInit=randomInit_cv,randomLength=randomLength)
+    SysModel_data.GenerateBatch(args, args.N_CV, args.T, randomInit=args.randomInit_cv)
     cv_input = SysModel_data.Input
     cv_target = SysModel_data.Target
-    if(randomInit_cv):
-        cv_init = SysModel_data.m1x_0_rand
-    else:
-        x0 = torch.squeeze(SysModel_data.m1x_0)
-        cv_init = x0.repeat(args.N_CV,1) #size: N_CV x m
+    cv_init = SysModel_data.m1x_0_batch #size: N_CV x m x 1
+    ### length mask ###
+    if args.randomLength:
+        cv_lengthMask = SysModel_data.lengthMask
 
     ##############################
     ### Generate Test Sequence ###
     ##############################
-    SysModel_data.GenerateBatch(args.N_T, args.T_test, randomInit=randomInit_test,randomLength=randomLength)
+    SysModel_data.GenerateBatch(args, args.N_T, args.T_test, randomInit=args.randomInit_test)
     test_input = SysModel_data.Input
     test_target = SysModel_data.Target
-    if(randomInit_test):
-        test_init = SysModel_data.m1x_0_rand
-    else:
-        x0 = torch.squeeze(SysModel_data.m1x_0)
-        test_init = x0.repeat(args.N_T,1) #size: N_T x m
+    test_init = SysModel_data.m1x_0_batch #size: N_T x m x 1
+    ### length mask ###
+    if args.randomLength:
+        test_lengthMask = SysModel_data.lengthMask
 
     #################
     ### Save Data ###
     #################
-    if(randomInit_train or randomInit_cv or randomInit_test):
-        torch.save([training_input, training_target, training_init, cv_input, cv_target, cv_init, test_input, test_target, test_init], fileName)
+    if(args.randomLength):
+        torch.save([train_input, train_target, cv_input, cv_target, test_input, test_target,train_init, cv_init, test_init, train_lengthMask,cv_lengthMask,test_lengthMask], fileName)
     else:
-        torch.save([training_input, training_target, cv_input, cv_target, test_input, test_target], fileName)
-
-def DataLoader(fileName):
-    [training_input, training_target, cv_input, cv_target, test_input, test_target] = torch.utils.data.DataLoader(torch.load(fileName),pin_memory = False)
-    training_input = training_input.squeeze()
-    training_target = training_target.squeeze()
-    cv_input = cv_input.squeeze()
-    cv_target =cv_target.squeeze()
-    test_input = test_input.squeeze()
-    test_target = test_target.squeeze()
-    return [training_input, training_target, cv_input, cv_target, test_input, test_target]
-
+        torch.save([train_input, train_target, cv_input, cv_target, test_input, test_target,train_init, cv_init, test_init], fileName)
+    
 def DecimateData(all_tensors, t_gen,t_mod, offset=0):
     
     # ratio: defines the relation between the sampling time of the true process and of the model (has to be an integer)

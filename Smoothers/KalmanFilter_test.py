@@ -3,39 +3,45 @@ import torch.nn as nn
 import time
 from Smoothers.Linear_KF import KalmanFilter
 
-def KFTest(args, SysModel, test_input, test_target, allStates=True, randomInit = False, test_init=None):
+def KFTest(args, SysModel, test_input, test_target, allStates=True,\
+     randomInit = False, test_init=None, test_lengthMask=None):
 
     # LOSS
     loss_fn = nn.MSELoss(reduction='mean')
 
     # MSE [Linear]
-    MSE_KF_linear_arr = torch.empty(args.N_T)
-    start = time.time()
-    KF = KalmanFilter(SysModel)
-    j=0
-
+    MSE_KF_linear_arr = torch.zeros(args.N_T)
     if not allStates:
         loc = torch.tensor([True,False,False]) # for position only
         if SysModel.m == 2: 
             loc = torch.tensor([True,False]) # for position only
 
-    for sequence_target,sequence_input in zip(test_target,test_input):
-        if(randomInit):
-            KF.InitSequence(torch.unsqueeze(test_init[j,:],1), SysModel.m2x_0)        
-        else:
-            KF.InitSequence(SysModel.m1x_0, SysModel.m2x_0)
-            
-        KF.GenerateSequence(sequence_input, sequence_input.size()[-1])
+    start = time.time()
 
-        
-        if(allStates):
-            MSE_KF_linear_arr[j] = loss_fn(KF.x, sequence_target).item()
-        else:
-            MSE_KF_linear_arr[j] = loss_fn(KF.x[loc,:], sequence_target[loc,:]).item()
-        #MSE_KF_linear_arr[j] = loss_fn(test_input[j, :, :], test_target[j, :, :]).item()
-        j=j+1
+    KF = KalmanFilter(SysModel)
+    # Init and Forward Computation 
+    if(randomInit):
+        KF.Init_batched_sequence(test_init, SysModel.m2x_0.view(1,SysModel.m,SysModel.m).expand(args.N_T,-1,-1))        
+    else:
+        KF.Init_batched_sequence(SysModel.m1x_0.view(1,SysModel.m,1).expand(args.N_T,-1,-1), SysModel.m2x_0.view(1,SysModel.m,SysModel.m).expand(args.N_T,-1,-1))           
+    KF.GenerateBatch(test_input)
+    
     end = time.time()
     t = end - start
+
+    # MSE loss
+    for j in range(args.N_T):# cannot use batch due to different length and std computation   
+        if(allStates):
+            if args.randomLength:
+                MSE_KF_linear_arr[j] = loss_fn(KF.x[j,:,test_lengthMask[j]], test_target[j,:,test_lengthMask[j]]).item()
+            else:      
+                MSE_KF_linear_arr[j] = loss_fn(KF.x[j,:,:], test_target[j,:,:]).item()
+        else: # mask on state
+            if args.randomLength:
+                MSE_KF_linear_arr[j] = loss_fn(KF.x[j,loc,test_lengthMask[j]], test_target[j,loc,test_lengthMask[j]]).item()
+            else:           
+                MSE_KF_linear_arr[j] = loss_fn(KF.x[j,loc,:], test_target[j,loc,:]).item()
+
     MSE_KF_linear_avg = torch.mean(MSE_KF_linear_arr)
     MSE_KF_dB_avg = 10 * torch.log10(MSE_KF_linear_avg)
 

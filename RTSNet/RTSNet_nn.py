@@ -23,21 +23,12 @@ class RTSNetNN(KalmanNetNN):
 
         self.InitKGainNet(ssModel.prior_Q, ssModel.prior_Sigma, ssModel.prior_S, args)
 
-        # # Number of neurons in the 1st hidden layer
-        # H1_RTSNet = (ssModel.m + ssModel.m) * (10) * 8
-
-        # # Number of neurons in the 2nd hidden layer
-        # H2_RTSNet = (ssModel.m * ssModel.m) * 1 * (4)
-
         self.InitRTSGainNet(ssModel.prior_Q, ssModel.prior_Sigma, args)
 
     #################################################
     ### Initialize Backward Smoother Gain Network ###
     #################################################
     def InitRTSGainNet(self, prior_Q, prior_Sigma, args):
-        self.seq_len_input = 1
-        self.batch_size = 1
-
         self.prior_Q = prior_Q
         self.prior_Sigma = prior_Sigma       
 
@@ -46,14 +37,12 @@ class RTSNetNN(KalmanNetNN):
         self.d_input_Q_bw = self.m * args.in_mult_RTSNet
         self.d_hidden_Q_bw = self.m ** 2
         self.GRU_Q_bw = nn.GRU(self.d_input_Q_bw, self.d_hidden_Q_bw)
-        self.h_Q_bw = torch.randn(self.seq_len_input, self.batch_size, self.d_hidden_Q_bw)
-
+    
         # BW GRU to track Sigma
         self.d_input_Sigma_bw = self.d_hidden_Q_bw + 2 * self.m * args.in_mult_RTSNet
         self.d_hidden_Sigma_bw = self.m ** 2
         self.GRU_Sigma_bw = nn.GRU(self.d_input_Sigma_bw, self.d_hidden_Sigma_bw)
-        self.h_Sigma_bw = torch.randn(self.seq_len_input, self.batch_size, self.d_hidden_Sigma_bw)
-
+        
         # BW Fully connected 1
         self.d_input_FC1_bw = self.d_hidden_Sigma_bw # + self.d_hidden_Q
         self.d_output_FC1_bw = self.m * self.m
@@ -88,7 +77,7 @@ class RTSNetNN(KalmanNetNN):
     ### Initialize Backward Sequence ###
     ####################################
     def InitBackward(self, filter_x):
-        self.s_m1x_nexttime = torch.squeeze(filter_x)
+        self.s_m1x_nexttime = filter_x
 
     ##############################
     ### Innovation Computation ###
@@ -102,40 +91,37 @@ class RTSNetNN(KalmanNetNN):
     ################################
     def step_RTSGain_est(self, filter_x_nexttime, smoother_x_tplus2):
 
-        # Reshape and Normalize Delta tilde x_t+1 = x_t+1|T - x_t+1|t+1
+        # Reshape and Normalize Delta tilde x_t+1 = x_t+1|T - x_t+1|t+1, size: (n_batch, m)
         dm1x_tilde = self.s_m1x_nexttime - filter_x_nexttime
         dm1x_tilde_reshape = torch.squeeze(dm1x_tilde)
-        bw_innov_diff = func.normalize(dm1x_tilde_reshape, p=2, dim=0, eps=1e-12, out=None)
+        bw_innov_diff = func.normalize(dm1x_tilde_reshape, p=2, dim=1, eps=1e-12, out=None)
         
         if smoother_x_tplus2 is None:
             # Reshape and Normalize Delta x_t+1 = x_t+1|t+1 - x_t+1|t (for t = T-1)
             dm1x_input2 = filter_x_nexttime - self.filter_x_prior
-            dm1x_input2_reshape = torch.squeeze(dm1x_input2)
-            bw_evol_diff = func.normalize(dm1x_input2_reshape, p=2, dim=0, eps=1e-12, out=None)
+            dm1x_input2_reshape = torch.squeeze(dm1x_input2) # size: (n_batch, m)
+            bw_evol_diff = func.normalize(dm1x_input2_reshape, p=2, dim=1, eps=1e-12, out=None)
         else:
             # Reshape and Normalize Delta x_t+1|T = x_t+2|T - x_t+1|T (for t = 1:T-2)
             dm1x_input2 = smoother_x_tplus2 - self.s_m1x_nexttime
-            dm1x_input2_reshape = torch.squeeze(dm1x_input2)
-            bw_evol_diff = func.normalize(dm1x_input2_reshape, p=2, dim=0, eps=1e-12, out=None)
+            dm1x_input2_reshape = torch.squeeze(dm1x_input2) # size: (n_batch, m)
+            bw_evol_diff = func.normalize(dm1x_input2_reshape, p=2, dim=1, eps=1e-12, out=None)
 
         # Feature 7:  x_t+1|T - x_t+1|t
         dm1x_f7 = self.s_m1x_nexttime - filter_x_nexttime
-        dm1x_f7_reshape = torch.squeeze(dm1x_f7)
-        bw_update_diff = func.normalize(dm1x_f7_reshape, p=2, dim=0, eps=1e-12, out=None)
+        dm1x_f7_reshape = torch.squeeze(dm1x_f7) # size: (n_batch, m)
+        bw_update_diff = func.normalize(dm1x_f7_reshape, p=2, dim=1, eps=1e-12, out=None)
 
         # Smoother Gain Network Step
         SG = self.RTSGain_step(bw_innov_diff, bw_evol_diff, bw_update_diff)
 
         # Reshape Smoother Gain to a Matrix
-        self.SGain = torch.reshape(SG, (self.m, self.m))
+        self.SGain = torch.reshape(SG, (self.batch_size, self.m, self.m))
 
     ####################
     ### RTS Net Step ###
     ####################
     def RTSNet_step(self, filter_x, filter_x_nexttime, smoother_x_tplus2):
-        # filter_x = torch.squeeze(filter_x)
-        # filter_x_nexttime = torch.squeeze(filter_x_nexttime)
-        # smoother_x_tplus2 = torch.squeeze(smoother_x_tplus2)
         # Compute Innovation
         self.S_Innovation(filter_x)
 
@@ -147,7 +133,7 @@ class RTSNetNN(KalmanNetNN):
         self.s_m1x_nexttime = filter_x + INOV
 
         # return
-        return torch.squeeze(self.s_m1x_nexttime)
+        return self.s_m1x_nexttime
 
     ##########################
     ### Smoother Gain Step ###
@@ -156,7 +142,7 @@ class RTSNetNN(KalmanNetNN):
 
         def expand_dim(x):
             expanded = torch.empty(self.seq_len_input, self.batch_size, x.shape[-1])
-            expanded[0, 0, :] = x
+            expanded[0, :, :] = x
             return expanded
 
         bw_innov_diff = expand_dim(bw_innov_diff)
@@ -216,28 +202,15 @@ class RTSNetNN(KalmanNetNN):
     #########################
     def init_hidden(self):
         ### FW GRUs
-        weight = next(self.parameters()).data
-        hidden = weight.new(1, self.batch_size, self.d_hidden_S).zero_()
-        
-        self.h_S = hidden.data
-        self.h_S[0, 0, :] = self.prior_S.flatten()
-
-        hidden = weight.new(1, self.batch_size, self.d_hidden_Sigma).zero_()
-        self.h_Sigma = hidden.data
-        self.h_Sigma[0, 0, :] = self.prior_Sigma.flatten()
-
-        hidden = weight.new(1, self.batch_size, self.d_hidden_Q).zero_()
-        self.h_Q = hidden.data
-        self.h_Q[0, 0, :] = self.prior_Q.flatten()
-
+        self.init_hidden_KNet()
         ### BW GRUs
         weight = next(self.parameters()).data
-        hidden = weight.new(1, self.batch_size, self.d_hidden_Q_bw).zero_()
+        hidden = weight.new(self.seq_len_input, self.batch_size, self.d_hidden_Q_bw).zero_()
         self.h_Q_bw = hidden.data
-        self.h_Q_bw[0, 0, :] = self.prior_Q.flatten()
+        self.h_Q_bw = self.prior_Q.flatten().reshape(1,1, -1).repeat(self.seq_len_input,self.batch_size, 1) # batch size expansion
 
-        hidden = weight.new(1, self.batch_size, self.d_hidden_Sigma_bw).zero_()
+        hidden = weight.new(self.seq_len_input, self.batch_size, self.d_hidden_Sigma_bw).zero_()
         self.h_Sigma_bw = hidden.data
-        self.h_Sigma_bw[0, 0, :] = self.prior_Sigma.flatten()
+        self.h_Sigma_bw = self.prior_Sigma.flatten().reshape(1,1, -1).repeat(self.seq_len_input,self.batch_size, 1) # batch size expansion
 
         

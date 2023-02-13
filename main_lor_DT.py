@@ -3,8 +3,6 @@ torch.pi = torch.acos(torch.zeros(1)).item() * 2 # which is 3.1415927410125732
 import torch.nn as nn
 from Smoothers.EKF_test import EKFTest
 from Smoothers.Extended_RTS_Smoother_test import S_Test
-from Smoothers.ParticleSmoother_test import PSTest
-from Smoothers.PF_test import PFTest
 
 from Simulations.Extended_sysmdl import SystemModel
 from Simulations.utils import DataGen,Short_Traj_Split
@@ -61,15 +59,15 @@ two_pass = True # if true: use two pass method, else: use one pass method
 
 load_trained_pass1 = False # if True: load trained RTSNet pass1, else train pass1
 # specify the path to save trained pass1 model
-RTSNetPass1_path = "RTSNet/checkpoints/LorenzAttracotor/DT/T100_Hrot1/rq-1010_partial.pt"
+RTSNetPass1_path = "RTSNet/checkpoints/LorenzAttracotor/DT/T100_Hrot1/rq1030_partial.pt"
 # Save the dataset generated from testing RTSNet1 on train and CV data
 load_dataset_for_pass2 = False # if True: load dataset generated from testing RTSNet1 on train and CV data
 # Specify the path to save the dataset
-DatasetPass1_path = "Simulations/Lorenz_Atractor/data/T100_Hrot1/2ndPass/partial/ResultofPass1_rq-1010partial.pt" 
+DatasetPass1_path = "Simulations/Lorenz_Atractor/data/T100_Hrot1/2ndPass/partial/ResultofPass1_rq1030partial.pt" 
 
    
 # noise q and r
-r2 = torch.tensor([10]) # [100, 10, 1, 0.1, 0.01]
+r2 = torch.tensor([0.1]) # [100, 10, 1, 0.1, 0.01]
 vdB = -20 # ratio v=q2/r2
 v = 10**(vdB/10)
 q2 = torch.mul(v,r2)
@@ -80,8 +78,8 @@ R = r2[0] * R_structure
 print("1/r2 [dB]: ", 10 * torch.log10(1/r2[0]))
 print("1/q2 [dB]: ", 10 * torch.log10(1/q2[0]))
 
-traj_resultName = ['traj_lorDT_rq-1010_T100.pt']
-dataFileName = ['data_lor_v20_rq-1010_T100.pt']
+traj_resultName = ['traj_lorDT_rq1030_T100.pt']
+dataFileName = ['data_lor_v20_rq1030_T100.pt']
 
 #########################################
 ###  Generate and load data DT case   ###
@@ -94,7 +92,7 @@ print("Start Data Gen")
 DataGen(args, sys_model, DatafolderName + dataFileName[0])
 print("Data Load")
 print(dataFileName[0])
-[train_input_long,train_target_long, cv_input, cv_target, test_input, test_target] =  torch.load(DatafolderName + dataFileName[0])  
+[train_input_long,train_target_long, cv_input, cv_target, test_input, test_target,_,_,_] =  torch.load(DatafolderName + dataFileName[0])  
 if chop: 
    print("chop training data")    
    [train_target, train_input, train_init] = Short_Traj_Split(train_target_long, train_input_long, args.T)
@@ -145,40 +143,33 @@ print("Observation Noise Floor(test dataset) - STD:", obs_std_dB, "[dB]")
 ### Evaluate Filters and Smoothers ###
 ######################################
 ### Evaluate EKF true
-print("Evaluate EKF true")
-[MSE_EKF_linear_arr, MSE_EKF_linear_avg, MSE_EKF_dB_avg, EKF_KG_array, EKF_out] = EKFTest(sys_model, test_input, test_target)
-### Evaluate EKF partial
-print("Evaluate EKF partial")
-[MSE_EKF_linear_arr_partial, MSE_EKF_linear_avg_partial, MSE_EKF_dB_avg_partial, EKF_KG_array_partial, EKF_out_partial] = EKFTest(sys_model_partial, test_input, test_target)
+# print("Evaluate EKF true")
+# [MSE_EKF_linear_arr, MSE_EKF_linear_avg, MSE_EKF_dB_avg, EKF_KG_array, EKF_out] = EKFTest(args, sys_model, test_input, test_target)
+# ### Evaluate EKF partial
+# print("Evaluate EKF partial")
+# [MSE_EKF_linear_arr_partial, MSE_EKF_linear_avg_partial, MSE_EKF_dB_avg_partial, EKF_KG_array_partial, EKF_out_partial] = EKFTest(args, sys_model_partial, test_input, test_target)
 
-## Evaluate RTS true
-print("Evaluate RTS true")
-[MSE_ERTS_linear_arr, MSE_ERTS_linear_avg, MSE_ERTS_dB_avg, ERTS_out] = S_Test(args, sys_model, test_input, test_target)
-### Evaluate RTS partial
-print("Evaluate RTS partial")
-[MSE_ERTS_linear_arr_partial, MSE_ERTS_linear_avg_partial, MSE_ERTS_dB_avg_partial, ERTS_out_partial] = S_Test(args, sys_model_partial, test_input, test_target)
+# ## Evaluate RTS true
+# print("Evaluate RTS true")
+# [MSE_ERTS_linear_arr, MSE_ERTS_linear_avg, MSE_ERTS_dB_avg, ERTS_out] = S_Test(args, sys_model, test_input, test_target)
+# ### Evaluate RTS partial
+# print("Evaluate RTS partial")
+# [MSE_ERTS_linear_arr_partial, MSE_ERTS_linear_avg_partial, MSE_ERTS_dB_avg_partial, ERTS_out_partial] = S_Test(args, sys_model_partial, test_input, test_target)
 
-### Particle Smoother
-print("Evaluate PS true")
-[MSE_PS_linear_arr, MSE_PS_linear_avg, MSE_PS_dB_avg, PS_out, t_PS] = PSTest(sys_model, test_input, test_target,N_FWParticles=100, M_BWTrajs=10, init_cond=None)
-print("Evaluate PS partial")
-[MSE_PS_linear_arr_partial, MSE_PS_linear_avg_partial, MSE_PS_dB_avg_partial, PS_out_partial, t_PS] = PSTest(sys_model_partial, test_input, test_target,N_FWParticles=100, M_BWTrajs=10, init_cond=None)
-
-### Save trajectories
-trajfolderName = 'Smoothers' + '/'
-DataResultName = traj_resultName[0]
-EKF_sample = torch.reshape(EKF_out[0],[1,m,args.T_test])
-ERTS_sample = torch.reshape(ERTS_out[0],[1,m,args.T_test])
-PS_sample = torch.reshape(PS_out[0,:,:],[1,m,args.T_test])
-target_sample = torch.reshape(test_target[0,:,:],[1,m,args.T_test])
-input_sample = torch.reshape(test_input[0,:,:],[1,n,args.T_test])
-torch.save({
-            'EKF': EKF_sample,
-            'ERTS': ERTS_sample,
-            'PS': PS_sample,
-            'ground_truth': target_sample,
-            'observation': input_sample,
-            }, trajfolderName+DataResultName)
+# ### Save trajectories
+# trajfolderName = 'Smoothers' + '/'
+# DataResultName = traj_resultName[0]
+# EKF_sample = torch.reshape(EKF_out[0],[1,m,args.T_test])
+# ERTS_sample = torch.reshape(ERTS_out[0],[1,m,args.T_test])
+# PS_sample = torch.reshape(PS_out[0,:,:],[1,m,args.T_test])
+# target_sample = torch.reshape(test_target[0,:,:],[1,m,args.T_test])
+# input_sample = torch.reshape(test_input[0,:,:],[1,n,args.T_test])
+# torch.save({
+#             'EKF': EKF_sample,
+#             'ERTS': ERTS_sample,
+#             'ground_truth': target_sample,
+#             'observation': input_sample,
+#             }, trajfolderName+DataResultName)
 
 #######################
 ### Evaluate RTSNet ###

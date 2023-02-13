@@ -18,8 +18,7 @@ n = 2 # observation dimension = 2, 5, 10, etc.
 ##################################
 ### Initial state and variance ###
 ##################################
-m1_0 = torch.zeros(m, 1)
-m2_0 = 0 * 0 * torch.eye(m)
+m1_0 = torch.zeros(m, 1) # initial state mean
 
 #########################################################
 ### state evolution matrix F and observation matrix H ###

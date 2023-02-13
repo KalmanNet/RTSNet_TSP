@@ -59,10 +59,10 @@ class SystemModel:
         
 
     def f(self, x):
-        return torch.matmul(self.F, x)
+        return torch.bmm(self.F.view(1,self.F.shape[0],self.F.shape[1]).expand(x.shape[0],-1,-1), x)
     
     def h(self, x):
-        return torch.matmul(self.H, x)
+        return torch.bmm(self.H.view(1,self.H.shape[0],self.H.shape[1]).expand(x.shape[0],-1,-1), x)
         
     #####################
     ### Init Sequence ###
@@ -73,6 +73,11 @@ class SystemModel:
         self.x_prev = m1x_0
         self.m2x_0 = m2x_0
 
+    def Init_batched_sequence(self, m1x_0_batch, m2x_0_batch):
+
+        self.m1x_0_batch = m1x_0_batch
+        self.x_prev = m1x_0_batch
+        self.m2x_0_batch = m2x_0_batch
 
     #########################
     ### Update Covariance ###
@@ -83,15 +88,14 @@ class SystemModel:
 
         self.R = R
 
-
     #########################
     ### Generate Sequence ###
     #########################
     def GenerateSequence(self, Q_gen, R_gen, T):
         # Pre allocate an array for current state
-        self.x = torch.empty(size=[self.m, T])
+        self.x = torch.zeros(size=[self.m, T])
         # Pre allocate an array for current observation
-        self.y = torch.empty(size=[self.n, T])
+        self.y = torch.zeros(size=[self.n, T])
         # Set x0 to be x previous
         self.x_prev = self.m1x_0
         xt = self.x_prev
@@ -144,73 +148,123 @@ class SystemModel:
             ########################
 
             # Save Current State to Trajectory Array
-            self.x[:, t] = torch.squeeze(xt)
+            self.x[:, t] = torch.squeeze(xt,1)
 
             # Save Current Observation to Trajectory Array
-            self.y[:, t] = torch.squeeze(yt)
+            self.y[:, t] = torch.squeeze(yt,1)
 
             ################################
             ### Save Current to Previous ###
             ################################
             self.x_prev = xt
 
-
     ######################
     ### Generate Batch ###
     ######################
-    def GenerateBatch(self, size, T, randomInit=False, randomLength=False):
-        if(randomLength):
-            # Allocate Empty list for Input
-            self.Input = []
-            # Allocate Empty list for Target
-            self.Target = []
+    def GenerateBatch(self, args, size, T, randomInit=False):
+        if(randomInit):
+            # Allocate Empty Array for Random Initial Conditions
+            self.m1x_0_rand = torch.zeros(size, self.m, 1)
+            if args.distribution == 'uniform':
+                ### if Uniform Distribution for random init
+                for i in range(size):           
+                    initConditions = torch.rand_like(self.m1x_0) * args.variance
+                    self.m1x_0_rand[i,:,0:1] = initConditions.view(self.m,1)     
+            
+            elif args.distribution == 'normal':
+                ### if Normal Distribution for random init
+                for i in range(size):
+                    distrib = MultivariateNormal(loc=torch.squeeze(self.m1x_0), covariance_matrix=self.m2x_0)
+                    initConditions = distrib.rsample().view(self.m,1)
+                    self.m1x_0_rand[i,:,0:1] = initConditions
+            else:
+                raise ValueError('args.distribution not supported!')
+            
+            self.Init_batched_sequence(self.m1x_0_rand, self.m2x_0)### for sequence generation
+        else: # fixed init
+            initConditions = self.m1x_0.view(1,self.m,1).expand(size,-1,-1)
+            self.Init_batched_sequence(initConditions, self.m2x_0)### for sequence generation
+    
+        if(args.randomLength):
+            # Allocate Array for Input and Target (use zero padding)
+            self.Input = torch.zeros(size, self.n, args.T_max)
+            self.Target = torch.zeros(size, self.m, args.T_max)
+            self.lengthMask = torch.zeros((size,args.T_max), dtype=torch.bool)# init with all false
             # Init Sequence Lengths
-            T_tensor = torch.round(900*torch.rand(size)).int()+100 # Uniform distribution [100,1000]
+            T_tensor = torch.round((args.T_max-args.T_min)*torch.rand(size)).int()+args.T_min # Uniform distribution [100,1000]
+            for i in range(0, size):
+                # Generate Sequence
+                self.GenerateSequence(self.Q, self.R, T_tensor[i].item())
+                # Training sequence input
+                self.Input[i, :, 0:T_tensor[i].item()] = self.y             
+                # Training sequence output
+                self.Target[i, :, 0:T_tensor[i].item()] = self.x
+                # Mask for sequence length
+                self.lengthMask[i, 0:T_tensor[i].item()] = True
+
         else:
             # Allocate Empty Array for Input
             self.Input = torch.empty(size, self.n, T)
             # Allocate Empty Array for Target
             self.Target = torch.empty(size, self.m, T)
-        
-        if(randomInit):
-            # Allocate Empty Array for Random Initial Conditions
-            self.m1x_0_rand = torch.empty(size, self.m)
 
-        ### Generate Examples
-        initConditions = self.m1x_0
+            # Set x0 to be x previous
+            self.x_prev = self.m1x_0_batch
+            xt = self.x_prev
 
-        for i in range(0, size):
-            # Generate Sequence
+            # Generate in a batched manner
+            for t in range(0, T):
+                ########################
+                #### State Evolution ###
+                ########################   
+                if torch.equal(self.Q,torch.zeros(self.m,self.m)):# No noise
+                    xt = self.f(self.x_prev)
+                elif self.m == 1: # 1 dim noise
+                    xt = self.f(self.x_prev)
+                    eq = torch.normal(mean=torch.zeros(size), std=self.Q).view(size,1,1)
+                    # Additive Process Noise
+                    xt = torch.add(xt,eq)
+                else:            
+                    xt = self.f(self.x_prev)
+                    mean = torch.zeros([size, self.m])              
+                    distrib = MultivariateNormal(loc=mean, covariance_matrix=self.Q)
+                    eq = distrib.rsample().view(size,self.m,1)
+                    # Additive Process Noise
+                    xt = torch.add(xt,eq)
 
-            # Randomize initial conditions to get a rich dataset
-            if(randomInit):
-                """ 
-                ### Uncomment this if Uniform Distribution for random init 
-                variance = 100
-                initConditions = torch.rand_like(self.m1x_0) * variance
-                self.m1x_0_rand[i,:] = torch.squeeze(initConditions)
-                """
+                ################
+                ### Emission ###
+                ################
+                # Observation Noise
+                if torch.equal(self.R,torch.zeros(self.n,self.n)):# No noise
+                    yt = self.h(xt)
+                elif self.n == 1: # 1 dim noise
+                    yt = self.h(xt)
+                    er = torch.normal(mean=torch.zeros(size), std=self.R).view(size,1,1)
+                    # Additive Observation Noise
+                    yt = torch.add(yt,er)
+                else:  
+                    yt = self.H.matmul(xt)
+                    mean = torch.zeros([size,self.n])            
+                    distrib = MultivariateNormal(loc=mean, covariance_matrix=self.R)
+                    er = distrib.rsample().view(size,self.n,1)          
+                    # Additive Observation Noise
+                    yt = torch.add(yt,er)
 
-                ### if Normal Distribution for random init
-                distrib = MultivariateNormal(loc=torch.squeeze(self.m1x_0), covariance_matrix=self.m2x_0)
-                initConditions = distrib.rsample()
-                self.m1x_0_rand[i,:] = torch.squeeze(initConditions)
-                
-            
-            self.InitSequence(initConditions, self.m2x_0)### for sequence generation
+                ########################
+                ### Squeeze to Array ###
+                ########################
 
-            if(randomLength):
-                self.GenerateSequence(self.Q, self.R, T_tensor[i].item())
-                # Training sequence input
-                self.Input.append(self.y)
-                # Training sequence output
-                self.Target.append(self.x)
-            else:
-                self.GenerateSequence(self.Q, self.R, T)
-                # Training sequence input
-                self.Input[i, :, :] = self.y
-                # Training sequence output
-                self.Target[i, :, :] = self.x
+                # Save Current State to Trajectory Array
+                self.Target[:, :, t] = torch.squeeze(xt,2)
+
+                # Save Current Observation to Trajectory Array
+                self.Input[:, :, t] = torch.squeeze(yt,2)
+
+                ################################
+                ### Save Current to Previous ###
+                ################################
+                self.x_prev = xt
 
 
     def sampling(self, q, r, gain):

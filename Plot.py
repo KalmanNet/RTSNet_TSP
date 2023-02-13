@@ -18,7 +18,7 @@ error_evol = ["KNet Empirical Error","KNet Covariance Trace","KF Empirical Error
 KColor = ['-ro','darkorange','k-', 'b-','g-']
 RTSColor = ['red','darkorange','g-', 'b-']
 
-class Plot:
+class Plot_KF:
     
     def __init__(self, folderName, modelName):
         self.folderName = folderName
@@ -180,7 +180,7 @@ class Plot:
 
         print('End')
 
-class Plot_RTS(Plot):
+class Plot_RTS(Plot_KF):
 
     def __init__(self, folderName, modelName):
         self.folderName = folderName

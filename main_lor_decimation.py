@@ -6,8 +6,6 @@ from datetime import datetime
 
 import Smoothers.EKF_test as EKF_test
 from Smoothers.Extended_RTS_Smoother_test import S_Test
-from Smoothers.PF_test import PFTest
-from Smoothers.ParticleSmoother_test import PSTest
 
 from Simulations.Extended_sysmdl import SystemModel
 import Simulations.config as config
@@ -21,7 +19,6 @@ from Pipelines.Pipeline_concat_models import Pipeline_twoRTSNets
 
 from RTSNet.KalmanNet_nn import KalmanNetNN
 from RTSNet.RTSNet_nn import RTSNetNN
-from RNN.RNN_FWandBW import Vanilla_RNN
 
 from Plot import Plot_extended as Plot
 
@@ -190,30 +187,17 @@ print("Observation Noise Floor(train dataset) - STD:", obs_std_dB, "[dB]")
 ######################################
 ### Evaluate Filters and Smoothers ###
 ######################################
-### Particle filter
-print("Start PF test J=5")
-[MSE_PF_linear_arr, MSE_PF_linear_avg, MSE_PF_dB_avg, PF_out, t_PF] = PFTest(sys_model_true, test_input, test_target, init_cond=None)
-print("Start PF test J=2")
-[MSE_PF_linear_arr_partial, MSE_PF_linear_avg_partial, MSE_PF_dB_avg_partial, PF_out_partial, t_PF] = PFTest(sys_model, test_input, test_target, init_cond=None)
+# ### EKF
+# print("Start EKF test J=5")
+# [MSE_EKF_linear_arr, MSE_EKF_linear_avg, MSE_EKF_dB_avg, EKF_KG_array, EKF_out] = EKF_test.EKFTest(args, sys_model_true, test_input, test_target)
+# print("Start EKF test J=2")
+# [MSE_EKF_linear_arr_partial, MSE_EKF_linear_avg_partial, MSE_EKF_dB_avg_partial, EKF_KG_array_partial, EKF_out_partial] = EKF_test.EKFTest(args, sys_model, test_input, test_target)
 
-
-### EKF
-print("Start EKF test J=5")
-[MSE_EKF_linear_arr, MSE_EKF_linear_avg, MSE_EKF_dB_avg, EKF_KG_array, EKF_out] = EKF_test.EKFTest(sys_model_true, test_input, test_target)
-print("Start EKF test J=2")
-[MSE_EKF_linear_arr_partial, MSE_EKF_linear_avg_partial, MSE_EKF_dB_avg_partial, EKF_KG_array_partial, EKF_out_partial] = EKF_test.EKFTest(sys_model, test_input, test_target)
-
-### Particle Smoother
-print("Start PS test J=5")
-[MSE_PS_linear_arr, MSE_PS_linear_avg, MSE_PS_dB_avg, PS_out, t_PS] = PSTest(sys_model_true, test_input, test_target,N_FWParticles=100, M_BWTrajs=10, init_cond=None)
-print("Start PS test J=2")
-[MSE_PS_linear_arr_partial, MSE_PS_linear_avg_partial, MSE_PS_dB_avg_partial, PS_out_partial, t_PS] = PSTest(sys_model, test_input, test_target,N_FWParticles=100, M_BWTrajs=10, init_cond=None)
-
-### MB Extended RTS
-print("Start RTS test J=5")
-[MSE_ERTS_linear_arr, MSE_ERTS_linear_avg, MSE_ERTS_dB_avg, ERTS_out] = S_Test(args, sys_model_true, test_input, test_target)
-print("Start RTS test J=2")
-[MSE_ERTS_linear_arr_partial, MSE_ERTS_linear_avg_partial, MSE_ERTS_dB_avg_partial, ERTS_out_partial] = S_Test(args, sys_model, test_input, test_target)
+# ### MB Extended RTS
+# print("Start RTS test J=5")
+# [MSE_ERTS_linear_arr, MSE_ERTS_linear_avg, MSE_ERTS_dB_avg, ERTS_out] = S_Test(args, sys_model_true, test_input, test_target)
+# print("Start RTS test J=2")
+# [MSE_ERTS_linear_arr_partial, MSE_ERTS_linear_avg_partial, MSE_ERTS_dB_avg_partial, ERTS_out_partial] = S_Test(args, sys_model, test_input, test_target)
 
 ########################################
 ### KalmanNet with model mismatch ######
@@ -233,27 +217,6 @@ else:
    KNet_Pipeline.NNTrain(args.N_E, train_input, train_target, args.N_CV, cv_input_long, cv_target_long)
 # Test Neural Network
 [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg, knet_out] = KNet_Pipeline.NNTest(args.N_T, test_input, test_target)
-
-######################
-### Vanilla RNN ######
-######################
-# Build RNN
-print("Vanilla RNN with mismatched f")
-RNN_model = Vanilla_RNN()
-RNN_model.Build(args, sys_model)
-print("Number of trainable parameters for RNN:",sum(p.numel() for p in RNN_model.parameters() if p.requires_grad))
-RNN_Pipeline = Pipeline(strTime, "RTSNet", "VanillaRNN")
-RNN_Pipeline.setssModel(sys_model)
-RNN_Pipeline.setModel(RNN_model)
-RNN_Pipeline.setTrainingParams(args)
-if(chop):
-   [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RNN_Pipeline.NNTrain(sys_model, cv_input_long, cv_target_long, train_input, train_target, path_results,randomInit=True,train_init=train_init)
-else:
-   [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RNN_Pipeline.NNTrain(sys_model, cv_input_long, cv_target_long, train_input, train_target, path_results)
-## Test Neural Network
-[MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rnn_out,RunTime] = RNN_Pipeline.NNTest(sys_model, test_input, test_target, path_results)
-RNN_Pipeline.save()
-
 
 ###################################
 ### RTSNet with model mismatch  ###
@@ -296,21 +259,21 @@ print("Number of parameters for RTSNet: ",NumofParameter)
 # Save trajectories
 trajfolderName = 'RTSNet/checkpoints/LorenzAttracotor/decimation/traj' + '/'
 DataResultName = 'traj_lor_dec.pt'
-target_sample = torch.reshape(test_target[0,:,:],[1,args.m,args.T_test])
-input_sample = torch.reshape(test_input[0,:,:],[1,args.n,args.T_test])
-torch.save({'PF J=5':PF_out,
-            'PF J=2':PF_out_partial,
-            'True':target_sample,
-            'Observation':input_sample,
-            'EKF J=5':EKF_out,
-            'EKF J=2':EKF_out_partial,
-            'RTS J=5':ERTS_out,
-            'RTS J=2':ERTS_out_partial,
-            'PS J=5':PS_out,
-            'PS J=2':PS_out_partial,
+target_sample = torch.reshape(test_target[0,:,:],[1,m,args.T_test])
+input_sample = torch.reshape(test_input[0,:,:],[1,n,args.T_test])
+torch.save({# 'PF J=5':PF_out,
+            # 'PF J=2':PF_out_partial,
+            # 'True':target_sample,
+            # 'Observation':input_sample,
+            # 'EKF J=5':EKF_out,
+            # 'EKF J=2':EKF_out_partial,
+            # 'RTS J=5':ERTS_out,
+            # 'RTS J=2':ERTS_out_partial,
+            # 'PS J=5':PS_out,
+            # 'PS J=2':PS_out_partial,
             'RTSNet': rtsnet_out,
             'RTSNet_2pass': rtsnet_out_2pass,
-            'RNN J=2': rnn_out,
+            'KNet': knet_out,
             }, trajfolderName+DataResultName)
 
 #############

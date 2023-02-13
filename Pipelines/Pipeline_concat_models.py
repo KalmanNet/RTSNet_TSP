@@ -29,12 +29,18 @@ class Pipeline_twoRTSNets:
         self.model1 = model1
         self.model2 = model2
 
+    def setParams(self, args):
+        self.args = args
     
-    def NNTest(self, SysModel, test_input, test_target, path_results, MaskOnState=False, randomInit=False,test_init=None):
+    def NNTest(self, SysModel, test_input, test_target, path_results, MaskOnState=False,\
+                randomInit=False,test_init=None,test_lengthMask=None):
 
         self.N_T = test_input.size()[0]
-
         self.MSE_test_linear_arr = torch.empty([self.N_T])
+        x_out_test_forward_1 = torch.zeros([self.N_T, SysModel.m, SysModel.T_test])
+        x_out_test_1 = torch.zeros([self.N_T, SysModel.m,SysModel.T_test])
+        x_out_test_forward_2 = torch.zeros([self.N_T, SysModel.m, SysModel.T_test])
+        x_out_test_2 = torch.zeros([self.N_T, SysModel.m,SysModel.T_test])
 
         if MaskOnState:
             mask = torch.tensor([True,False,False])
@@ -43,62 +49,65 @@ class Pipeline_twoRTSNets:
 
         # MSE LOSS Function
         loss_fn = nn.MSELoss(reduction='mean')
-
+        # Test mode
         self.model1.eval()
         self.model2.eval()
+        self.model1.batch_size = self.N_T
+        self.model2.batch_size = self.N_T
+        # Init Hidden State
+        self.model1.init_hidden()
+        self.model2.init_hidden()
 
         torch.no_grad()
 
-        x_out_array = torch.empty(self.N_T,SysModel.m, SysModel.T_test)
+
         start = time.time()
-        for j in range(0, self.N_T):
             
-            if (randomInit):
-                self.model1.InitSequence(test_init[j], SysModel.T_test)               
-            else:
-                self.model1.InitSequence(SysModel.m1x_0, SysModel.T_test) 
-
-            y_mdl_tst = test_input[j, :, :]
-
-            x_out_test_forward_1 = torch.empty(SysModel.m,SysModel.T_test)
-            x_out_test = torch.empty(SysModel.m, SysModel.T_test)
-            for t in range(0, SysModel.T_test):
-                x_out_test_forward_1[:, t] = self.model1(y_mdl_tst[:, t], None, None, None)
-            x_out_test[:, SysModel.T_test-1] = x_out_test_forward_1[:, SysModel.T_test-1] # backward smoothing starts from x_T|T 
-            self.model1.InitBackward(x_out_test[:, SysModel.T_test-1]) 
-            x_out_test[:, SysModel.T_test-2] = self.model1(None, x_out_test_forward_1[:, SysModel.T_test-2], x_out_test_forward_1[:, SysModel.T_test-1],None)
-            for t in range(SysModel.T_test-3, -1, -1):
-                x_out_test[:, t] = self.model1(None, x_out_test_forward_1[:, t], x_out_test_forward_1[:, t+1],x_out_test[:, t+2])
-            
-            ########################################################################
-            # Second pass
-            x_out_test_forward_2 = torch.empty(SysModel.m,SysModel.T_test)
-            x_out_test_2 = torch.empty(SysModel.m, SysModel.T_test)
-            # Init with results from pass1
-            if (randomInit):
-                self.model2.InitSequence(test_init[j], SysModel.T_test)               
-            else:
-                self.model2.InitSequence(SysModel.m1x_0, SysModel.T_test) 
-            # Second filtering pass
-            for t in range(0, SysModel.T_test):
-                x_out_test_forward_2[:, t] = self.model2(x_out_test[:, t],None, None, None)
-            x_out_test_2[:, SysModel.T_test-1] = x_out_test_forward_2[:, SysModel.T_test-1] # backward smoothing starts from x_T|T 
-            self.model2.InitBackward(x_out_test_2[:, SysModel.T_test-1]) 
-            x_out_test_2[:, SysModel.T_test-2] = self.model2(None, x_out_test_forward_2[:, SysModel.T_test-2], x_out_test_forward_2[:, SysModel.T_test-1],None)
-            # Second smoothing pass
-            for t in range(SysModel.T_test-3, -1, -1):
-                x_out_test_2[:, t] = self.model2(None, x_out_test_forward_2[:, t], x_out_test_forward_2[:, t+1],x_out_test_2[:, t+2])          
-            x_out_test = x_out_test_2
-
-            if(MaskOnState):
-                self.MSE_test_linear_arr[j] = loss_fn(x_out_test[mask], test_target[j][mask]).item()
-            else:
-                self.MSE_test_linear_arr[j] = loss_fn(x_out_test, test_target[j]).item()              
-            x_out_array[j,:,:] = x_out_test
+        if (randomInit):
+            self.model1.InitSequence(test_init, SysModel.T_test)               
+        else:
+            self.model1.InitSequence(SysModel.m1x_0.reshape(1,SysModel.m,1).repeat(self.N_T,1,1), SysModel.T_test)                
+        # Forward Computation of first pass
+        for t in range(0, SysModel.T_test):
+            x_out_test_forward_1[:,:, t] = torch.squeeze(self.model1(torch.unsqueeze(test_input[:,:, t],2), None, None, None))
+        x_out_test_1[:,:, SysModel.T_test-1] = x_out_test_forward_1[:,:, SysModel.T_test-1] # backward smoothing starts from x_T|T 
+        self.model1.InitBackward(torch.unsqueeze(x_out_test_1[:,:, SysModel.T_test-1],2)) 
+        x_out_test_1[:,:, SysModel.T_test-2] = torch.squeeze(self.model1(None, torch.unsqueeze(x_out_test_forward_1[:,:, SysModel.T_test-2],2), torch.unsqueeze(x_out_test_forward_1[:,:, SysModel.T_test-1],2),None))
+        for t in range(SysModel.T_test-3, -1, -1):
+            x_out_test_1[:,:, t] = torch.squeeze(self.model1(None, torch.unsqueeze(x_out_test_forward_1[:,:, t],2), torch.unsqueeze(x_out_test_forward_1[:,:, t+1],2),torch.unsqueeze(x_out_test_1[:,:, t+2],2)))
         
-        end = time.time()
-        t = end - start
+        ########################################################################
+        # Second pass
+        if (randomInit):
+            self.model2.InitSequence(test_init, SysModel.T_test)               
+        else:
+            self.model2.InitSequence(SysModel.m1x_0.reshape(1,SysModel.m,1).repeat(self.N_T,1,1), SysModel.T_test)
+        # Second filtering pass
+        for t in range(0, SysModel.T_test):
+            x_out_test_forward_2[:,:, t] = torch.squeeze(self.model2(torch.unsqueeze(x_out_test_1[:,:, t],2), None, None, None))
+        x_out_test_2[:,:, SysModel.T_test-1] = x_out_test_forward_2[:,:, SysModel.T_test-1] # backward smoothing starts from x_T|T 
+        self.model2.InitBackward(torch.unsqueeze(x_out_test_2[:,:, SysModel.T_test-1],2)) 
+        x_out_test_2[:,:, SysModel.T_test-2] = torch.squeeze(self.model2(None, torch.unsqueeze(x_out_test_forward_2[:,:, SysModel.T_test-2],2), torch.unsqueeze(x_out_test_forward_2[:,:, SysModel.T_test-1],2),None))
+        # Second smoothing pass
+        for t in range(SysModel.T_test-3, -1, -1):
+            x_out_test_2[:,:, t] = torch.squeeze(self.model2(None, torch.unsqueeze(x_out_test_forward_2[:,:, t],2), torch.unsqueeze(x_out_test_forward_2[:,:, t+1],2),torch.unsqueeze(x_out_test_2[:,:, t+2],2)))
 
+        end = time.time()
+        t = end - start 
+
+        # MSE loss
+        for j in range(self.N_T):
+            if(MaskOnState):
+                if self.args.randomLength:
+                    self.MSE_test_linear_arr[j] = loss_fn(x_out_test_2[j,mask,test_lengthMask[j]], test_target[j,mask,test_lengthMask[j]]).item()
+                else:
+                    self.MSE_test_linear_arr[j] = loss_fn(x_out_test_2[j,mask,:], test_target[j,mask,:]).item()
+            else:
+                if self.args.randomLength:
+                    self.MSE_test_linear_arr[j] = loss_fn(x_out_test_2[j,:,test_lengthMask[j]], test_target[j,:,test_lengthMask[j]]).item()
+                else:
+                    self.MSE_test_linear_arr[j] = loss_fn(x_out_test_2[j,:,:], test_target[j,:,:]).item()
+                     
         # Average
         self.MSE_test_linear_avg = torch.mean(self.MSE_test_linear_arr)
         self.MSE_test_dB_avg = 10 * torch.log10(self.MSE_test_linear_avg)
@@ -117,7 +126,7 @@ class Pipeline_twoRTSNets:
         # Print Run Time
         print("Inference Time:", t)
 
-        return [self.MSE_test_linear_arr, self.MSE_test_linear_avg, self.MSE_test_dB_avg, x_out_array, t]
+        return [self.MSE_test_linear_arr, self.MSE_test_linear_avg, self.MSE_test_dB_avg, x_out_test_2, t]
 
 
     def count_parameters(self):

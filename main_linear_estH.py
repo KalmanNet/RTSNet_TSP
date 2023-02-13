@@ -2,15 +2,14 @@ import torch
 from datetime import datetime
 
 from Simulations.Linear_sysmdl import SystemModel
-from Simulations.utils import DataGen,DataLoader
+from Simulations.utils import DataGen
 from Simulations.Linear_canonical.parameters import F, H, H_rotated, Q_structure, R_structure,\
-   m, n, m1_0, m2_0
+   m, n, m1_0
 import Simulations.config as config
 
 from Pipelines.Pipeline_ERTS import Pipeline_ERTS as Pipeline
-from Pipelines.Pipeline_KF import Pipeline_KF
+from Pipelines.Pipeline_EKF import Pipeline_EKF
 
-from RNN.RNN_FWandBW import Vanilla_RNN
 from RTSNet.RTSNet_nn import RTSNetNN
 
 from Smoothers.KalmanFilter_test import KFTest
@@ -41,6 +40,8 @@ args.N_CV = 100
 args.N_T = 200
 args.T = 100
 args.T_test = 100
+args.variance = 0 # fixed initial state
+m2_0 = args.variance * torch.eye(m) # 2nd moment of initial state
 ### training parameters
 args.n_steps = 2000
 args.n_batch = 30
@@ -76,7 +77,7 @@ for index in range(0,len(r2)):
    print("Start Data Gen")
    DataGen(args, sys_model, dataFolderName + dataFileName[index])
    print("Data Load")
-   [train_input, train_target, cv_input, cv_target, test_input, test_target] = DataLoader(dataFolderName + dataFileName[index])
+   [train_input, train_target, cv_input, cv_target, test_input, test_target,_,_,_] = torch.load(dataFolderName + dataFileName[index])
    print("trainset size:",train_target.size())
    print("cvset size:",cv_target.size())
    print("testset size:",test_target.size())
@@ -94,9 +95,9 @@ for index in range(0,len(r2)):
    ### Evaluate RTS Smoother ###
    #############################
    print("Evaluate RTS Smoother True")
-   [MSE_RTS_linear_arr, MSE_RTS_linear_avg, MSE_RTS_dB_avg, RTS_out] = S_Test(sys_model, test_input, test_target)
+   [MSE_RTS_linear_arr, MSE_RTS_linear_avg, MSE_RTS_dB_avg, RTS_out] = S_Test(args, sys_model, test_input, test_target)
    print("Evaluate RTS Smoother Partial")
-   [MSE_RTS_linear_arr_partialh, MSE_RTS_linear_avg_partialh, MSE_RTS_dB_avg_partialh, RTS_partialh_out] = S_Test(sys_model_partialh, test_input, test_target)
+   [MSE_RTS_linear_arr_partialh, MSE_RTS_linear_avg_partialh, MSE_RTS_dB_avg_partialh, RTS_partialh_out] = S_Test(args, sys_model_partialh, test_input, test_target)
 
 
    #######################
@@ -167,25 +168,3 @@ for index in range(0,len(r2)):
    ## Test Neural Network
    [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model_partialh, test_input, test_target, path_results)
    RTSNet_Pipeline.save()
-
-   ###################
-   ### Vanilla RNN ###
-   ###################
-   ### Vanilla RNN
-   # Build RNN
-   print("Vanilla RNN")
-   RNN_model = Vanilla_RNN()
-   RNN_model.Build(args, sys_model,fully_agnostic = False)
-   print("Number of trainable parameters for RNN:",sum(p.numel() for p in RNN_model.parameters() if p.requires_grad))
-   RNN_Pipeline = Pipeline(strTime, "RTSNet", "VanillaRNN")
-   RNN_Pipeline.setssModel(sys_model)
-   RNN_Pipeline.setModel(RNN_model)
-   RNN_Pipeline.setTrainingParams(args)
-   RNN_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results, rnn=True)
-   ## Test Neural Network
-   [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RNN_Pipeline.NNTest(sys_model, test_input, test_target, path_results, rnn=True)
-   RNN_Pipeline.save()
-
-   ##########################################################################################################################################
-
-
