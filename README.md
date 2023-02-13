@@ -2,7 +2,7 @@
 
 ## Feb.13, 2023 Update: branch "batched"
 
-Support a batch of sequences being processed simultaneously, leading to dramati efficiency improvement.
+Support a batch of sequences being processed simultaneously, leading to dramatic efficiency improvement.
 
 ## Overview
 
