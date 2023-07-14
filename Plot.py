@@ -248,7 +248,7 @@ class Plot_RTS(Plot_KF):
         plt.title(self.modelName + ":" +"Histogram [dB]")
         plt.xlabel('MSE Loss Value [dB]')
         plt.ylabel('Percentage')
-        sns.move_legend(ax, "upper right")
+        # sns.move_legend(ax, "upper right")
         plt.grid(True)
         plt.tight_layout()
         plt.savefig(fileName)

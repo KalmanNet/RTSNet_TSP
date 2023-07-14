@@ -34,6 +34,11 @@ def general_settings():
                         help='input variance for the random initial state with uniform distribution')
     parser.add_argument('--distribution', type=str, default='normal', metavar='distribution',
                         help='input distribution for the random initial state (uniform/normal)')
+        # Random noise (process/measurement) 
+    parser.add_argument('--proc_noise_distri', type=str, default='normal', metavar='process noise distribution',
+                        help='input distribution for process noise (normal/exponential)')
+    parser.add_argument('--meas_noise_distri', type=str, default='normal', metavar='measurement noise distribution',
+                        help='input distribution for measurement noise (normal/exponential)')
 
 
     ### Training settings

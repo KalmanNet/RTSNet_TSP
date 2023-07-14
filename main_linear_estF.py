@@ -29,11 +29,23 @@ strTime = strToday + "_" + strNow
 print("Current Time =", strTime)
 path_results = 'RTSNet/'
 
-####################
-### Design Model ###
-####################
+##########################
+### Parameter settings ###
+##########################
 args = config.general_settings()
-### dataset parameters
+args.use_cuda = False # use GPU or not
+if args.use_cuda:
+   if torch.cuda.is_available():
+      device = torch.device('cuda')
+      print("Using GPU")
+      torch.set_default_tensor_type(torch.cuda.FloatTensor)
+   else:
+      raise Exception("No GPU found, please set args.use_cuda = False")
+else:
+    device = torch.device('cpu')
+    print("Using CPU")
+
+### dataset parameters ###################################################
 args.N_E = 1000 # training set size
 args.N_CV = 100 # cross validation set size
 args.N_T = 1000 # test set size
@@ -42,7 +54,7 @@ args.T_test = 20 # length of test sequence
 args.variance = 0 # fixed initial state
 m2_0 = args.variance * torch.eye(m) # 2nd moment of initial state
 
-### training parameters
+### training parameters ##################################################
 args.n_steps = 2000
 args.n_batch = 30
 args.lr = 1e-3
@@ -64,11 +76,11 @@ for index in range(0,len(r2)):
    # True model
    Q = q2[index] * Q_structure
    R = r2[index] * R_structure
-   sys_model = SystemModel(F_rotated, Q, H, R, args.T, args.T_test)
+   sys_model = SystemModel(F_rotated, Q, H, R, args.T, args.T_test,q2[index],r2[index])
    sys_model.InitSequence(m1_0, m2_0)
 
    # Mismatched model
-   sys_model_partialf = SystemModel(F, Q, H, R, args.T, args.T_test)
+   sys_model_partialf = SystemModel(F, Q, H, R, args.T, args.T_test,q2[index],r2[index])
    sys_model_partialf.InitSequence(m1_0, m2_0)
 
    ###################################
@@ -155,7 +167,7 @@ for index in range(0,len(r2)):
    print("Estimated State Evolution Matrix F:", F_hat)
 
    # Estimated model
-   sys_model_estf = SystemModel(F_hat, Q, H, R, args.T, args.T_test)
+   sys_model_estf = SystemModel(F_hat, Q, H, R, args.T, args.T_test,q2[index],r2[index])
    sys_model_estf.InitSequence(m1_0, m2_0)
 
    RTSNet_Pipeline.setssModel(sys_model_estf)

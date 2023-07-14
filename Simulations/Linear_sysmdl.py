@@ -13,10 +13,11 @@
 
 import torch
 from torch.distributions.multivariate_normal import MultivariateNormal
+from torch.distributions import Exponential
 
 class SystemModel:
 
-    def __init__(self, F, Q, H, R, T, T_test, prior_Q=None, prior_Sigma=None, prior_S=None):
+    def __init__(self, F, Q, H, R, T, T_test, q2, r2, prior_Q=None, prior_Sigma=None, prior_S=None):
 
         ####################
         ### Motion Model ###
@@ -24,14 +25,14 @@ class SystemModel:
         self.F = F
         self.m = self.F.size()[0]
         self.Q = Q
-
+        self.q2 = q2
         #########################
         ### Observation Model ###
         #########################
         self.H = H
         self.n = self.H.size()[0]
         self.R = R
-
+        self.r2 = r2
         ################
         ### Sequence ###
         ################
@@ -91,7 +92,7 @@ class SystemModel:
     #########################
     ### Generate Sequence ###
     #########################
-    def GenerateSequence(self, Q_gen, R_gen, T):
+    def GenerateSequence(self, args, Q_gen, R_gen, T):
         # Pre allocate an array for current state
         self.x = torch.zeros(size=[self.m, T])
         # Pre allocate an array for current observation
@@ -105,21 +106,42 @@ class SystemModel:
 
             ########################
             #### State Evolution ###
-            ########################   
-            if torch.equal(Q_gen,torch.zeros(self.m,self.m)):# No noise
+            ########################  
+            # No noise 
+            if torch.equal(Q_gen,torch.zeros(self.m,self.m)):
                 xt = self.F.matmul(self.x_prev)
-            elif self.m == 1: # 1 dim noise
+            # 1 dim noise
+            elif self.m == 1: 
                 xt = self.F.matmul(self.x_prev)
-                eq = torch.normal(mean=0, std=Q_gen)
+                if args.proc_noise_distri == 'normal':
+                    eq = torch.normal(mean=0, std=Q_gen)
+                elif args.proc_noise_distri == 'exponential':
+                    lambda_exp = torch.sqrt(1/self.q2)
+                    exponential_dist = Exponential(torch.tensor(lambda_exp))
+                    # Sample from the Exponential distribution
+                    eq = exponential_dist.sample()
+                else:
+                    raise ValueError('Unknown process noise distribution')
                 # Additive Process Noise
                 xt = torch.add(xt,eq)
+            # Multi dim noise
             else:            
                 xt = self.F.matmul(self.x_prev)
-                mean = torch.zeros([self.m])              
-                distrib = MultivariateNormal(loc=mean, covariance_matrix=Q_gen)
-                eq = distrib.rsample()
-                # eq = torch.normal(mean, self.q)
-                eq = torch.reshape(eq[:], xt.size())
+                # Sample from the Multivariate Normal distribution
+                if args.proc_noise_distri == 'normal':
+                    mean = torch.zeros([self.m])              
+                    distrib = MultivariateNormal(loc=mean, covariance_matrix=Q_gen)
+                    eq = distrib.rsample()
+                    # eq = torch.normal(mean, self.q)
+                    eq = torch.reshape(eq[:], xt.size())
+                # Sample from the Exponential distribution
+                elif args.proc_noise_distri == 'exponential':
+                    lambda_exp = torch.sqrt(1/self.q2)
+                    exponential_dist = Exponential(lambda_exp * torch.ones([self.m])) # here we use same lambda for all dimensions of xt
+                    eq = exponential_dist.sample((xt.size(),))
+                    eq = torch.reshape(eq[:], xt.size())
+                else:
+                    raise ValueError('Unknown process noise distribution')
                 # Additive Process Noise
                 xt = torch.add(xt,eq)
 
@@ -127,19 +149,40 @@ class SystemModel:
             ### Emission ###
             ################
             # Observation Noise
-            if torch.equal(R_gen,torch.zeros(self.n,self.n)):# No noise
+            # No noise
+            if torch.equal(R_gen,torch.zeros(self.n,self.n)):
                 yt = self.H.matmul(xt)
-            elif self.n == 1: # 1 dim noise
+            # 1 dim noise
+            elif self.n == 1: 
                 yt = self.H.matmul(xt)
-                er = torch.normal(mean=0, std=R_gen)
+                if args.meas_noise_distri == 'normal':
+                    er = torch.normal(mean=0, std=R_gen)
+                elif args.meas_noise_distri == 'exponential':
+                    lambda_exp = torch.sqrt(1/self.r2)
+                    exponential_dist = Exponential(torch.tensor(lambda_exp))
+                    # Sample from the Exponential distribution
+                    er = exponential_dist.sample()
+                else:
+                    raise ValueError('Unknown measurement noise distribution')
+                
                 # Additive Observation Noise
                 yt = torch.add(yt,er)
+            # Multi dim noise
             else:  
                 yt = self.H.matmul(xt)
-                mean = torch.zeros([self.n])            
-                distrib = MultivariateNormal(loc=mean, covariance_matrix=R_gen)
-                er = distrib.rsample()
-                er = torch.reshape(er[:], yt.size())               
+                if args.meas_noise_distri == 'normal':
+                    mean = torch.zeros([self.n])            
+                    distrib = MultivariateNormal(loc=mean, covariance_matrix=R_gen)
+                    er = distrib.rsample()
+                    er = torch.reshape(er[:], yt.size())   
+                elif args.meas_noise_distri == 'exponential':
+                    lambda_exp = torch.sqrt(1/self.r2)
+                    exponential_dist = Exponential(lambda_exp * torch.ones([self.n])) # here we use same λ for all dimensions of yt
+                    er = exponential_dist.sample((yt.size(),))
+                    er = torch.reshape(er[:], yt.size())
+                else:
+                    raise ValueError('Unknown measurement noise distribution')
+                              
                 # Additive Observation Noise
                 yt = torch.add(yt,er)
 
@@ -162,6 +205,7 @@ class SystemModel:
     ### Generate Batch ###
     ######################
     def GenerateBatch(self, args, size, T, randomInit=False):
+        ### init conditions ############################
         if(randomInit):
             # Allocate Empty Array for Random Initial Conditions
             self.m1x_0_rand = torch.zeros(size, self.m, 1)
@@ -184,7 +228,8 @@ class SystemModel:
         else: # fixed init
             initConditions = self.m1x_0.view(1,self.m,1).expand(size,-1,-1)
             self.Init_batched_sequence(initConditions, self.m2x_0)### for sequence generation
-    
+        
+        ### generate sequences ############################
         if(args.randomLength):
             # Allocate Array for Input and Target (use zero padding)
             self.Input = torch.zeros(size, self.n, args.T_max)
@@ -194,7 +239,7 @@ class SystemModel:
             T_tensor = torch.round((args.T_max-args.T_min)*torch.rand(size)).int()+args.T_min # Uniform distribution [100,1000]
             for i in range(0, size):
                 # Generate Sequence
-                self.GenerateSequence(self.Q, self.R, T_tensor[i].item())
+                self.GenerateSequence(args, self.Q, self.R, T_tensor[i].item())
                 # Training sequence input
                 self.Input[i, :, 0:T_tensor[i].item()] = self.y             
                 # Training sequence output
@@ -216,19 +261,39 @@ class SystemModel:
             for t in range(0, T):
                 ########################
                 #### State Evolution ###
-                ########################   
-                if torch.equal(self.Q,torch.zeros(self.m,self.m)):# No noise
+                ######################## 
+                # No noise  
+                if torch.equal(self.Q,torch.zeros(self.m,self.m)):
                     xt = self.f(self.x_prev)
-                elif self.m == 1: # 1 dim noise
+                # 1 dim noise
+                elif self.m == 1: 
                     xt = self.f(self.x_prev)
-                    eq = torch.normal(mean=torch.zeros(size), std=self.Q).view(size,1,1)
+                    if args.proc_noise_distri == 'normal':
+                        eq = torch.normal(mean=torch.zeros(size), std=self.Q).view(size,1,1)
+                    elif args.proc_noise_distri == 'exponential':
+                        lambda_exp = torch.sqrt(1/self.q2)
+                        exponential_dist = Exponential(torch.tensor(lambda_exp))
+                        # Sample from the Exponential distribution
+                        eq = exponential_dist.sample((size,))
+                        eq = torch.reshape(eq, (size,1,1))
+                    else:
+                        raise ValueError('args.proc_noise_distri not supported!')
                     # Additive Process Noise
                     xt = torch.add(xt,eq)
-                else:            
+                # Multi dim noise
+                else:             
                     xt = self.f(self.x_prev)
-                    mean = torch.zeros([size, self.m])              
-                    distrib = MultivariateNormal(loc=mean, covariance_matrix=self.Q)
-                    eq = distrib.rsample().view(size,self.m,1)
+                    if args.proc_noise_distri == 'normal':
+                        mean = torch.zeros([size, self.m])              
+                        distrib = MultivariateNormal(loc=mean, covariance_matrix=self.Q)
+                        eq = distrib.rsample().view(size,self.m,1)
+                    elif args.proc_noise_distri == 'exponential':
+                        lambda_exp = torch.sqrt(1/self.q2)
+                        exponential_dist = Exponential(lambda_exp * torch.ones([self.m])) # here we use the same lambda for all dimensions
+                        eq = exponential_dist.sample((size,))
+                        eq = torch.reshape(eq, (size,self.m,1))
+                    else:
+                        raise ValueError('args.proc_noise_distri not supported!')
                     # Additive Process Noise
                     xt = torch.add(xt,eq)
 
@@ -236,18 +301,37 @@ class SystemModel:
                 ### Emission ###
                 ################
                 # Observation Noise
-                if torch.equal(self.R,torch.zeros(self.n,self.n)):# No noise
+                # No noise
+                if torch.equal(self.R,torch.zeros(self.n,self.n)):
                     yt = self.h(xt)
-                elif self.n == 1: # 1 dim noise
+                # 1 dim noise
+                elif self.n == 1: 
                     yt = self.h(xt)
-                    er = torch.normal(mean=torch.zeros(size), std=self.R).view(size,1,1)
+                    if args.meas_noise_distri == 'normal':
+                        er = torch.normal(mean=torch.zeros(size), std=self.R).view(size,1,1)
+                    elif args.meas_noise_distri == 'exponential':
+                        lambda_exp = torch.sqrt(1/self.r2)
+                        exponential_dist = Exponential(torch.tensor(lambda_exp))
+                        er = exponential_dist.sample((size,))
+                        er = torch.reshape(er, (size,1,1))
+                    else:
+                        raise ValueError('args.meas_noise_distri not supported!')
                     # Additive Observation Noise
                     yt = torch.add(yt,er)
+                # Multi dim noise
                 else:  
                     yt = self.H.matmul(xt)
-                    mean = torch.zeros([size,self.n])            
-                    distrib = MultivariateNormal(loc=mean, covariance_matrix=self.R)
-                    er = distrib.rsample().view(size,self.n,1)          
+                    if args.meas_noise_distri == 'normal':
+                        mean = torch.zeros([size,self.n])            
+                        distrib = MultivariateNormal(loc=mean, covariance_matrix=self.R)
+                        er = distrib.rsample().view(size,self.n,1)   
+                    elif args.meas_noise_distri == 'exponential':
+                        lambda_exp = torch.sqrt(1/self.r2)
+                        exponential_dist = Exponential(lambda_exp * torch.ones([self.n])) # here we use the same lambda for all dimensions
+                        er = exponential_dist.sample((size,))
+                        er = torch.reshape(er, (size,self.n,1))
+                    else:
+                        raise ValueError('args.meas_noise_distri not supported!')       
                     # Additive Observation Noise
                     yt = torch.add(yt,er)
 

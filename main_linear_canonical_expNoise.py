@@ -49,6 +49,7 @@ else:
     print("Using CPU")
 
 ### dataset parameters ###################################################
+# train, cv, test set size
 args.N_E = 1000
 args.N_CV = 100
 args.N_T = 200
@@ -79,7 +80,11 @@ else:
    cv_lengthMask = None
    test_lengthMask = None
 # noise
-r2 = torch.tensor([1])
+# determine noise distribution normal/exp (DEFAULT: "normal")
+args.proc_noise_distri = "exponential"
+args.meas_noise_distri = "exponential"
+dataFileName = '2x2_rq3050_T100.pt'
+r2 = torch.tensor([1e-3])
 vdB = -20 # ratio v=q2/r2
 v = 10**(vdB/10)
 q2 = torch.mul(v,r2)
@@ -102,8 +107,7 @@ args.wd = 1e-3
 ###################################
 ### Data Loader (Generate Data) ###
 ###################################
-dataFolderName = 'Simulations/Linear_canonical/data/v-20dB' + '/'
-dataFileName = '2x2_rq020_T100.pt'
+dataFolderName = 'Simulations/Linear_canonical/data/exp' + '/'
 print("Start Data Gen")
 DataGen(args, sys_model, dataFolderName + dataFileName)
 print("Data Load")

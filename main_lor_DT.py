@@ -35,17 +35,29 @@ strNow = now.strftime("%H:%M:%S")
 strTime = strToday + "_" + strNow
 print("Current Time =", strTime)
 
-###################
-###  Settings   ###
-###################
+##########################
+### Parameter settings ###
+##########################
 args = config.general_settings()
-### dataset parameters
+args.use_cuda = False # use GPU or not
+if args.use_cuda:
+   if torch.cuda.is_available():
+      device = torch.device('cuda')
+      print("Using GPU")
+      torch.set_default_tensor_type(torch.cuda.FloatTensor)
+   else:
+      raise Exception("No GPU found, please set args.use_cuda = False")
+else:
+    device = torch.device('cpu')
+    print("Using CPU")
+
+### dataset parameters ###################################################
 args.N_E = 1000
 args.N_CV = 100
 args.N_T = 200
 args.T = 100
 args.T_test = 100
-### training parameters
+### training parameters ##################################################
 args.n_steps = 2000
 args.n_batch = 30
 args.lr = 1e-3

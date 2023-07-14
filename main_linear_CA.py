@@ -5,7 +5,7 @@ from Simulations.Linear_sysmdl import SystemModel
 import Simulations.config as config
 import Simulations.utils as utils
 from Simulations.Linear_CA.parameters import F_gen,F_CV,H_identity,H_onlyPos,\
-   Q_gen,Q_CV,R_3,R_2,R_onlyPos,\
+   Q_gen,Q_CV,R_3,R_2,R_onlyPos,q2,r2,\
    m,m_cv
 
 from Smoothers.KalmanFilter_test import KFTest
@@ -30,11 +30,22 @@ print("Current Time =", strTime)
 path_results = 'RTSNet/'
 
 print("Pipeline Start")
-####################################
-### Generative Parameters For CA ###
-####################################
+#############################
+### Generative Parameters ###
+#############################
 args = config.general_settings()
-### Dataset parameters
+args.use_cuda = False # use GPU or not
+if args.use_cuda:
+   if torch.cuda.is_available():
+      device = torch.device('cuda')
+      print("Using GPU")
+      torch.set_default_tensor_type(torch.cuda.FloatTensor)
+   else:
+      raise Exception("No GPU found, please set args.use_cuda = False")
+else:
+    device = torch.device('cpu')
+    print("Using CPU")
+### Dataset parameters ######################################################
 args.N_E = 1000
 args.N_CV = 100
 args.N_T = 200
@@ -45,7 +56,7 @@ args.randomInit_test = True
 
 args.T = 100
 args.T_test = 100
-### training parameters
+### training parameters #####################################################
 KnownRandInit_train = True
 KnownRandInit_cv = True
 KnownRandInit_test = True
@@ -96,24 +107,24 @@ DatafileName = 'decimated_dt1e-2_T100_r0_randnInit.pt'
 ### System Model ###
 ####################
 # Generation model (CA)
-sys_model_gen = SystemModel(F_gen, Q_gen, H_onlyPos, R_onlyPos, args.T, args.T_test)
+sys_model_gen = SystemModel(F_gen, Q_gen, H_onlyPos, R_onlyPos, args.T, args.T_test,q2,r2)
 sys_model_gen.InitSequence(m1x_0, m2x_0_gen)# x0 and P0
 
 # Feed model (to KF, RTS and RTSNet) 
 if CV_model:
    H_onlyPos = torch.tensor([[1, 0]]).float()
-   sys_model = SystemModel(F_CV, Q_CV, H_onlyPos, R_onlyPos, args.T, args.T_test)
+   sys_model = SystemModel(F_CV, Q_CV, H_onlyPos, R_onlyPos, args.T, args.T_test,q2,r2)
    sys_model.InitSequence(m1x_0_cv, m2x_0_cv)# x0 and P0
 else:
-   sys_model = SystemModel(F_gen, Q_gen, H_onlyPos, R_onlyPos, args.T, args.T_test)
+   sys_model = SystemModel(F_gen, Q_gen, H_onlyPos, R_onlyPos, args.T, args.T_test,q2,r2)
    sys_model.InitSequence(m1x_0, m2x_0)# x0 and P0
 
 # Feed model (RTSNet pass2) 
 if CV_model:
-   sys_model_pass2 = SystemModel(F_CV, Q_CV, torch.eye(2), R_2, args.T, args.T_test)
+   sys_model_pass2 = SystemModel(F_CV, Q_CV, torch.eye(2), R_2, args.T, args.T_test,q2,r2)
    sys_model_pass2.InitSequence(m1x_0_cv, m2x_0_cv)# x0 and P0
 else:
-   sys_model_pass2 = SystemModel(F_gen, Q_gen, H_identity, R_3, args.T, args.T_test)
+   sys_model_pass2 = SystemModel(F_gen, Q_gen, H_identity, R_3, args.T, args.T_test,q2,r2)
    sys_model_pass2.InitSequence(m1x_0, m2x_0)# x0 and P0
 
 
