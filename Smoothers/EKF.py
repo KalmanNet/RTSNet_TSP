@@ -8,27 +8,34 @@ from Simulations.Lorenz_Atractor.parameters import getJacobian
 class ExtendedKalmanFilter:
 
     def __init__(self, SystemModel):
+        ####################
+        ### Motion Model ###
+        ####################
         self.f = SystemModel.f
-        self.m = SystemModel.m
-
-        # Has to be transformed because of EKF non-linearity
-        self.Q = SystemModel.Q
-
+        self.m = SystemModel.m    
+        self.Q = SystemModel.Q # Has to be transformed because of EKF non-linearity
+        self.Origin_f = SystemModel.Origin_f # f without batched version, for Jacobian calculation use
+        
+        #########################
+        ### Observation Model ###
+        #########################
         self.h = SystemModel.h
-        self.n = SystemModel.n
-
-        # Has to be transofrmed because of EKF non-linearity
-        self.R = SystemModel.R
-
+        self.n = SystemModel.n      
+        self.R = SystemModel.R # Has to be transofrmed because of EKF non-linearity
+        self.Origin_h = SystemModel.Origin_h # h without batched version, for Jacobian calculation use
+        
+        ################
+        ### Sequence ###
+        ################
         self.T = SystemModel.T
         self.T_test = SystemModel.T_test
-   
+
     # Predict
     def Predict(self):
         # Predict the 1-st moment of x
         self.m1x_prior = self.f(self.m1x_posterior)
         # Compute the Jacobians
-        self.UpdateJacobians(getJacobian(self.m1x_posterior,self.f), getJacobian(self.m1x_prior, self.h))
+        self.UpdateJacobians(getJacobian(self.m1x_posterior,self.Origin_f), getJacobian(self.m1x_prior, self.Origin_h))
         # Predict the 2-nd moment of x
         self.m2x_prior = torch.bmm(self.batched_F, self.m2x_posterior)
         self.m2x_prior = torch.bmm(self.m2x_prior, self.batched_F_T) + self.Q

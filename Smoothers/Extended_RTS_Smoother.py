@@ -7,16 +7,25 @@ from Simulations.Lorenz_Atractor.parameters import getJacobian
 class Extended_rts_smoother:
 
     def __init__(self, SystemModel):
+        ####################
+        ### Motion Model ###
+        ####################
         self.f = SystemModel.f
-        self.m = SystemModel.m
-
-        self.Q = SystemModel.Q
-
+        self.m = SystemModel.m    
+        self.Q = SystemModel.Q # Has to be transformed because of EKF non-linearity
+        self.Origin_f = SystemModel.Origin_f # f without batched version, for Jacobian calculation use
+        
+        #########################
+        ### Observation Model ###
+        #########################
         self.h = SystemModel.h
-        self.n = SystemModel.n
-
-        self.R = SystemModel.R
-
+        self.n = SystemModel.n      
+        self.R = SystemModel.R # Has to be transofrmed because of EKF non-linearity
+        self.Origin_h = SystemModel.Origin_h # h without batched version, for Jacobian calculation use
+        
+        ################
+        ### Sequence ###
+        ################
         self.T = SystemModel.T
         self.T_test = SystemModel.T_test
 
@@ -26,7 +35,7 @@ class Extended_rts_smoother:
         # Predict the 1-st moment of x
         self.filter_x_prior = self.f(filter_x)
         # Compute the Jacobians
-        self.UpdateJacobians(getJacobian(filter_x,self.f), getJacobian(self.filter_x_prior, self.h))
+        self.UpdateJacobians(getJacobian(filter_x,self.Origin_f), getJacobian(self.filter_x_prior, self.Origin_h))
         self.SG = torch.bmm(filter_sigma, self.batched_F_T)
         self.filter_sigma_prior = torch.bmm(self.batched_F, filter_sigma)
         self.filter_sigma_prior = torch.bmm(self.filter_sigma_prior, self.batched_F_T) + self.Q

@@ -17,9 +17,12 @@ from datetime import datetime
 from RTSNet.RTSNet_nn import RTSNetNN
 
 from Plot import Plot_extended as Plot
-
+# batched model
 from Simulations.Lorenz_Atractor.parameters import m1x_0, m2x_0, m, n,\
 f, h, hRotate, H_Rotate, H_Rotate_inv, Q_structure, R_structure
+# not batched model (for Jacobian calculation use)
+from Simulations.Lorenz_Atractor.parameters import Origin_f, Origin_h, Origin_hRotate
+
 
 print("Pipeline Start")
 ################
@@ -85,7 +88,7 @@ dataFileName = ['data_lor_v20_rq1030_T100.pt']
 ###  Generate and load data DT case   ###
 #########################################
 
-sys_model = SystemModel(f, Q, hRotate, R, args.T, args.T_test, m, n)# parameters for GT
+sys_model = SystemModel(f, Q, hRotate, R, args.T, args.T_test, m, n, Origin_f, Origin_hRotate)# parameters for GT
 sys_model.InitSequence(m1x_0, m2x_0)# x0 and P0
 
 print("Start Data Gen")
@@ -110,10 +113,10 @@ print("testset size:",test_target.size())
 
 
 # Model with partial info
-sys_model_partial = SystemModel(f, Q, h, R, args.T, args.T_test, m, n)
+sys_model_partial = SystemModel(f, Q, h, R, args.T, args.T_test, m, n, Origin_f, Origin_h)
 sys_model_partial.InitSequence(m1x_0, m2x_0)
 # Model for 2nd pass
-sys_model_pass2 = SystemModel(f, Q, h, R, args.T, args.T_test, m, n)# parameters for GT
+sys_model_pass2 = SystemModel(f, Q, h, R, args.T, args.T_test, m, n, Origin_f, Origin_h)
 sys_model_pass2.InitSequence(m1x_0, m2x_0)# x0 and P0
 
 ########################################

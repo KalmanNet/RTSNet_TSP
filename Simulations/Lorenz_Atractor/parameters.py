@@ -259,8 +259,8 @@ def Origin_getJacobian(x, g):
     
     return Jac
 
-# FIXME: batched version of getJacobian is not working properly
-def getJacobian(x, g):
+# FIXME: Currently autograd.functional.jacobian does not support batch version, so we have to use for loop
+def getJacobian(x, Origin_g):
     """
     Currently, pytorch does not have a built-in function to compute Jacobian matrix
     in a batched manner, so we have to iterate over the batch dimension.
@@ -269,18 +269,19 @@ def getJacobian(x, g):
     input g (function): function to be differentiated
     output Jac (torch.tensor): [batch_size, m, m] for f, [batch_size, n, m] for h
     """
-    try:
-        # Method 1: using F, H directly
-        _,Jac = g(x, jacobian=True)
+    ### Method 1: using F, H directly (not working due to computation precision)
+    # _,Jac = g(x, jacobian=True)
 
-    except: # only for h_nonlinear
-        # Method 2: using autograd.functional.jacobian
-        batch_size = x.shape[0]
-        Jac_x0 = torch.squeeze(autograd.functional.jacobian(Origin_h_nonlinear, torch.squeeze(x[0,:,:],0)))
-        Jac = torch.zeros([batch_size, Jac_x0.shape[0], Jac_x0.shape[1]])
-        Jac[0,:,:] = Jac_x0
-        for i in range(1,batch_size):
-            Jac[i,:,:] = torch.squeeze(autograd.functional.jacobian(Origin_h_nonlinear, torch.squeeze(x[i,:,:],0)))
+    ### Method 2: using autograd.functional.jacobian and for loop
+    batch_size = x.shape[0]
+    y0 = torch.squeeze(x[0,:,:].T)
+    Jac_x0 = torch.squeeze(autograd.functional.jacobian(Origin_g, y0))
+    Jac = torch.zeros([batch_size, Jac_x0.shape[0], Jac_x0.shape[1]])
+    Jac[0,:,:] = Jac_x0
+    for i in range(1,batch_size):
+        y = torch.squeeze(x[i,:,:].T)
+        Jac[i,:,:] = torch.squeeze(autograd.functional.jacobian(Origin_g, y))
+
     return Jac
 
 # Original version of toSpherical

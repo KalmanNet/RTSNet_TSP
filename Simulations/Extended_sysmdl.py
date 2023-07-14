@@ -18,7 +18,7 @@ from torch.distributions.multivariate_normal import MultivariateNormal
 
 class SystemModel:
 
-    def __init__(self, f, Q, h, R, T, T_test, m, n, prior_Q=None, prior_Sigma=None, prior_S=None):
+    def __init__(self, f, Q, h, R, T, T_test, m, n, Origin_f, Origin_h, prior_Q=None, prior_Sigma=None, prior_S=None):
 
         ####################
         ### Motion Model ###
@@ -26,12 +26,16 @@ class SystemModel:
         self.f = f
         self.m = m
         self.Q = Q
+
+        self.Origin_f = Origin_f # f without batched version, for Jacobian calculation use
         #########################
         ### Observation Model ###
         #########################
         self.h = h
         self.n = n
         self.R = R
+
+        self.Origin_h = Origin_h # h without batched version, for Jacobian calculation use
         ################
         ### Sequence ###
         ################

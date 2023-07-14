@@ -10,8 +10,11 @@ from Smoothers.Extended_RTS_Smoother_test import S_Test
 from Simulations.Extended_sysmdl import SystemModel
 import Simulations.config as config
 from Simulations.utils import Decimate_and_perturbate_Data,Short_Traj_Split
+# batched model
 from Simulations.Lorenz_Atractor.parameters import m1x_0, m2x_0, m, n,delta_t_gen,delta_t,\
 f, h, fInacc, Q_structure, R_structure
+# not batched model
+from Simulations.Lorenz_Atractor.parameters import Origin_f, Origin_fInacc, Origin_h
 
 from Pipelines.Pipeline_EKF import Pipeline_EKF
 from Pipelines.Pipeline_ERTS import Pipeline_ERTS as Pipeline
@@ -73,11 +76,11 @@ print("Search 1/q2 [dB]: ", 10 * torch.log10(1/lambda_q[0]**2))
 Q = (lambda_q[0]**2) * Q_structure
 R = (r[0]**2) * R_structure 
 # True Model
-sys_model_true = SystemModel(f, Q, h, R, args.T, args.T_test,m,n)
+sys_model_true = SystemModel(f, Q, h, R, args.T, args.T_test,m,n, Origin_f, Origin_h)
 sys_model_true.InitSequence(m1x_0, m2x_0)
 
 # Model with partial Info
-sys_model = SystemModel(fInacc, Q, h, R, args.T, args.T_test,m,n)
+sys_model = SystemModel(fInacc, Q, h, R, args.T, args.T_test,m,n, Origin_fInacc, Origin_h)
 sys_model.InitSequence(m1x_0, m2x_0)
 
 ##############################################
@@ -188,16 +191,16 @@ print("Observation Noise Floor(train dataset) - STD:", obs_std_dB, "[dB]")
 ### Evaluate Filters and Smoothers ###
 ######################################
 # ### EKF
-# print("Start EKF test J=5")
-# [MSE_EKF_linear_arr, MSE_EKF_linear_avg, MSE_EKF_dB_avg, EKF_KG_array, EKF_out] = EKF_test.EKFTest(args, sys_model_true, test_input, test_target)
-# print("Start EKF test J=2")
-# [MSE_EKF_linear_arr_partial, MSE_EKF_linear_avg_partial, MSE_EKF_dB_avg_partial, EKF_KG_array_partial, EKF_out_partial] = EKF_test.EKFTest(args, sys_model, test_input, test_target)
+print("Start EKF test J=5")
+[MSE_EKF_linear_arr, MSE_EKF_linear_avg, MSE_EKF_dB_avg, EKF_KG_array, EKF_out] = EKF_test.EKFTest(args, sys_model_true, test_input, test_target)
+print("Start EKF test J=2")
+[MSE_EKF_linear_arr_partial, MSE_EKF_linear_avg_partial, MSE_EKF_dB_avg_partial, EKF_KG_array_partial, EKF_out_partial] = EKF_test.EKFTest(args, sys_model, test_input, test_target)
 
 # ### MB Extended RTS
-# print("Start RTS test J=5")
-# [MSE_ERTS_linear_arr, MSE_ERTS_linear_avg, MSE_ERTS_dB_avg, ERTS_out] = S_Test(args, sys_model_true, test_input, test_target)
-# print("Start RTS test J=2")
-# [MSE_ERTS_linear_arr_partial, MSE_ERTS_linear_avg_partial, MSE_ERTS_dB_avg_partial, ERTS_out_partial] = S_Test(args, sys_model, test_input, test_target)
+print("Start RTS test J=5")
+[MSE_ERTS_linear_arr, MSE_ERTS_linear_avg, MSE_ERTS_dB_avg, ERTS_out] = S_Test(args, sys_model_true, test_input, test_target)
+print("Start RTS test J=2")
+[MSE_ERTS_linear_arr_partial, MSE_ERTS_linear_avg_partial, MSE_ERTS_dB_avg_partial, ERTS_out_partial] = S_Test(args, sys_model, test_input, test_target)
 
 ########################################
 ### KalmanNet with model mismatch ######

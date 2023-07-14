@@ -1,7 +1,7 @@
 import torch.nn as nn
 import torch
 import time
-from filters.EKF_NotBatched import ExtendedKalmanFilter
+from Smoothers.EKF_NotBatched import ExtendedKalmanFilter
 
 
 def EKFTest(args, SysModel, test_input, test_target, allStates=True):

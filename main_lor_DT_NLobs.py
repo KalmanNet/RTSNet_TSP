@@ -7,8 +7,11 @@ from Smoothers.Extended_RTS_Smoother_test import S_Test
 from Simulations.Extended_sysmdl import SystemModel
 from Simulations.utils import DataGen,Short_Traj_Split
 import Simulations.config as config
+# batched model
 from Simulations.Lorenz_Atractor.parameters import m1x_0, m2x_0, m, n,\
 f, h, h_nonlinear, Q_structure, R_structure
+# not batched model (for Jacobian calculation use)
+from Simulations.Lorenz_Atractor.parameters import Origin_f, Origin_h, Origin_h_nonlinear
 
 from Pipelines.Pipeline_ERTS import Pipeline_ERTS as Pipeline
 from Pipelines.Pipeline_concat_models import Pipeline_twoRTSNets
@@ -52,15 +55,19 @@ args.n_steps = 2000
 args.n_batch = 100
 args.lr = 1e-4
 args.wd = 1e-4
-args.CompositionLoss = True
-args.alpha = 0.5
+args.CompositionLoss = False
+if args.CompositionLoss: # set alpha for composition loss
+   args.alpha = 0.5
 
 offset = 0
 chop = False
 sequential_training = False
-path_results = 'RTSNet/'
+path_results = 'Simulations/Lorenz_Atractor/results/DT/HNL/'
 DatafolderName = 'Simulations/Lorenz_Atractor/data/T20_hNL' + '/'
-RTSNetPass1_path = 'RTSNet/checkpoints/LorenzAttracotor/DT/HNL/rq3030_T20.pt'
+RTSNetPass1_path = 'Simulations/Lorenz_Atractor/results/DT/HNL/rq3030_T20.pt'
+Dataset_for_Pass2_fileName = "Simulations/Lorenz_Atractor/data/T20_hNL/Pass1_rq3030_T20.pt"
+dataFileName = ['data_lor_v0_rq3030_T20.pt']
+# traj_resultName = ['traj_lorDT_NLobs_rq3030_T20.pt']
 r2 = torch.tensor([1e-3]) # [10, 1, 0.1, 0.01, 1e-3]
 vdB = 0 # ratio v=q2/r2
 v = 10**(vdB/10)
@@ -72,24 +79,22 @@ R = r2[0] * R_structure
 print("1/r2 [dB]: ", 10 * torch.log10(1/r2[0]))
 print("1/q2 [dB]: ", 10 * torch.log10(1/q2[0]))
 
-traj_resultName = ['traj_lorDT_NLobs_rq3030_T20.pt']
-dataFileName = ['data_lor_v0_rq3030_T20.pt']
 
 #########################################
 ###  Generate and load data DT case   ###
 #########################################
 
-sys_model = SystemModel(f, Q, h_nonlinear, R, args.T, args.T_test, m, n)# parameters for GT
+sys_model = SystemModel(f, Q, h_nonlinear, R, args.T, args.T_test, m, n, Origin_f, Origin_h_nonlinear)# parameters for GT
 sys_model.InitSequence(m1x_0, m2x_0)# x0 and P0
 ## Model with H=I          
-sys_model_H = SystemModel(f, Q, h, R, args.T,args.T_test, m, n)
+sys_model_H = SystemModel(f, Q, h, R, args.T,args.T_test, m, n,Origin_f, Origin_h)
 sys_model_H.InitSequence(m1x_0, m2x_0)
 
 # print("Start Data Gen")
 # DataGen(args, sys_model, DatafolderName + dataFileName[0])
 print("Data Load")
 print(dataFileName[0])
-[train_input_long,train_target_long, cv_input, cv_target, test_input, test_target,_,_,_] =  torch.load(DatafolderName + dataFileName[0])  
+[train_input_long,train_target_long, cv_input, cv_target, test_input, test_target] =  torch.load(DatafolderName + dataFileName[0])  
 if chop: 
    print("chop training data")    
    [train_target, train_input, train_init] = Short_Traj_Split(train_target_long, train_input_long, args.T)
@@ -138,21 +143,22 @@ print("Evaluate RTS full")
 print("RTSNet-1 start")
 RTSNet_model = RTSNetNN()
 RTSNet_model.NNBuild(sys_model, args)
-## Train Neural Network
+## Set up Pipeline
 RTSNet_Pipeline = Pipeline(strTime, "RTSNet", "RTSNet")
 RTSNet_Pipeline.setssModel(sys_model)
 RTSNet_Pipeline.setModel(RTSNet_model)
 print("Number of trainable parameters for RTSNet:",sum(p.numel() for p in RTSNet_model.parameters() if p.requires_grad))
 RTSNet_Pipeline.setTrainingParams(args) 
-if(chop):
-   [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results,randomInit=True,train_init=train_init)
-else:
-   print("Composition Loss:",args.CompositionLoss)
-   [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results)
+## Train Neural Network
+# if(chop):
+#    [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results,randomInit=True,train_init=train_init)
+# else:
+#    print("Composition Loss:",args.CompositionLoss)
+#    [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = RTSNet_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results)
 ## Test Neural Network
-[MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model, test_input, test_target, path_results)
+# [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model, test_input, test_target, path_results)
 ## Save trained model
-torch.save(RTSNet_Pipeline.model, RTSNetPass1_path)
+# torch.save(RTSNet_Pipeline.model, RTSNetPass1_path)
 
 ###############################################
 ### Concat two RTSNets with model mismatch  ###
@@ -164,17 +170,15 @@ args.out_mult_RTSNet = 40
 
 ### Train pass2 on the output of pass1
 print("test pass1 on Train Set")
-fileName = "Simulations/Lorenz_Atractor/data/T20_hNL/Pass1_rq3030_T20.pt"
-
 ### Generate dataset for pass2
 [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out_train,RunTime] = RTSNet_Pipeline.NNTest(sys_model, train_input, train_target, path_results)
 cv_input_pass2 = rtsnet_out_train[0:args.N_CV]
 cv_target_pass2 = train_target[0:args.N_CV]
 train_input_pass2 = rtsnet_out_train[args.N_CV:-1]
 train_target_pass2 = train_target[args.N_CV:-1]
-torch.save([train_input_pass2, train_target_pass2, cv_input_pass2, cv_target_pass2], fileName)
+torch.save([train_input_pass2, train_target_pass2, cv_input_pass2, cv_target_pass2], Dataset_for_Pass2_fileName)
 
-[train_input_pass2, train_target_pass2, cv_input_pass2, cv_target_pass2] = torch.load(fileName)
+[train_input_pass2, train_target_pass2, cv_input_pass2, cv_target_pass2] = torch.load(Dataset_for_Pass2_fileName)
 
 print("Train RTSNet pass2")
 RTSNet_model = RTSNetNN()
@@ -229,22 +233,22 @@ print("Number of parameters for RTSNet: ",NumofParameter)
 ### Evaluate KalmanNet ###
 ##########################
 ## Build Neural Network
-print("KalmanNet start")
-KalmanNet_model = KalmanNetNN()
-KalmanNet_model.NNBuild(sys_model, args)
-## Train Neural Network
-KalmanNet_Pipeline = Pipeline_EKF(strTime, "RTSNet", "KalmanNet")
-KalmanNet_Pipeline.setssModel(sys_model)
-KalmanNet_Pipeline.setModel(KalmanNet_model)
-print("Number of trainable parameters for RTSNet:",sum(p.numel() for p in KalmanNet_model.parameters() if p.requires_grad))
-KalmanNet_Pipeline.setTrainingParams(args) 
-if(chop):
-   [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = KalmanNet_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results,randomInit=True,train_init=train_init)
-else:
-   print("Composition Loss:",args.CompositionLoss)
-   [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = KalmanNet_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results)
-## Test Neural Network
-[MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = KalmanNet_Pipeline.NNTest(sys_model, test_input, test_target, path_results)
+# print("KalmanNet start")
+# KalmanNet_model = KalmanNetNN()
+# KalmanNet_model.NNBuild(sys_model, args)
+# ## Train Neural Network
+# KalmanNet_Pipeline = Pipeline_EKF(strTime, "RTSNet", "KalmanNet")
+# KalmanNet_Pipeline.setssModel(sys_model)
+# KalmanNet_Pipeline.setModel(KalmanNet_model)
+# print("Number of trainable parameters for RTSNet:",sum(p.numel() for p in KalmanNet_model.parameters() if p.requires_grad))
+# KalmanNet_Pipeline.setTrainingParams(args) 
+# if(chop):
+#    [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = KalmanNet_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results,randomInit=True,train_init=train_init)
+# else:
+#    print("Composition Loss:",args.CompositionLoss)
+#    [MSE_cv_linear_epoch, MSE_cv_dB_epoch, MSE_train_linear_epoch, MSE_train_dB_epoch] = KalmanNet_Pipeline.NNTrain(sys_model, cv_input, cv_target, train_input, train_target, path_results)
+# ## Test Neural Network
+# [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = KalmanNet_Pipeline.NNTest(sys_model, test_input, test_target, path_results)
 
 
 

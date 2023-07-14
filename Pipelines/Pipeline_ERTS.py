@@ -30,6 +30,10 @@ class Pipeline_ERTS:
 
     def setTrainingParams(self, args):
         self.args = args
+        if args.use_cuda:
+            self.device = torch.device('cuda')
+        else:
+            self.device = torch.device('cpu')
         self.N_steps = args.n_steps  # Number of Training Steps
         self.N_B = args.n_batch # Number of Samples in Batch
         self.learningRate = args.lr # Learning Rate
@@ -294,10 +298,18 @@ class Pipeline_ERTS:
         loss_fn = nn.MSELoss(reduction='mean')
 
         # Load model
+        # if load_model:
+        #     self.model = torch.load(load_model_path) 
+        # else:
+        #     self.model = torch.load(path_results+'best-model.pt')
+        # Load model weights
         if load_model:
-            self.model = torch.load(load_model_path) 
+            model_weights = torch.load(load_model_path, map_location=self.device) 
         else:
-            self.model = torch.load(path_results+'best-model.pt')
+            model_weights = torch.load(path_results+'best-model.pt', map_location=self.device) 
+        # Set the loaded weights to the model
+        self.model.load_state_dict(model_weights)
+
         # Test mode
         self.model.eval()
         self.model.batch_size = self.N_T
