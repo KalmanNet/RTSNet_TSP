@@ -261,7 +261,9 @@ class Pipeline_ERTS:
                     self.MSE_cv_dB_opt = self.MSE_cv_dB_epoch[ti]
                     self.MSE_cv_idx_opt = ti
                     
-                    torch.save(self.model, path_results + 'best-model.pt')
+                    # torch.save(self.model, path_results + 'best-model.pt')
+                    torch.save(self.model.state_dict(), path_results + 'best-model.pt')
+
 
             ########################
             ### Training Summary ###
