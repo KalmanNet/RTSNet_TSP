@@ -262,7 +262,7 @@ class Pipeline_ERTS:
                     self.MSE_cv_idx_opt = ti
                     
                     # torch.save(self.model, path_results + 'best-model.pt')
-                    torch.save(self.model.state_dict(), path_results + 'best-model.pt')
+                    torch.save(self.model.state_dict(), path_results + 'best-model-weights.pt')
 
 
             ########################
@@ -308,7 +308,7 @@ class Pipeline_ERTS:
         if load_model:
             model_weights = torch.load(load_model_path, map_location=self.device) 
         else:
-            model_weights = torch.load(path_results+'best-model.pt', map_location=self.device) 
+            model_weights = torch.load(path_results+'best-model-weights.pt', map_location=self.device) 
         # Set the loaded weights to the model
         self.model.load_state_dict(model_weights)
 

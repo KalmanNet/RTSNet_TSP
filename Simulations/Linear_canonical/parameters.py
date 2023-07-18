@@ -11,7 +11,7 @@ This file contains the parameters for the simulations with linear canonical mode
 """
 
 import torch
-
+torch.pi = torch.acos(torch.zeros(1)).item() * 2 # which is 3.1415927410125732
 m = 2 # state dimension = 2, 5, 10, etc.
 n = 2 # observation dimension = 2, 5, 10, etc.
 

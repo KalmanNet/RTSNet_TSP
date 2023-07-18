@@ -1,5 +1,4 @@
 import torch
-torch.pi = torch.acos(torch.zeros(1)).item() * 2 # which is 3.1415927410125732
 import torch.nn as nn
 from Smoothers.EKF_test import EKFTest
 from Smoothers.Extended_RTS_Smoother_test import S_Test
@@ -52,35 +51,9 @@ else:
     print("Using CPU")
 
 ### dataset parameters ###################################################
-args.N_E = 1000
-args.N_CV = 100
-args.N_T = 200
-args.T = 100
-args.T_test = 100
-### training parameters ##################################################
-args.n_steps = 2000
-args.n_batch = 30
-args.lr = 1e-3
-args.wd = 1e-3
-
 offset = 0 # offset for the data
 chop = False # whether to chop data sequences into shorter sequences
-path_results = 'RTSNet/'
-DatafolderName = 'Simulations/Lorenz_Atractor/data/T100_Hrot1' + '/'
-switch = 'partial' # 'full' or 'partial' or 'estH'
 
-# 1pass or 2pass
-two_pass = True # if true: use two pass method, else: use one pass method
-
-load_trained_pass1 = False # if True: load trained RTSNet pass1, else train pass1
-# specify the path to save trained pass1 model
-RTSNetPass1_path = "RTSNet/checkpoints/LorenzAttracotor/DT/T100_Hrot1/rq1030_partial.pt"
-# Save the dataset generated from testing RTSNet1 on train and CV data
-load_dataset_for_pass2 = False # if True: load dataset generated from testing RTSNet1 on train and CV data
-# Specify the path to save the dataset
-DatasetPass1_path = "Simulations/Lorenz_Atractor/data/T100_Hrot1/2ndPass/partial/ResultofPass1_rq1030partial.pt" 
-
-   
 # noise q and r
 r2 = torch.tensor([0.1]) # [100, 10, 1, 0.1, 0.01]
 vdB = -20 # ratio v=q2/r2
@@ -94,17 +67,80 @@ print("1/r2 [dB]: ", 10 * torch.log10(1/r2[0]))
 print("1/q2 [dB]: ", 10 * torch.log10(1/q2[0]))
 
 traj_resultName = ['traj_lorDT_rq1030_T100.pt']
-dataFileName = ['data_lor_v20_rq1030_T100.pt']
 
-#########################################
-###  Generate and load data DT case   ###
-#########################################
+# 'data size' or 'observation mismatch' 
+sim_case = 'data size'
+if sim_case == 'data size':
+   args.N_E = 1
+   args.N_CV = 1
+   args.N_T = 10
+   args.T = 100
+   args.T_test = 1000
+   DatafolderName = 'Simulations/Lorenz_Atractor/data/data_size' + '/'
+   dataFileName = ['rq1030_size1.pt']
+   # only 'full' for data size case
+   switch = 'full'
 
-sys_model = SystemModel(f, Q, hRotate, R, args.T, args.T_test, m, n, Origin_f, Origin_hRotate)# parameters for GT
-sys_model.InitSequence(m1x_0, m2x_0)# x0 and P0
+elif sim_case == 'observation mismatch':
+   args.N_E = 1000
+   args.N_CV = 100
+   args.N_T = 200
+   args.T = 100
+   args.T_test = 100
+   DatafolderName = 'Simulations/Lorenz_Atractor/data/T100_Hrot1' + '/'
+   dataFileName = ['data_lor_v20_rq1030_T100.pt']
+   # 'full' or 'partial' or 'estH' for observation mismatch case
+   switch = 'full'
 
-print("Start Data Gen")
-DataGen(args, sys_model, DatafolderName + dataFileName[0])
+else:
+   raise Exception("No such simulation case")
+
+### training parameters ##################################################
+args.n_steps = 2000
+args.n_batch = min(30, args.N_E)
+args.lr = 1e-3
+args.wd = 1e-3
+path_results = 'RTSNet/'
+
+# 1pass or 2pass
+two_pass = False # if true: use two pass method, else: use one pass method
+
+load_trained_pass1 = False # if True: load trained RTSNet pass1, else train pass1
+# specify the path to save trained pass1 model
+RTSNetPass1_path = "RTSNet/checkpoints/LorenzAttracotor/DT/T100_Hrot1/rq1030_partial.pt"
+# Save the dataset generated from testing RTSNet1 on train and CV data
+load_dataset_for_pass2 = False # if True: load dataset generated from testing RTSNet1 on train and CV data
+# Specify the path to save the dataset
+DatasetPass1_path = "Simulations/Lorenz_Atractor/data/T100_Hrot1/2ndPass/partial/ResultofPass1_rq1030partial.pt" 
+
+
+#######################
+###  System model   ###
+#######################
+if sim_case == 'data size':
+   sys_model = SystemModel(f, Q, h, R, args.T, args.T_test, m, n, Origin_f, Origin_h)# parameters for GT
+   sys_model.InitSequence(m1x_0, m2x_0)# x0 and P0
+
+elif sim_case == 'observation mismatch':
+   sys_model = SystemModel(f, Q, hRotate, R, args.T, args.T_test, m, n, Origin_f, Origin_hRotate)# parameters for GT
+   sys_model.InitSequence(m1x_0, m2x_0)# x0 and P0
+
+   # Model with partial info
+   sys_model_partial = SystemModel(f, Q, h, R, args.T, args.T_test, m, n, Origin_f, Origin_h)
+   sys_model_partial.InitSequence(m1x_0, m2x_0)
+   # Model for 2nd pass
+   sys_model_pass2 = SystemModel(f, Q, h, R, args.T, args.T_test, m, n, Origin_f, Origin_h)
+   sys_model_pass2.InitSequence(m1x_0, m2x_0)# x0 and P0
+
+else:
+   raise Exception("No such simulation case")
+
+
+#################################
+###  Generate and load data   ###
+#################################
+# print("Start Data Gen")
+# DataGen(args, sys_model, DatafolderName + dataFileName[0])
 print("Data Load")
 print(dataFileName[0])
 [train_input_long,train_target_long, cv_input, cv_target, test_input, test_target,_,_,_] =  torch.load(DatafolderName + dataFileName[0])  
@@ -123,14 +159,6 @@ print("trainset size:",train_target.size())
 print("cvset size:",cv_target.size())
 print("testset size:",test_target.size())
 
-
-# Model with partial info
-sys_model_partial = SystemModel(f, Q, h, R, args.T, args.T_test, m, n, Origin_f, Origin_h)
-sys_model_partial.InitSequence(m1x_0, m2x_0)
-# Model for 2nd pass
-sys_model_pass2 = SystemModel(f, Q, h, R, args.T, args.T_test, m, n, Origin_f, Origin_h)
-sys_model_pass2.InitSequence(m1x_0, m2x_0)# x0 and P0
-
 ########################################
 ### Evaluate Observation Noise Floor ###
 ########################################
@@ -139,7 +167,10 @@ loss_obs = nn.MSELoss(reduction='mean')
 MSE_obs_linear_arr = torch.empty(N_T)# MSE [Linear]
 
 for j in range(0, N_T): 
-   reversed_target = torch.matmul(H_Rotate_inv, test_input[j])      
+   if sim_case == 'observation mismatch':
+      reversed_target = torch.matmul(H_Rotate_inv, test_input[j])  
+   else:
+      reversed_target = test_input[j]    
    MSE_obs_linear_arr[j] = loss_obs(reversed_target, test_target[j]).item()
 MSE_obs_linear_avg = torch.mean(MSE_obs_linear_arr)
 MSE_obs_dB_avg = 10 * torch.log10(MSE_obs_linear_avg)
@@ -165,8 +196,8 @@ print("Observation Noise Floor(test dataset) - STD:", obs_std_dB, "[dB]")
 # [MSE_EKF_linear_arr_partial, MSE_EKF_linear_avg_partial, MSE_EKF_dB_avg_partial, EKF_KG_array_partial, EKF_out_partial] = EKFTest(args, sys_model_partial, test_input, test_target)
 
 # ## Evaluate RTS true
-# print("Evaluate RTS true")
-# [MSE_ERTS_linear_arr, MSE_ERTS_linear_avg, MSE_ERTS_dB_avg, ERTS_out] = S_Test(args, sys_model, test_input, test_target)
+print("Evaluate RTS true")
+[MSE_ERTS_linear_arr, MSE_ERTS_linear_avg, MSE_ERTS_dB_avg, ERTS_out] = S_Test(args, sys_model, test_input, test_target)
 # ### Evaluate RTS partial
 # print("Evaluate RTS partial")
 # [MSE_ERTS_linear_arr_partial, MSE_ERTS_linear_avg_partial, MSE_ERTS_dB_avg_partial, ERTS_out_partial] = S_Test(args, sys_model_partial, test_input, test_target)
