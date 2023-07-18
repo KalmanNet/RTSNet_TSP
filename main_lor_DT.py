@@ -18,9 +18,9 @@ from RTSNet.RTSNet_nn import RTSNetNN
 from Plot import Plot_extended as Plot
 # batched model
 from Simulations.Lorenz_Atractor.parameters import m1x_0, m2x_0, m, n,\
-f, h, hRotate, H_Rotate, H_Rotate_inv, Q_structure, R_structure
+f, fInacc, h, hRotate, H_Rotate, H_Rotate_inv, Q_structure, R_structure
 # not batched model (for Jacobian calculation use)
-from Simulations.Lorenz_Atractor.parameters import Origin_f, Origin_h, Origin_hRotate
+from Simulations.Lorenz_Atractor.parameters import Origin_f, Origin_fInacc, Origin_h, Origin_hRotate
 
 
 print("Pipeline Start")
@@ -71,15 +71,18 @@ traj_resultName = ['traj_lorDT_rq1030_T100.pt']
 # 'data size' or 'observation mismatch' 
 sim_case = 'data size'
 if sim_case == 'data size':
-   args.N_E = 1
-   args.N_CV = 1
+   args.N_E = 2
+   args.N_CV = 2
    args.N_T = 10
    args.T = 100
    args.T_test = 1000
    DatafolderName = 'Simulations/Lorenz_Atractor/data/data_size' + '/'
-   dataFileName = ['rq1030_size1.pt']
+   dataFileName = ['rq1030_size2.pt','rq1030_size10.pt','rq1030_size100.pt','rq1030_size1000.pt']
+   dataFileName_gen = dataFileName[0]
    # only 'full' for data size case
    switch = 'full'
+   # specify the path to save trained pass1 model
+   RTSNetPass1_path = "Simulations/Lorenz_Atractor/results/DT/data_size/best-model-weights_size2.pt"
 
 elif sim_case == 'observation mismatch':
    args.N_E = 1000
@@ -88,9 +91,11 @@ elif sim_case == 'observation mismatch':
    args.T = 100
    args.T_test = 100
    DatafolderName = 'Simulations/Lorenz_Atractor/data/T100_Hrot1' + '/'
-   dataFileName = ['data_lor_v20_rq1030_T100.pt']
+   dataFileName_gen = 'data_lor_v20_rq1030_T100.pt'
    # 'full' or 'partial' or 'estH' for observation mismatch case
    switch = 'full'
+   # specify the path to save trained pass1 model
+   RTSNetPass1_path = "RTSNet/checkpoints/LorenzAttracotor/DT/T100_Hrot1/rq1030_full.pt"
 
 else:
    raise Exception("No such simulation case")
@@ -106,8 +111,6 @@ path_results = 'RTSNet/'
 two_pass = False # if true: use two pass method, else: use one pass method
 
 load_trained_pass1 = False # if True: load trained RTSNet pass1, else train pass1
-# specify the path to save trained pass1 model
-RTSNetPass1_path = "RTSNet/checkpoints/LorenzAttracotor/DT/T100_Hrot1/rq1030_partial.pt"
 # Save the dataset generated from testing RTSNet1 on train and CV data
 load_dataset_for_pass2 = False # if True: load dataset generated from testing RTSNet1 on train and CV data
 # Specify the path to save the dataset
@@ -118,7 +121,10 @@ DatasetPass1_path = "Simulations/Lorenz_Atractor/data/T100_Hrot1/2ndPass/partial
 ###  System model   ###
 #######################
 if sim_case == 'data size':
-   sys_model = SystemModel(f, Q, h, R, args.T, args.T_test, m, n, Origin_f, Origin_h)# parameters for GT
+   sys_model_gen = SystemModel(f, Q, h, R, args.T, args.T_test, m, n, Origin_f, Origin_h)# parameters for GT
+   sys_model_gen.InitSequence(m1x_0, m2x_0)# x0 and P0
+
+   sys_model = SystemModel(fInacc, Q, h, R, args.T, args.T_test, m, n, Origin_fInacc, Origin_h)# parameters for GT
    sys_model.InitSequence(m1x_0, m2x_0)# x0 and P0
 
 elif sim_case == 'observation mismatch':
@@ -139,11 +145,16 @@ else:
 #################################
 ###  Generate and load data   ###
 #################################
-# print("Start Data Gen")
-# DataGen(args, sys_model, DatafolderName + dataFileName[0])
+print("Start Data Gen")
+DataGen(args, sys_model_gen, DatafolderName + dataFileName_gen)
 print("Data Load")
-print(dataFileName[0])
-[train_input_long,train_target_long, cv_input, cv_target, test_input, test_target,_,_,_] =  torch.load(DatafolderName + dataFileName[0])  
+print(dataFileName_gen)
+[train_input_long,train_target_long, cv_input, cv_target, test_input, test_target,_,_,_] =  torch.load(DatafolderName + dataFileName_gen)  
+
+if sim_case == 'data size':
+   print("Use the same test set from" + dataFileName[0])
+   [_,_, _,_, test_input, test_target,_,_,_] =  torch.load(DatafolderName + dataFileName[0])  
+
 if chop: 
    print("chop training data")    
    [train_target, train_input, train_init] = Short_Traj_Split(train_target_long, train_input_long, args.T)
@@ -245,7 +256,7 @@ if switch == 'full':
       ## Test Neural Network
       [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model, test_input, test_target, path_results)
       # Save trained model
-      torch.save(RTSNet_Pipeline.model, RTSNetPass1_path)
+      torch.save(RTSNet_Pipeline.model.state_dict(), RTSNetPass1_path)
    ####################################################################################
 
    if two_pass:
@@ -340,7 +351,7 @@ elif switch == 'partial':
       ## Test Neural Network
       [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model_partial, test_input, test_target, path_results)
       # Save trained model
-      torch.save(RTSNet_Pipeline.model, RTSNetPass1_path)
+      torch.save(RTSNet_Pipeline.model.state_dict(), RTSNetPass1_path)
    ###################################################################################
    if two_pass:
    #########################
@@ -443,7 +454,7 @@ elif switch == 'estH':
       ## RTSNet - 1 estH ###
       ######################
       print("RTSNet with estimated H")
-      RTSNet_Pipeline = Pipeline(strTime, "RTSNet", "RTSNetEstH_"+ dataFileName[0])
+      RTSNet_Pipeline = Pipeline(strTime, "RTSNet", "RTSNetEstH_"+ dataFileName_gen)
       RTSNet_Pipeline.setssModel(sys_model_esth)
       RTSNet_model = RTSNetNN()
       RTSNet_model.NNBuild(sys_model_esth, args)
@@ -453,7 +464,7 @@ elif switch == 'estH':
       ## Test Neural Network
       [MSE_test_linear_arr, MSE_test_linear_avg, MSE_test_dB_avg,rtsnet_out,RunTime] = RTSNet_Pipeline.NNTest(sys_model_esth, test_input, test_target, path_results)
       # Save trained model
-      torch.save(RTSNet_Pipeline.model, RTSNetPass1_path)
+      torch.save(RTSNet_Pipeline.model.state_dict(), RTSNetPass1_path)
    ###################################################################################
    if two_pass:
    ######################
