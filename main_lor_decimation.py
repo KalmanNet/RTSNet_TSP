@@ -366,6 +366,8 @@ if two_pass:
       ## Train Neural Network
       RTSNet_Pipeline = Pipeline_twoRTSNets(strTime, "RTSNet", "RTSNet")
       RTSNet_Pipeline.setModel(RTSNet_model1, RTSNet_model2)
+      RTSNet_Pipeline.setssModel(sys_model_feed)
+      RTSNet_Pipeline.setParams(args)
       NumofParameter = RTSNet_Pipeline.count_parameters()
       print("Number of parameters for RTSNet: ",NumofParameter)
       ## Test Neural Network

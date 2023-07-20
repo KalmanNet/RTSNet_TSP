@@ -55,8 +55,8 @@ class Pipeline_ERTS:
         train_lengthMask=None,cv_lengthMask=None):
 
         ### Optional: start training from previous checkpoint
-        model_weights = torch.load(path_results+'best-model-weights.pt', map_location=self.device) 
-        self.model.load_state_dict(model_weights)
+        # model_weights = torch.load(path_results+'best-model-weights.pt', map_location=self.device) 
+        # self.model.load_state_dict(model_weights)
 
         self.N_E = len(train_input)
         self.N_CV = len(cv_input)
