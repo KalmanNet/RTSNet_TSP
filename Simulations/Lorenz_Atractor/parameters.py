@@ -253,7 +253,7 @@ if(R_non_diag):
 # Original version of getJacobian
 def Origin_getJacobian(x, g):   
     y = torch.reshape((x.T),[x.size()[0]])
-
+    m = x.size()[0]
     Jac = autograd.functional.jacobian(g, y)
     Jac = Jac.view(-1,m)
     
@@ -274,8 +274,9 @@ def getJacobian(x, Origin_g):
 
     ### Method 2: using autograd.functional.jacobian and for loop
     batch_size = x.shape[0]
+    m = x.shape[1]
     y0 = torch.squeeze(x[0,:,:].T)
-    Jac_x0 = torch.squeeze(autograd.functional.jacobian(Origin_g, y0))
+    Jac_x0 = torch.squeeze(autograd.functional.jacobian(Origin_g, y0)).view(-1,m)
     Jac = torch.zeros([batch_size, Jac_x0.shape[0], Jac_x0.shape[1]])
     Jac[0,:,:] = Jac_x0
     for i in range(1,batch_size):

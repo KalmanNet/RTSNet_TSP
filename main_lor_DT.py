@@ -69,7 +69,7 @@ print("1/q2 [dB]: ", 10 * torch.log10(1/q2[0]))
 traj_resultName = ['traj_lorDT_rq1030_T100.pt']
 
 # 'data size' or 'observation mismatch' 
-sim_case = 'data size'
+sim_case = 'observation mismatch'
 if sim_case == 'data size':
    args.N_E = 2
    args.N_CV = 2
@@ -145,15 +145,20 @@ else:
 #################################
 ###  Generate and load data   ###
 #################################
-print("Start Data Gen")
-DataGen(args, sys_model_gen, DatafolderName + dataFileName_gen)
+# print("Start Data Gen")
+# DataGen(args, sys_model_gen, DatafolderName + dataFileName_gen)
 print("Data Load")
 print(dataFileName_gen)
-[train_input_long,train_target_long, cv_input, cv_target, test_input, test_target,_,_,_] =  torch.load(DatafolderName + dataFileName_gen)  
+if sim_case == 'observation mismatch':
+   [train_input_long,train_target_long, cv_input, cv_target, test_input, test_target] =  torch.load(DatafolderName + dataFileName_gen)  
 
-if sim_case == 'data size':
+elif sim_case == 'data size':
+   [train_input_long,train_target_long, cv_input, cv_target, test_input, test_target,_,_,_] =  torch.load(DatafolderName + dataFileName_gen)  
    print("Use the same test set from" + dataFileName[0])
-   [_,_, _,_, test_input, test_target,_,_,_] =  torch.load(DatafolderName + dataFileName[0])  
+   [_,_, _,_, test_input, test_target,_,_,_] =  torch.load(DatafolderName + dataFileName[0]) 
+
+else:
+   raise Exception("No such simulation case") 
 
 if chop: 
    print("chop training data")    
