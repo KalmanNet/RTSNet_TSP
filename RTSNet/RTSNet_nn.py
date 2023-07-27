@@ -91,25 +91,25 @@ class RTSNetNN(KalmanNetNN):
     ################################
     def step_RTSGain_est(self, filter_x_nexttime, smoother_x_tplus2):
 
-        # Reshape and Normalize Delta tilde x_t+1 = x_t+1|T - x_t+1|t+1, size: (n_batch, m)
+        # Reshape and Normalize Delta tilde x_t+1 = x_t+1|T - x_t+1|t+1
         dm1x_tilde = self.s_m1x_nexttime - filter_x_nexttime
-        dm1x_tilde_reshape = torch.squeeze(dm1x_tilde)
+        dm1x_tilde_reshape = torch.squeeze(dm1x_tilde, 2) # size: (n_batch, m)
         bw_innov_diff = func.normalize(dm1x_tilde_reshape, p=2, dim=1, eps=1e-12, out=None)
         
         if smoother_x_tplus2 is None:
             # Reshape and Normalize Delta x_t+1 = x_t+1|t+1 - x_t+1|t (for t = T-1)
             dm1x_input2 = filter_x_nexttime - self.filter_x_prior
-            dm1x_input2_reshape = torch.squeeze(dm1x_input2) # size: (n_batch, m)
+            dm1x_input2_reshape = torch.squeeze(dm1x_input2, 2) # size: (n_batch, m)
             bw_evol_diff = func.normalize(dm1x_input2_reshape, p=2, dim=1, eps=1e-12, out=None)
         else:
             # Reshape and Normalize Delta x_t+1|T = x_t+2|T - x_t+1|T (for t = 1:T-2)
             dm1x_input2 = smoother_x_tplus2 - self.s_m1x_nexttime
-            dm1x_input2_reshape = torch.squeeze(dm1x_input2) # size: (n_batch, m)
+            dm1x_input2_reshape = torch.squeeze(dm1x_input2, 2) # size: (n_batch, m)
             bw_evol_diff = func.normalize(dm1x_input2_reshape, p=2, dim=1, eps=1e-12, out=None)
 
         # Feature 7:  x_t+1|T - x_t+1|t
         dm1x_f7 = self.s_m1x_nexttime - filter_x_nexttime
-        dm1x_f7_reshape = torch.squeeze(dm1x_f7) # size: (n_batch, m)
+        dm1x_f7_reshape = torch.squeeze(dm1x_f7, 2) # size: (n_batch, m)
         bw_update_diff = func.normalize(dm1x_f7_reshape, p=2, dim=1, eps=1e-12, out=None)
 
         # Smoother Gain Network Step
