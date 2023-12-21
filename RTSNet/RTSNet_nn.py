@@ -108,7 +108,7 @@ class RTSNetNN(KalmanNetNN):
             bw_evol_diff = func.normalize(dm1x_input2_reshape, p=2, dim=1, eps=1e-12, out=None)
 
         # Feature 7:  x_t+1|T - x_t+1|t
-        dm1x_f7 = self.s_m1x_nexttime - filter_x_nexttime
+        dm1x_f7 = self.s_m1x_nexttime - self.filter_x_prior
         dm1x_f7_reshape = torch.squeeze(dm1x_f7, 2) # size: (n_batch, m)
         bw_update_diff = func.normalize(dm1x_f7_reshape, p=2, dim=1, eps=1e-12, out=None)
 
